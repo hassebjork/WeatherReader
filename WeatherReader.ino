@@ -230,9 +230,68 @@ public:
 	}
 };
 
+class VentusDecoder : public DecodeOOK {
+public:
+	VentusDecoder () {}
+	// see also http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
+	
+	virtual void gotBit (char value) {
+		data[pos] = (data[pos] << 1) | value;
+		total_bits++;
+		pos = total_bits >> 3;
+		if (pos >= sizeof data) {
+			resetDecoder();
+			return;
+		}
+		state = OK;
+	}
+
+	virtual char decode (word width) {
+		switch (state ) {
+			case UNKNOWN:
+				if (  8500 < width && width < 9500 )
+					state = OK;
+				else
+					return -1;
+				break;
+			case OK:
+				if ( 450 <= width && width < 550)
+					state = T0;
+				else
+					return -1;
+				break;
+			case T0:
+				if ( 1800 < width && width < 4400 ) {
+					byte w = ( width > 3000 );
+					gotBit( w );
+					if ( total_bits > 35 ) {
+						data[pos] = data[pos] << 4;
+						++pos;
+						return 1;
+					}
+				} else
+					return -1;
+				break;
+			default:
+				return -1;
+		}
+		return 0;
+	}
+};
+
+struct os_timedate {
+	byte sec;
+	byte min;
+	byte hour;
+	byte mday;
+	byte month;
+	byte wday;
+	byte year;
+};
 
 OregonDecoderV2 orscV2;
 OregonDecoderV3 orscV3;
+VentusDecoder   ventus;
 
 #define PORT 2
 
@@ -304,7 +363,9 @@ void loop () {
 		if (orscV2.nextPulse(p))
 			reportSerial("OSV2", orscV2);  
 		if (orscV3.nextPulse(p))
-			reportSerial("OSV3", orscV3);        
+			reportSerial("OSV3", orscV3);
+		if (ventus.nextPulse(p))
+			reportSerial("VENT", ventus);
 	}
 }
 
