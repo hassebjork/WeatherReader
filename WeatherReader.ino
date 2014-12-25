@@ -182,6 +182,19 @@ public:
 			return;
 		}
 		state = OK;
+
+		total_bits++;
+		byte *ptr = data + pos;
+		*ptr = (*ptr >> 1) | (value << 7);
+
+		if (++bits >= 8) {
+			bits = 0;
+			if (++pos >= sizeof data) {
+				resetDecoder();
+				return;
+			}
+		}
+		state = OK;
 	}
 
 	virtual char decode (word width) {
