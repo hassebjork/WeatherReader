@@ -14,9 +14,16 @@ protected:
 
 public:
 
+	const byte reverse_bits_lookup[16] = {
+		0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
+		0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
+	};
+	
 	enum { UNKNOWN, T0, T1, T2, T3, OK, DONE };
 
 	DecodeOOK () { resetDecoder(); }
+
+	virtual bool checkSum() { return true; }
 
 	bool nextPulse (word width) {
 		if (state != DONE)
@@ -94,6 +101,10 @@ public:
 	void reverseNibbles () {
 		for (byte i = 0; i < pos; ++i)
 			data[i] = (data[i] << 4) | (data[i] >> 4);
+	}
+
+	byte reverseByte ( byte b ) {
+		return ( reverse_bits_lookup[b&0x0F] << 4 | reverse_bits_lookup[b>>4] );
 	}
 
 	void done () {
@@ -194,7 +205,16 @@ public:
 		} else {
 			return -1;
 		}
+		if ( total_bits == max_bits )
+			checkSum();
 		return total_bits == max_bits ? 1: 0;
+	}
+	
+	virtual bool checkSum() {
+		byte s = 0;
+		for ( byte i = 0; i < pos-2 ; i++ )
+			s += ( data[i] & 0xF ) + ( data[i] >> 4 );
+		return ( s - 10 ) == data[pos-2];
 	}
 };
 
@@ -262,6 +282,7 @@ public:
 
 class VentusDecoder : public DecodeOOK {
 public:
+	
 	VentusDecoder () {}
 	// see also http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
 	
@@ -297,6 +318,7 @@ public:
 					if ( total_bits > 35 ) {
 						data[pos] = data[pos] << 4;
 						++pos;
+						checkSum();
 						return 1;
 					}
 				} else
@@ -306,6 +328,20 @@ public:
 				return -1;
 		}
 		return 0;
+	}
+
+	virtual bool checkSum() {
+		byte s, t;
+		bool rain = ( ( data[1] & 0x7F ) == 0x6C );
+		s = ( rain ? 0x7 : 0xF );
+		for ( byte i = 0; i < 8; i++ ) {
+			if ( i%2 )
+				t = reverse_bits_lookup[ ( data[i/2] & 0xF )];
+			else
+				t = reverse_bits_lookup[ ( data[i/2] >> 4  )];
+			s += ( rain ? t : -t );
+		}
+		return ( s & 0x0F ) == reverse_bits_lookup[( data[4] >> 4 )];
 	}
 };
 
@@ -347,7 +383,8 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] >> 4, HEX);
 		Serial.print(data[i] & 0x0F, HEX);
 	}
-
+	Serial.print('\t');
+	Serial.print( decoder.checkSum() ? "OK" : "Fail" );
 	// Serial.print(' ');
 	// Serial.print(millis() / 1000);
 	Serial.println();
