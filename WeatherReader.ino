@@ -321,6 +321,10 @@ public:
 						checkSum();
 						return 1;
 					}
+				} else if (  8500 < width && width < 9500 ) {
+					done();
+					state = OK;
+					return 0;
 				} else
 					return -1;
 				break;
