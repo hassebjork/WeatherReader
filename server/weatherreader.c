@@ -43,6 +43,7 @@ unsigned char reverse_8bits( unsigned char n ) {
 	return ( reverse_bits_lookup[n&0x0F] << 4 | reverse_bits_lookup[n>>4] );
 }
 
+// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
 void osv2_parse( char *s ) {
 	unsigned int id;
 	unsigned char channel, batt, rolling;
@@ -52,10 +53,33 @@ void osv2_parse( char *s ) {
 	if ( id == 0x1A2D && channel == 4 )
 		channel = 3;
 	batt = hex2char( s[5] );
-	rolling = hex2char( s[6] ) * 0x10 + hex2char( s[7] );
-	
-	printf( "Id: %X Ch: %d Batt: %d Roll: %X\n", id, channel, batt, rolling );
+	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
+
+	printf( "Id: %X Ch: %d:%X Batt: %d ", id, channel, rolling, batt );
+
+	if ( id == 0x1A2D || ( id&0xFFF ) == 0xACC ) {
+		float temperature = hex2char( s[10] ) * 10 + hex2char( s[11] ) + hex2char( s[8] ) / 10;
+		if ( hex2char( s[13] ) & 0x8 )
+			temperature = -temperature;
+		unsigned char humidity = hex2char( s[15] ) * 10 + hex2char( s[12] );
+		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+	} else {
+		printf( "\n" );
+	}
 }
+// ID id CB RR t9 Tt h±  H CS CRC
+// 1A 2D 10 D6 22 05 68 C8 4F A5
+// 01 23 45 67 89 01 23 45 67 89
+// float get_os_temperature(const unsigned char *message) {
+// 	float temp_c = (message[5]>>4)*10+(message[5]&0x0f) + (message[4]>>4)/10.0F;
+// 	if (message[6] & 0x08)
+// 		return -temp_c;
+// 	return temp_c;
+// }
+// unsigned int get_os_humidity(const unsigned char *message) {
+// 	int humidity = ((message[7]&0x0f)*10)+(message[6]>>4);
+// 	return humidity;
+// }
 
 void vent_parse( char *s ) {
 	unsigned char id, crc, batt, btn, temp, type;
