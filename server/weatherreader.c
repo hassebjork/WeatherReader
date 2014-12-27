@@ -4,7 +4,16 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <signal.h>
 #include "weatherreader.h"
+
+int terminate = 0;
+
+void signal_callback_handler( int signum ) {
+	printf( "\nCaught signal %d\nExiting!\n", signum );
+	terminate = 1;
+	exit( EXIT_SUCCESS );
+}
 
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
 void *uart_receive( void *ptr ) {
@@ -26,7 +35,7 @@ void *uart_receive( void *ptr ) {
 		close( fd );
 		exit(EXIT_FAILURE);
 	}
-
+	
 	options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 8 data bits, enable receiver, local line 
 	options.c_cflag &= ~PARENB | ~CSTOPB; // No parity, one stop bit 
 	options.c_iflag &= ~( IXON | IXOFF | IXANY ); // Disable software flow control
@@ -36,8 +45,8 @@ void *uart_receive( void *ptr ) {
 	options.c_cc[VMIN] = 1; // Wait for one character before reading another
 	tcflush( fd, TCIFLUSH ); 
 	tcsetattr( fd, TCSANOW, &options ); // Set fd with new settings immediately
-
-	while ( 1 ) {
+	
+	while ( !terminate ) {
 		rcount = read( fd, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
 			perror( "Read" );
@@ -63,6 +72,8 @@ int main( int argc, char *argv[]) {
 		fprintf( stderr, "Error - pthread_create() return code: %d\n", iret1 );
 		exit(EXIT_FAILURE);
 	}
+
+	signal( SIGINT, signal_callback_handler );
 
 	/* Wait till threads are complete before main continues.  */
 	pthread_join( thread1, NULL);
