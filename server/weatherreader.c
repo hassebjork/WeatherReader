@@ -7,12 +7,114 @@
 #include <signal.h>
 #include "weatherreader.h"
 
+#define DEV_UNDEFINED 0
+#define DEV_TEMP      1
+#define DEV_TEMPHUMID 2
+#define DEV_WINDSPEED 3
+#define DEV_WINDGUST  4
+#define DEV_WINDDIR   5
+#define DEV_RAIN      6
+
 int terminate = 0;
+static unsigned char reverse_bits_lookup[16] = {
+	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
+	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
+};
 
 void signal_callback_handler( int signum ) {
 	printf( "\nCaught signal %d\nExiting!\n", signum );
 	terminate = 1;
 	exit( EXIT_SUCCESS );
+}
+
+// http://stackoverflow.com/questions/26839558/hex-char-to-int-conversion
+unsigned char hex2char( unsigned char c ) {
+	if ( '0' <= c && c <= '9' )
+		return c - '0';
+	if ( 'A' <= c && c <= 'F' )
+		return c - 'A' + 10;
+	if ( 'a' <= c && c <= 'f' )
+		return c - 'a' + 10;
+	return -1;
+}
+
+// http://stackoverflow.com/questions/2602823/in-c-c-whats-the-simplest-way-to-reverse-the-order-of-bits-in-a-byte
+unsigned char reverse_8bits( unsigned char n ) {
+	return ( reverse_bits_lookup[n&0x0F] << 4 | reverse_bits_lookup[n>>4] );
+}
+
+void osv2_parse( char *s ) {
+	unsigned int id;
+	unsigned char channel, batt, rolling;
+	
+	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
+	channel = hex2char( s[4] );
+	if ( id == 0x1A2D && channel == 4 )
+		channel = 3;
+	batt = hex2char( s[5] );
+	rolling = hex2char( s[6] ) * 0x10 + hex2char( s[7] );
+	
+	printf( "Id: %X Ch: %d Batt: %d Roll: %X\n", id, channel, batt, rolling );
+}
+
+void vent_parse( char *s ) {
+	unsigned char id, crc, batt, btn, temp, type;
+	
+	id   = hex2char( s[0] ) << 4 | hex2char( s[1] );
+	type = hex2char( s[2] );
+	batt = ( type & 0x8 == 0x8 );
+	btn  = ( type & 0x1 == 1 );
+	crc  = hex2char( s[8] );
+	temp = hex2char( s[3] );
+	
+	printf( "Id: %X Batt: %s CheckSum: %X ", id, ( batt ? "OK" : "Low" ), crc );
+	
+	if ( ( type & 0x6 ) != 0x6 ) {
+		type = DEV_TEMPHUMID;
+		temp = hex2char( s[5] );
+		float temperature = ( reverse_bits_lookup[hex2char( s[3] )] 
+				| reverse_bits_lookup[hex2char( s[4] )] << 4 
+				| reverse_bits_lookup[temp & 0xE] << 8 );
+		temperature /= 10;
+		if ( temp & 0x1 )
+			temperature -= 204.8;
+		unsigned char humidity = reverse_bits_lookup[hex2char( s[6] )] 
+				+ reverse_bits_lookup[hex2char( s[7] )] * 10;
+		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+	} else if ( ( temp & 0xF ) == 0x8 ) {
+		type = DEV_WINDSPEED;
+		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
+		printf( "Wind Speed: %.1f\n", wind );
+	} else if ( ( temp & 0xF ) == 0xC ) {
+		type = DEV_RAIN;
+		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
+			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
+		printf( "Rain: %.2f\n", rain );
+	} else if ( ( temp & 0xE ) == 0xE ) {
+		type = DEV_WINDGUST;
+		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
+		short dir = ( hex2char( s[3] ) & 0x1 )
+				| reverse_bits_lookup[hex2char( s[4] )] << 1
+				| reverse_bits_lookup[hex2char( s[5] )] << 5;
+		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
+	}
+}
+
+void parse_input( char *s ) {
+	char *str = malloc( sizeof(char) * ( strlen( s ) + 1 ) );
+	if ( str == NULL )
+		perror( "Malloc: Out of memory!" );
+	strcpy( str, s );
+	
+	if ( strncmp( str, "OSV2", 4 ) == 0 )
+		osv2_parse( str + 5 );
+	else if ( strncmp( str, "VENT", 4 ) == 0 )
+		vent_parse( str + 5 );
+	
+	printf( "%s\n", str );
+	free( str );
 }
 
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
@@ -52,7 +154,7 @@ void *uart_receive( void *ptr ) {
 			perror( "Read" );
 		} else if ( rcount > 0 ) {
 			buffer[rcount-1] = '\0';
-			printf( "%s\n", buffer );
+			parse_input( buffer );
 		}
 		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
 		usleep( 200 );
