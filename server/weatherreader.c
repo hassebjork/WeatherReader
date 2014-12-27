@@ -44,55 +44,49 @@ unsigned char reverse_8bits( unsigned char n ) {
 }
 
 // http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
+// http://www.mattlary.com/2012/06/23/weather-station-project/
 void osv2_parse( char *s ) {
 	unsigned int id;
-	unsigned char channel, batt, rolling;
+	unsigned char channel, batt, rolling, type;
 	
 	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
 	channel = hex2char( s[4] );
 	if ( id == 0x1A2D && channel == 4 )
 		channel = 3;
-	batt = hex2char( s[5] );
+	batt = hex2char( s[5] ) == 0;
 	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
 
 	printf( "Id: %X Ch: %d:%X Batt: %d ", id, channel, rolling, batt );
-
+	
+	// Temperature & Humidity sensors
+	// THGN122N, THGN123N, THGR122NX, THGR228N, THGR238, THGR268, TRGR328N
 	if ( id == 0x1A2D || ( id&0xFFF ) == 0xACC ) {
+		type = DEV_TEMPHUMID;
 		float temperature = hex2char( s[10] ) * 10 + hex2char( s[11] ) + hex2char( s[8] ) / 10;
 		if ( hex2char( s[13] ) & 0x8 )
 			temperature = -temperature;
 		unsigned char humidity = hex2char( s[15] ) * 10 + hex2char( s[12] );
 		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+	
 	} else {
+		type = DEV_UNDEFINED;
 		printf( "\n" );
 	}
 }
-// ID id CB RR t9 Tt h±  H CS CRC
-// 1A 2D 10 D6 22 05 68 C8 4F A5
-// 01 23 45 67 89 01 23 45 67 89
-// float get_os_temperature(const unsigned char *message) {
-// 	float temp_c = (message[5]>>4)*10+(message[5]&0x0f) + (message[4]>>4)/10.0F;
-// 	if (message[6] & 0x08)
-// 		return -temp_c;
-// 	return temp_c;
-// }
-// unsigned int get_os_humidity(const unsigned char *message) {
-// 	int humidity = ((message[7]&0x0f)*10)+(message[6]>>4);
-// 	return humidity;
-// }
 
 void vent_parse( char *s ) {
 	unsigned char id, crc, batt, btn, temp, type;
 	
 	id   = hex2char( s[0] ) << 4 | hex2char( s[1] );
 	type = hex2char( s[2] );
-	batt = ( type & 0x8 == 0x8 );
-	btn  = ( type & 0x1 == 1 );
+	batt = ( type & 0x8 ) == 0;
+	btn  = ( type & 0x1 ) == 1;
 	crc  = hex2char( s[8] );
 	temp = hex2char( s[3] );
 	
-	printf( "Id: %X Batt: %s CheckSum: %X ", id, ( batt ? "OK" : "Low" ), crc );
+	printf( "Id: %X Batt: %X CheckSum: %X ", id, batt, crc );
 	
+	// Temperature & Humidity
 	if ( ( type & 0x6 ) != 0x6 ) {
 		type = DEV_TEMPHUMID;
 		temp = hex2char( s[5] );
@@ -105,16 +99,22 @@ void vent_parse( char *s ) {
 		unsigned char humidity = reverse_bits_lookup[hex2char( s[6] )] 
 				+ reverse_bits_lookup[hex2char( s[7] )] * 10;
 		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+	
+	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
 		type = DEV_WINDSPEED;
 		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
 		printf( "Wind Speed: %.1f\n", wind );
+	
+	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
 		type = DEV_RAIN;
 		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 		printf( "Rain: %.2f\n", rain );
+	
+	// Wind Gust & Bearing
 	} else if ( ( temp & 0xE ) == 0xE ) {
 		type = DEV_WINDGUST;
 		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
