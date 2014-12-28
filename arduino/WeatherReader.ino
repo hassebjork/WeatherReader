@@ -133,27 +133,30 @@ public:
 		
 		// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-33
 		if ( pos == 2 ) {
-			if ( data[0] == 0xEA ) {
-				if ( data[1] == 0x4C )			// TH132N
-					max_bits = 136;
-				else if ( data[1] == 0x7C )		// UV138
-					max_bits = 240;
+			} else if ( data[0] == 0x1A ) {
+				if ( data[1] == 0x89 )			// WRGR800
+					max_bits = 176;
+				else if ( data[1] == 0x99 )		// WRGR800
+					max_bits = 176;
+			} else if ( data[0] == 0x2A ) {
+				if ( data[1] == 0x19 )			// RCR800 cs8
+					max_bits = 184;
+				else if ( data[1] == 0x1D )		// RGR918
+					max_bits = 168;
 			} else if ( data[0] == 0x5A ) {
-				if ( data[1] == 0x5D )			// THGR918
+				if ( data[1] == 0x5D )			// BTHR918
 					max_bits = 176;
 				else if ( data[1] == 0x6D )		// BTHR918N
 					max_bits = 192;
-			} else if ( data[0] == 0X2A ) {
-				if ( data[1] == 0x19 )			// RCR800
-					max_bits = 184;
-				else if ( data[1] == 0x1D )		// WGR918
-					max_bits = 168;
-			} else if ( data[0] == 0x1A && data[1] == 0x99 ) {	// WRGR800
-				max_bits = 176;
-			} else if ( data[0] == 0XDA && data[1] == 0x78 ) {	// UVN800
-				max_bits = 144;
-			} else if ( data[0] == 0X8A || data[0] == 0X9A && data[1] == 0xEC ) {	// RTGR328N
+			} else if ( data[0] == 0x8A || data[0] == 0x9A && data[1] == 0xEC ) {	// RTGR328N
 				max_bits = 208;
+			} else if ( data[0] == 0xDA && data[1] == 0x78 ) {	// UVN800
+				max_bits = 144;
+			} else if ( data[0] == 0xEA ) {
+				if ( data[1] == 0x4C )			// TH132N cs1
+					max_bits = 136;
+				else if ( data[1] == 0x7C )		// UV138 cs1
+					max_bits = 240;
 			} else {
 				max_bits = 160;
 			}
