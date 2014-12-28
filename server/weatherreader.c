@@ -43,8 +43,22 @@ unsigned char reverse_8bits( unsigned char n ) {
 	return ( reverse_bits_lookup[n&0x0F] << 4 | reverse_bits_lookup[n>>4] );
 }
 
+float osv2_temperature( char *s ) {
+	float temp =  hex2char( s[10] ) * 10 
+				+ hex2char( s[11] ) 
+				+ hex2char( s[8] ) / 10;
+	if ( hex2char( s[13] ) & 0x8 )
+		return -temp;
+	return temp;
+}
+
+unsigned char osv2_humidity( char *s ) {
+	return hex2char( s[15] ) * 10 + hex2char( s[12] );
+}
+
 // http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
 // http://www.mattlary.com/2012/06/23/weather-station-project/
+// http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
 void osv2_parse( char *s ) {
 	unsigned int id;
 	unsigned char channel, batt, rolling, type;
@@ -53,20 +67,29 @@ void osv2_parse( char *s ) {
 	channel = hex2char( s[4] );
 	if ( id == 0x1A2D && channel == 4 )
 		channel = 3;
-	batt = hex2char( s[5] ) == 0;
+	batt = hex2char( s[9] ) == 0;
 	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
 
-	printf( "Id: %X Ch: %d:%X Batt: %d ", id, channel, rolling, batt );
+	printf( "Id: %X Ch: %d:%X ", id, channel, rolling );
 	
 	// Temperature & Humidity sensors
-	// THGN122N, THGN123N, THGR122NX, THGR228N, THGR238, THGR268, TRGR328N
-	if ( id == 0x1A2D || ( id&0xFFF ) == 0xACC ) {
+	if ( ( id&0xFFF ) == 0xACC	// TRGR328N
+			|| id == 0x1A2D		// THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
+			|| id == 0xFA28 	// THGR810
+			|| id == 0xFA28 	// THGR810
+			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
+			|| id == 0xCA2C ) {	// THGR328N
 		type = DEV_TEMPHUMID;
-		float temperature = hex2char( s[10] ) * 10 + hex2char( s[11] ) + hex2char( s[8] ) / 10;
-		if ( hex2char( s[13] ) & 0x8 )
-			temperature = -temperature;
-		unsigned char humidity = hex2char( s[15] ) * 10 + hex2char( s[12] );
-		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+		float      temperature = osv2_temperature( s );
+		unsigned char humidity = osv2_humidity( s );
+		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
+	
+	// Temperature sensors
+	} else if ( id == 0x0A4D	// THR128
+			|| id == 0xEA4C ) {	// THWR288A, THN132N
+		float temperature = osv2_temperature( s );
+		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
+		
 	
 	} else {
 		type = DEV_UNDEFINED;
