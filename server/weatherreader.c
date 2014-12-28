@@ -72,10 +72,16 @@ void osv2_parse( char *s ) {
 
 	printf( "Id: %X Ch: %d:%X ", id, channel, rolling );
 	
-	// Temperature & Humidity sensors
-	if ( ( id&0xFFF ) == 0xACC	// TRGR328N
+	// Temperature & Humidity sensors		IDid	Product identifier
+	// 	ID id Ci RR vB Tt h± ?H CS CRC		C		Channel (some sensors 4=>3)
+	// 	1A 2D 10 D6 22 05 68 C8 4F A5		i		ID LSB? then 2nd char (A) is preample
+	// 	1A 2D 20 72 40 18 80 83 3B 98		RR		Rolling code
+	// 	1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
+	// 	CA CC 53 7D 70 19 50 83 61 1C		±Ttv	Temperature BCD ±Tt.v
+	//										Hh		Humidity BCD Hh
+	if ( ( id&0xFFF ) == 0xACC	// TRGR328N	CS		CheckSun
+			|| id == 0xFA28 	// THGR810	CRC		CRC8 code?
 			|| id == 0x1A2D		// THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
-			|| id == 0xFA28 	// THGR810
 			|| id == 0xFA28 	// THGR810
 			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
 			|| id == 0xCA2C ) {	// THGR328N
