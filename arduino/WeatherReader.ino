@@ -133,7 +133,7 @@ public:
 		
 		// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-33
 		if ( pos == 2 ) {
-			} else if ( data[0] == 0x1A ) {
+			if ( data[0] == 0x1A ) {
 				if ( data[1] == 0x89 )			// WRGR800
 					max_bits = 176;
 				else if ( data[1] == 0x99 )		// WRGR800
