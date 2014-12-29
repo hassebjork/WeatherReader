@@ -43,11 +43,11 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS weather_humidity",
 	"DROP TABLE IF EXISTS weather_wind",
 #endif
-	"CREATE TABLE IF NOT EXISTS weather_sensors( rowid INT NOT NULL AUTO_INCREMENT, name VARCHAR(64), protocol CHAR(4), channel TINYINT, code CHAR(2), battery TINYINT, type SMALLINT, PRIMARY KEY (rowid) )",
-	"CREATE TABLE IF NOT EXISTS weather_rain( rowid INT NOT NULL AUTO_INCREMENT, created TIMESTAMP, amount FLOAT(10,2), PRIMARY KEY (rowid) )",
-	"CREATE TABLE IF NOT EXISTS weather_temperature( rowid INT NOT NULL AUTO_INCREMENT, created TIMESTAMP, amount FLOAT(4,1), PRIMARY KEY (rowid) )",
-	"CREATE TABLE IF NOT EXISTS weather_humidity( rowid INT NOT NULL AUTO_INCREMENT, created TIMESTAMP, amount TINYINT, PRIMARY KEY (rowid) )",
-	"CREATE TABLE IF NOT EXISTS weather_wind( rowid INT NOT NULL AUTO_INCREMENT, created TIMESTAMP, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, PRIMARY KEY (rowid) );"
+	"CREATE TABLE IF NOT EXISTS weather_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64), protocol CHAR(4), channel TINYINT, code CHAR(2), battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS weather_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS weather_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS weather_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS weather_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );"
 };
 
 MYSQL   *mysql;
