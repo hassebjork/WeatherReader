@@ -57,7 +57,6 @@ unsigned char osv2_humidity( char *s ) {
 }
 
 // http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
-// http://www.mattlary.com/2012/06/23/weather-station-project/
 // http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
 void osv2_parse( char *s ) {
 	unsigned int id;
@@ -71,14 +70,17 @@ void osv2_parse( char *s ) {
 	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
 
 	printf( "Id: %X Ch: %d:%X ", id, channel, rolling );
+/*
+	http://www.disk91.com/2013/technology/hardware/oregon-scientific-sensors-with-raspberry-pi/
+	http://www.mattlary.com/2012/06/23/weather-station-project/
 	
-	// Temperature & Humidity sensors		IDid	Product identifier
-	// 	ID id Ci RR vB Tt h± ?H CS CRC		C		Channel (some sensors 4=>3)
-	// 	1A 2D 10 D6 22 05 68 C8 4F A5		i		ID LSB? then 2nd char (A) is preample
-	// 	1A 2D 20 72 40 18 80 83 3B 98		RR		Rolling code
-	// 	1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
-	// 	CA CC 53 7D 70 19 50 83 61 1C		±Ttv	Temperature BCD ±Tt.v
-	//										Hh		Humidity BCD Hh
+	Temperature & Humidity sensors		IDid	Product identifier
+		ID id Ci RR vB Tt h+ ?H CS CRC		C		Channel (some sensors 4=>3)
+		1A 2D 10 D6 22 05 68 C8 4F A5		i		ID LSB? then 2nd char (A) is preample
+		1A 2D 20 72 40 18 80 83 3B 98		RR		Rolling code
+		1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
+		CA CC 53 7D 70 19 50 83 61 1C		+Ttv	Temperature BCD +Tt.v (0x0=pos 0x8=neg)
+											Hh		Humidity BCD Hh		*/
 	if ( ( id&0xFFF ) == 0xACC	// TRGR328N	CS		CheckSun
 			|| id == 0xFA28 	// THGR810	CRC		CRC8 code?
 			|| id == 0x1A2D		// THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
