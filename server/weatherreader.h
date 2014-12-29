@@ -1,5 +1,5 @@
-#ifndef AURIOL_DB_H_
-#define AURIOL_DB_H_
+#ifndef _WEATHER_READER_h_
+#define _WEATHER_READER_h_
 
 void signal_callback_handler( int signum );
 

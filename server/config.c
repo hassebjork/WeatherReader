@@ -43,6 +43,12 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	
 	/* Default Values */
 	conf->serialDevice[0]   = 0;
+
+	conf->mysqlServer[0]    = 0;
+	conf->mysqlUser[0]      = 0;
+	conf->mysqlPass[0]      = 0;
+	conf->mysqlPort         = 3306;
+	conf->mysqlDatabase[0]  = 0;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
@@ -53,11 +59,18 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
 			if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
+			
+			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
+			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
+			else if ( confStringVar( rdBuf, "mysqlPass", conf->mysqlPass ) ) {}
+			else if ( confIntVar( rdBuf, "mysqlPort", &conf->mysqlPort ) ) {}
+			else if ( confStringVar( rdBuf, "mysqlDatabase", conf->mysqlDatabase ) ) {}
 		}
 	}
 	fclose( infd );
 	
 	/* Calculated Values */
+	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
 	return( 0 );
 }
 

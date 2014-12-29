@@ -6,6 +6,7 @@
 #include <string.h>
 #include <signal.h>
 #include "weatherreader.h"
+#include "config.h"
 
 #define DEV_UNDEFINED 0
 #define DEV_TEMP      1
@@ -16,6 +17,7 @@
 #define DEV_RAIN      6
 
 int terminate = 0;
+extern ConfigSettings configFile;
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
@@ -220,11 +222,13 @@ void *uart_receive( void *ptr ) {
 
 int main( int argc, char *argv[]) {
 	pthread_t thread1;
-	const char *dev0 = "/dev/ttyUSB0";
 	int iret1;
 	
+	confReadFile( CONFIG_FILE_NAME, &configFile );
+	storageInit();
+	
 	/* Create independent threads each of which will execute function */
-	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) dev0 );
+	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
 	if ( iret1 ) {
 		fprintf( stderr, "Error - pthread_create() return code: %d\n", iret1 );
 		exit(EXIT_FAILURE);

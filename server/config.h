@@ -40,6 +40,13 @@
 typedef struct _ConfigSettings {
 	char  serialDevice[32];
 	
+	char  mysql;
+	char  mysqlServer[MAX_CONFIG_NAME_SIZE];
+	char  mysqlUser[MAX_CONFIG_NAME_SIZE];
+	char  mysqlPass[MAX_CONFIG_NAME_SIZE];
+	int   mysqlPort;
+	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
+	
 } ConfigSettings;
 
 int confReadFile( char *inFname, ConfigSettings *conf );
