@@ -119,8 +119,12 @@ public:
 
 class OregonDecoderV2 : public DecodeOOK {
 public:
-	byte max_bits = 160;
-	OregonDecoderV2() {}
+	
+	byte max_bits;
+	
+	OregonDecoderV2() {
+		max_bits = 160;
+	}
 
 	// add one bit to the packet data buffer
 	virtual void gotBit (char value) {
@@ -148,9 +152,9 @@ public:
 					max_bits = 176;
 				else if ( data[1] == 0x6D )		// BTHR918N
 					max_bits = 192;
-			} else if ( data[0] == 0x8A || data[0] == 0x9A && data[1] == 0xEC ) {	// RTGR328N
+			} else if ( ( data[0] == 0x8A || data[0] == 0x9A ) && data[1] == 0xEC ) {	// RTGR328N
 				max_bits = 208;
-			} else if ( data[0] == 0xDA && data[1] == 0x78 ) {	// UVN800
+			} else if ( ( data[0] == 0xDA ) && ( data[1] == 0x78 ) ) {	// UVN800
 				max_bits = 144;
 			} else if ( data[0] == 0xEA ) {
 				if ( data[1] == 0x4C )			// TH132N cs1
@@ -208,8 +212,8 @@ public:
 		} else {
 			return -1;
 		}
-		if ( total_bits == max_bits )
-			checkSum();
+// 		if ( total_bits == max_bits )
+// 			checkSum();
 		return total_bits == max_bits ? 1: 0;
 	}
 	
@@ -302,26 +306,26 @@ public:
 
 	virtual char decode (word width) {
 		switch (state ) {
-			case UNKNOWN:
+			case UNKNOWN:	// Preample
 				if (  8500 < width && width < 9500 )
 					state = OK;
 				else
 					return -1;
 				break;
-			case OK:
+			case OK:		// Signal On
 				if ( 450 <= width && width < 550)
 					state = T0;
 				else
 					return -1;
 				break;
-			case T0:
+			case T0:		// Signal off = bit
 				if ( 1800 < width && width < 4400 ) {
 					byte w = ( width > 3000 );
 					gotBit( w );
 					if ( total_bits > 35 ) {
 						data[pos] = data[pos] << 4;
 						++pos;
-						checkSum();
+// 						checkSum();
 						return 1;
 					}
 				} else if (  8500 < width && width < 9500 ) {
@@ -424,7 +428,6 @@ void setup () {
 }
 
 void loop () {
-	static int i = 0;
 	cli();
 	word p = pulse;
 
