@@ -56,7 +56,9 @@ void osv2_parse( char *s ) {
 	batt = hex2char( s[9] ) == 0;
 	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
 
+#if _DEBUG > 2
 	printf( "Id: %X Ch: %d:%X ", id, channel, rolling );
+#endif
 /*
 	http://www.disk91.com/2013/technology/hardware/oregon-scientific-sensors-with-raspberry-pi/
 	http://www.mattlary.com/2012/06/23/weather-station-project/
@@ -73,7 +75,9 @@ void osv2_parse( char *s ) {
 		type = DEV_TEMPERATURE | DEV_HUMIDITY;
 		float      temperature = osv2_temperature( s );
 		unsigned char humidity = osv2_humidity( s );
+#if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
+#endif
 		
 	// Temperature & Humidity sensors
 	} else if( id == 0xFA28 	// THGR810	CRC		CRC8 code?
@@ -84,19 +88,24 @@ void osv2_parse( char *s ) {
 		type = DEV_TEMPERATURE | DEV_HUMIDITY;
 		float      temperature = osv2_temperature( s );
 		unsigned char humidity = osv2_humidity( s );
+#if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
+#endif
 	
 	// Temperature sensors
 	} else if ( id == 0x0A4D	// THR128
 			|| id == 0xEA4C ) {	// THWR288A, THN132N
 		type = DEV_TEMPERATURE;
 		float temperature = osv2_temperature( s );
+#if _DEBUG > 2
 		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
-		
+#endif
 	
 	} else {
 		type = DEV_UNDEFINED;
-		printf( "\n" );
+#if _DEBUG > 2
+		printf( "Not identified!\n" );
+#endif
 		return;
 	}
 	
@@ -116,7 +125,9 @@ void vent_parse( char *s ) {
 	crc  = hex2char( s[8] );
 	temp = hex2char( s[3] );
 	
+#if _DEBUG > 2
 	printf( "Id: %X Batt: %X CheckSum: %X ", id, batt, crc );
+#endif
 	
 	// Temperature & Humidity
 	if ( ( type & 0x6 ) != 0x6 ) {
@@ -130,14 +141,18 @@ void vent_parse( char *s ) {
 			temperature -= 204.8;
 		unsigned char humidity = reverse_bits_lookup[hex2char( s[6] )] 
 				+ reverse_bits_lookup[hex2char( s[7] )] * 10;
+#if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
+#endif
 	
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
 		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
 		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
+#if _DEBUG > 2
 		printf( "Wind Speed: %.1f\n", wind );
+#endif
 	
 	// Wind Gust & Bearing
 	} else if ( ( temp & 0xE ) == 0xE ) {
@@ -147,16 +162,23 @@ void vent_parse( char *s ) {
 		short dir = ( hex2char( s[3] ) & 0x1 )
 				| reverse_bits_lookup[hex2char( s[4] )] << 1
 				| reverse_bits_lookup[hex2char( s[5] )] << 5;
+#if _DEBUG > 2
 		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
+#endif
 	
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
 		type = DEV_RAIN;
 		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
+#if _DEBUG > 2
 		printf( "Rain: %.2f\n", rain );
+#endif
 	
 	} else {
+#if _DEBUG > 2
+		printf( "Not identified!\n" );
+#endif
 		return;
 	}
 	
