@@ -4,13 +4,24 @@ WeatherReader
 This project uses an Arduino to read radio signals from wireless Weather Sensors. The Arduino is 
 powered over USB and reduces payload on the Raspberry Pi.
 All sensors work over the 433MHz band. 
-Data is sent over the USB port to a Raspberry Pi, reading it as a serial port. The data is currently 
-displayed on stdout.
+Data is sent over the USB port to a Raspberry Pi, reading it as a serial port. The raw data is 
+displayed on stdout and stored in a MySQL database.
 
-In the future the data will be stored in a MySQL database, locally or on a remote server. Optionally 
-a SQLite3 database will store data locally.
+The MySQL database is configured in a configuration file. It can be set up to operate locally or 
+on a remote server.
 
-Currently supported sensors:
+Directories:
+============
+
+arduino - Sketchbook for the arduino packet demodulizer & decoder. 
+          Compile and upload with Arduino IDE
+
+server  - Program reading the arduino and storing data to database. 
+          Build the source files like this:
+          $ make
+
+Supported sensors:
+==================
 
 Oregon Scientific sensors (version 2.1) with temperature / humidity
 - THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
