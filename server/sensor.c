@@ -30,8 +30,6 @@
 
 #include "sensor.h"
 
-#define SENSOR_PROTOCOLS_NO 2
-static const char * SENSOR_PROTOCOLS[] = { "OSV2", "VENT" };
 extern MYSQL   *mysql;
 int sensor_list_no = 0;
 
@@ -53,21 +51,28 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
  	sensor_list[sensor_list_no].protocol[4] = '\0';
  	sensor_list[sensor_list_no].name        = "";
  	sensor_list[sensor_list_no].rowid       = sensor_list_no;
-#if _DEBUG > 1
-	printf( "\nAdding " );
+	sensorMysqlInsert( &sensor_list[sensor_list_no] );
+#if _DEBUG > 4
+	printf( "Adding " );
 	sensorPrint( &sensor_list[sensor_list_no] );
 #endif
 	++sensor_list_no;
 	return &sensor_list[sensor_list_no];
 }
 
-char sensorProtocol( const char *protocol ) {
-	char i;
-	for ( i = 0; i < SENSOR_PROTOCOLS_NO; i++ ) {
-		if ( strcmp( protocol, SENSOR_PROTOCOLS[i] ) == 0 )
-			return i;
+char sensorMysqlInsert( sensor *s ) {
+	char query[512] = "";
+	sprintf( query, "INSERT INTO weather_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
+			 s->name, s->protocol, s->sensor_id, s->channel, s->rolling, s->battery, s->type );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "sensorMysqlInsert - Insert: %s\n%s\n", mysql_error( mysql ), query );
+		return 1;
 	}
-	return -1;
+	s->rowid = mysql_insert_id( mysql );
+#if _DEBUG > 4
+	printf( "SQL: %s\n", query );
+#endif
+	return 0;
 }
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type  ) {
@@ -78,7 +83,7 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 				&& sensor_list[i].channel == channel
 				&& sensor_list[i].type    == type
 				&& sensor_list[i].rolling == rolling ) {
-#if _DEBUG > 1
+#if _DEBUG > 4
 			printf( "Found " );
 			sensorPrint( &sensor_list[i] );
 #endif

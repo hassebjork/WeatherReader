@@ -232,7 +232,7 @@ int main( int argc, char *argv[]) {
 	int iret1;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-// 	storageInit();
+	storageInit();
 	
 	/* Create independent threads each of which will execute function */
 	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
