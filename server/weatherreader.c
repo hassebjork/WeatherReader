@@ -260,7 +260,7 @@ int main( int argc, char *argv[]) {
 	/* Create independent threads each of which will execute function */
 	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
 	if ( iret1 ) {
-		fprintf( stderr, "Error - pthread_create() return code: %d\n", iret1 );
+		fprintf( stderr, "ERROR in main: pthread_create() return code: %d\n", iret1 );
 		exit(EXIT_FAILURE);
 	}
 

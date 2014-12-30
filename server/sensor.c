@@ -64,21 +64,21 @@ char sensorInit() {
 	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type FROM wr_sensors";
 	
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "sensorMysqlFetchList - SELECT: %s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in sensorMysqlFetchList: Selecting\n%s\n%s\n", mysql_error( mysql ), query );
 		mysql_close( mysql );
 		return 1;
 	}
 	
 	result = mysql_store_result( mysql );
 	if ( result == NULL ) {
-		fprintf( stderr, "sensorMysqlFetchList - Store result: %s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in sensorMysqlFetchList: Storing result!\n%s\n", mysql_error( mysql ) );
 		return 1;
 	}
 	
 	sensorListFree();
 	sensor_list = (sensor *) malloc( sizeof( sensor ) * mysql_num_rows( result ) );
 	if ( !sensor_list ) {
-		fprintf( stderr, "sensorMysqlFetchList - Could not allocate memory for sensor_list\n" );
+		fprintf( stderr, "ERROR in sensorMysqlFetchList: Could not allocate memory for sensor_list\n" );
 		return 1;
 	}
 	
@@ -102,12 +102,12 @@ void sensorMysqlInit() {
 	mysql = mysql_init( NULL );
 	
 	if ( !mysql ) {
-		fprintf( stderr, "ERROR when initiating MySQL database: %s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in sensorMysqlInit: Initiating MySQL database!\n%s\n", mysql_error( mysql ) );
 		exit(5);
 	}
 	
 	if ( mysql_real_connect( mysql, configFile.mysqlServer, configFile.mysqlUser, configFile.mysqlPass, configFile.mysqlDatabase, 0, NULL, 0 ) == NULL ) {
-		fprintf( stderr, "ERROR when connecting to MySQL database: %s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in sensorMysqlInit: Can not connect to MySQL database!\n%s\n", mysql_error( mysql ) );
 		mysql_close( mysql );
 		configFile.mysql = !configFile.mysql;
 	} else {
@@ -116,7 +116,7 @@ void sensorMysqlInit() {
 		/* Create database tables, if not exits */
 		for ( i=0; i<CREATE_MYSQL_TABLE_NO; i++ ) {
 			if ( mysql_query( mysql, CREATE_TABLE_MYSQL[i] ) ) {
-				fprintf( stderr, "ERROR: Could not create database table! Error Msg: %s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
+				fprintf( stderr, "ERROR in sensorMysqlInit: Could not create db-table!\n%s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
 				mysql_close( mysql );
 				exit( 7 );
 			}
@@ -128,7 +128,7 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
-		fprintf( stderr, "sensorAdd - Out of memory allocating sensor_list\n" );
+		fprintf( stderr, "ERROR in sensorAdd: Out of memory allocating sensor_list\n" );
 		return NULL;
 	}
 	sensor_list = ptr;
@@ -156,7 +156,7 @@ char sensorMysqlInsert( sensor *s ) {
 	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
 			 s->name, s->protocol, s->sensor_id, s->channel, s->rolling, s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "sensorMysqlInsert - Insert: %s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in sensorMysqlInsert: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->rowid = mysql_insert_id( mysql );
@@ -194,6 +194,6 @@ void sensorListFree() {
 
 void sensorPrint( sensor *s ) {
 	if ( !s ) return;
-	printf( "MySQL-id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d Rolling:%X Battery:%d Type:%d\n", 
+	printf( "id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d Rolling:%X Battery:%d Type:%d\n", 
 			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, s->rolling, s->battery, s->type );
 }
