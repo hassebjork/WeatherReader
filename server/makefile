@@ -14,9 +14,9 @@ weatherreader: weatherreader.c config.c storage.c
 		weatherreader.c config.c storage.c
 		
 debug: weatherreader.c config.c storage.c
-	gcc -o weather-reader \
-		-D_DEBUG=1 \
-		-lpthread \
+	ulimit -c unlimited && gcc -o weather-reader \
+		-D_DEBUG=2 \
+		-lpthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weatherreader.c config.c storage.c

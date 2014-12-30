@@ -32,18 +32,33 @@
 
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 1
+#define CREATE_MYSQL_TABLE_NO 10
 	"DROP TABLE IF EXISTS weather_sensors ",
 	"DROP TABLE IF EXISTS weather_rain ",
 	"DROP TABLE IF EXISTS weather_temperature",
 	"DROP TABLE IF EXISTS weather_humidity",
 	"DROP TABLE IF EXISTS weather_wind",
+#else
+#define CREATE_MYSQL_TABLE_NO 5
 #endif
-	"CREATE TABLE IF NOT EXISTS weather_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64), protocol CHAR(4), channel TINYINT, code CHAR(2), battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS weather_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor INT, protocol CHAR(4), channel TINYINT, code SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS weather_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS weather_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS weather_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS weather_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );"
 };
+#if _DEBUG > 1
+#define INSERT_MYSQL_SENSORS_NO 7
+static const char * INSERT_TABLE_MYSQL[] =  {
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Ute', 0x1A2D, 'OSV2', 1, 0xD6, 1, 3);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Övervåning', 0x1A2D, 'OSV2', 2, 0x72, 1, 3);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Vind', 0x1A2D, 'OSV2', 3, 0x2D, 1, 3);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Källare', 0x1A2D, 'OSV2', 3, 0x00, 1, 3);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Kontor', 0xCACC, 'OSV2', 5, 0x7D, 1, 3);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'UteV', 0x57, 'VENT', 0, 0x00, 1, 31);",
+	"INSERT INTO weather_sensors( name, sensor, protocol, channel, code, battery, type ) VALUES ( 'Regn', 0xF1, 'VENT', 0, 0x00, 1, 32);",
+};
+#endif
 
 MYSQL   *mysql;
 int error = 0;
@@ -80,18 +95,21 @@ void storageMysqlInit() {
 		printf( "Using MySQL database:\t\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
 		
 		/* Create database tables, if not exits */
-#if _DEBUG > 1
-		for ( i=0; i<10; i++ ) {
-#else
-		for ( i=0; i<5; i++ ) {
-#endif
-			;
+		for ( i=0; i<CREATE_MYSQL_TABLE_NO; i++ ) {
 			if ( mysql_query( mysql, CREATE_TABLE_MYSQL[i] ) ) {
 				fprintf( stderr, "ERROR: Could not create database table! Error Msg: %s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
 				mysql_close( mysql );
 				exit( 7 );
 			}
 		}
+#if _DEBUG > 1
+		for ( i=0; i<INSERT_MYSQL_SENSORS_NO; i++ ) {
+			if ( mysql_query( mysql, INSERT_TABLE_MYSQL[i] ) ) {
+				fprintf( stderr, "ERROR: Could not create database table! Error Msg: %s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
+				mysql_close( mysql );
+				exit( 7 );
+			}
+		}
+#endif
 	}
-	
 }
