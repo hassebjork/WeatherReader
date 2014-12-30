@@ -8,8 +8,8 @@
 #include <termios.h>
 #include <string.h>
 #include <signal.h>
-#include "weatherreader.h"
 #include "config.h"
+#include "sensor.h"
 
 #define DEV_UNDEFINED   0
 #define DEV_TEMPERATURE 1

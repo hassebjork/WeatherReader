@@ -2,6 +2,7 @@
 
 int terminate = 0;
 extern ConfigSettings configFile;
+
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
@@ -96,7 +97,13 @@ void osv2_parse( char *s ) {
 	} else {
 		type = DEV_UNDEFINED;
 		printf( "\n" );
+		return;
 	}
+	
+	sensor *sptr;
+	sptr = sensorLookup( "OSV2", id, channel, rolling, type );
+	if ( !sptr )
+		sptr = sensorAdd( "OSV2", id, channel, rolling, type, batt );
 }
 
 void vent_parse( char *s ) {
@@ -148,7 +155,15 @@ void vent_parse( char *s ) {
 		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 		printf( "Rain: %.2f\n", rain );
+	
+	} else {
+		return;
 	}
+	
+	sensor *sptr;
+	sptr = sensorLookup( "VENT", id, 0, 0, type );
+	if ( !sptr )
+		sptr = sensorAdd( "VENT", id, 0, 0, type, batt );
 }
 
 void parse_input( char *s ) {
@@ -217,7 +232,7 @@ int main( int argc, char *argv[]) {
 	int iret1;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	storageInit();
+// 	storageInit();
 	
 	/* Create independent threads each of which will execute function */
 	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
