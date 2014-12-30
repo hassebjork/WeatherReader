@@ -95,12 +95,6 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 
 void sensorPrint( sensor *s ) {
 	if ( !s ) return;
-	printf( "MySQL-id:%i ", s->rowid );
-	printf( "Name:%s\t",    s->name );
-	printf( "Sensor:%X " ,   s->sensor_id );
-	printf( "Protocol:%s " , s->protocol );
-	printf( "Channel:%d " ,  s->channel );
-	printf( "Rolling:%X " ,  s->rolling );
-	printf( "Battery:%d " ,  s->battery );
-	printf( "Type:%d\n",    s->type );
+	printf( "MySQL-id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d Rolling:%X Battery:%d Type:%d\n", 
+			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, s->rolling, s->battery, s->type );
 }

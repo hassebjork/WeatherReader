@@ -47,18 +47,6 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS weather_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS weather_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );"
 };
-#if _DEBUG > 4
-#define INSERT_MYSQL_SENSORS_NO 7
-static const char * INSERT_TABLE_MYSQL[] =  {
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Ute', 0x1A2D, 'OSV2', 1, 0xD6, 1, 3);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Övervåning', 0x1A2D, 'OSV2', 2, 0x72, 1, 3);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Vind', 0x1A2D, 'OSV2', 3, 0x2D, 1, 3);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Källare', 0x1A2D, 'OSV2', 3, 0x00, 1, 3);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Kontor', 0xCACC, 'OSV2', 5, 0x7D, 1, 3);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'UteV', 0x57, 'VENT', 0, 0x00, 1, 31);",
-	"INSERT INTO weather_sensors( name, sensor_id, protocol, channel, rolling, battery, type ) VALUES ( 'Regn', 0xF1, 'VENT', 0, 0x00, 1, 32);",
-};
-#endif
 
 MYSQL   *mysql;
 int error = 0;
