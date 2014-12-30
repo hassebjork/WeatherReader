@@ -32,6 +32,9 @@
 #ifndef _CONFIG_h
 #define _CONFIG_h
 
+#include <string.h>
+#include <stdio.h>
+
 #define CONFIG_FILE_NAME "/etc/weather-reader.conf"
 #define READ_BUFSIZE 1000
 #define MAX_TAG_SIZE 100
@@ -48,6 +51,8 @@ typedef struct _ConfigSettings {
 	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
 	
 } ConfigSettings;
+
+ConfigSettings configFile;
 
 int confReadFile( char *inFname, ConfigSettings *conf );
 int confStringVar( char *buf, char *matchStr, char *destStr );

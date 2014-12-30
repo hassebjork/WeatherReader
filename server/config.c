@@ -29,11 +29,7 @@
 
 *************************************************************************/
 
-#include <string.h>
-#include <stdio.h>
 #include "config.h"
-
-ConfigSettings configFile;
 
 static const char LANG_CONF_OPEN_ERR[] = "ERROR: Can not open configuration file \"%s\" for reading!\n";
 
