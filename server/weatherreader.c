@@ -46,8 +46,8 @@ unsigned char osv2_humidity( char *s ) {
 // http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
 // http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
 void osv2_parse( char *s ) {
-	unsigned int id;
-	unsigned char channel, batt, rolling, type;
+	unsigned int id, type;
+	unsigned char channel, batt, rolling;
 	
 	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
 	channel = hex2char( s[4] );
@@ -116,9 +116,10 @@ void osv2_parse( char *s ) {
 }
 
 void vent_parse( char *s ) {
-	unsigned char id, crc, batt, btn, temp, type;
+	unsigned int  id, type;
+	unsigned char crc, batt, btn, temp;
 	
-	id   = hex2char( s[0] ) << 4 | hex2char( s[1] );
+	id   = (int) hex2char( s[0] ) << 4 | hex2char( s[1] );
 	type = hex2char( s[2] );
 	batt = ( type & 0x8 ) == 0;
 	btn  = ( type & 0x1 ) == 1;
@@ -254,7 +255,6 @@ int main( int argc, char *argv[]) {
 	int iret1;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	storageInit();
 	sensorInit();
 	
 	/* Create independent threads each of which will execute function */

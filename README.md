@@ -14,7 +14,8 @@ Directories:
 ============
 
 arduino - Sketchbook for the arduino packet demodulizer & decoder. 
-          Compile and upload with Arduino IDE
+          Compile and upload with Arduino IDE. Set serial baudrate to 
+          115200 view the raw data.
 
 server  - Program reading the arduino and storing data to database. 
           Build the source files like this:

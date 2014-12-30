@@ -30,13 +30,38 @@
 
 #include "sensor.h"
 
-extern MYSQL   *mysql;
+extern ConfigSettings configFile;
 int sensor_list_no = 0;
+
+static const char * CREATE_TABLE_MYSQL[] =  {
+#if _DEBUG > 4
+#define CREATE_MYSQL_TABLE_NO 10
+	"DROP TABLE IF EXISTS wr_sensors ",
+	"DROP TABLE IF EXISTS wr_rain ",
+	"DROP TABLE IF EXISTS wr_temperature",
+	"DROP TABLE IF EXISTS wr_humidity",
+	"DROP TABLE IF EXISTS wr_wind",
+#else
+#define CREATE_MYSQL_TABLE_NO 5
+#endif
+	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );"
+};
 
 char sensorInit() {
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
-	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type FROM weather_sensors";
+	
+	if ( configFile.mysql )
+		sensorMysqlInit();
+	
+	if ( !configFile.mysql )
+		printf( "WARNING: No database configured! Sending raw data to stdout only!\n" );
+	
+	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type FROM wr_sensors";
 	
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "sensorMysqlFetchList - SELECT: %s\n%s\n", mysql_error( mysql ), query );
@@ -72,7 +97,34 @@ char sensorInit() {
 	return 0;
 }
 
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type, char battery ) {
+void sensorMysqlInit() {
+	int i;
+	mysql = mysql_init( NULL );
+	
+	if ( !mysql ) {
+		fprintf( stderr, "ERROR when initiating MySQL database: %s\n", mysql_error( mysql ) );
+		exit(5);
+	}
+	
+	if ( mysql_real_connect( mysql, configFile.mysqlServer, configFile.mysqlUser, configFile.mysqlPass, configFile.mysqlDatabase, 0, NULL, 0 ) == NULL ) {
+		fprintf( stderr, "ERROR when connecting to MySQL database: %s\n", mysql_error( mysql ) );
+		mysql_close( mysql );
+		configFile.mysql = !configFile.mysql;
+	} else {
+		printf( "Using MySQL database:\t\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
+		
+		/* Create database tables, if not exits */
+		for ( i=0; i<CREATE_MYSQL_TABLE_NO; i++ ) {
+			if ( mysql_query( mysql, CREATE_TABLE_MYSQL[i] ) ) {
+				fprintf( stderr, "ERROR: Could not create database table! Error Msg: %s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
+				mysql_close( mysql );
+				exit( 7 );
+			}
+		}
+	}
+}
+
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery ) {
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
@@ -101,7 +153,7 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 
 char sensorMysqlInsert( sensor *s ) {
 	char query[512] = "";
-	sprintf( query, "INSERT INTO weather_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
+	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
 			 s->name, s->protocol, s->sensor_id, s->channel, s->rolling, s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "sensorMysqlInsert - Insert: %s\n%s\n", mysql_error( mysql ), query );
@@ -114,7 +166,7 @@ char sensorMysqlInsert( sensor *s ) {
 	return 0;
 }
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type  ) {
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type  ) {
 	sensor *ptr;
 	int i;
 	for ( i = 0; i < sensor_list_no; i++ ) {

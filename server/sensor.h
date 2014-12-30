@@ -35,26 +35,29 @@
 #include <stdlib.h>
 #include <mysql.h>
 #include <string.h>
-#include "storage.h"
+#include "config.h"
 
 typedef struct {
-	int     rowid;
-	char   *name;
-	int     sensor_id;
-	char    protocol[5];
-	char    channel;
-	char    rolling;
-	char    battery;
-	int     type;
+	unsigned int     rowid;
+	char   			*name;
+	unsigned int     sensor_id;
+	char    		 protocol[5];
+	unsigned char    channel;
+	unsigned char    rolling;
+	unsigned char    battery;
+	unsigned int     type;
 } sensor;
 
 sensor  *sensor_list;
+MYSQL   *mysql;
 
 char sensorInit();
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type, char battery );
+void sensorMysqlInit();
+
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type );
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type );
 
 void sensorListFree();
 void sensorPrint( sensor *s );
