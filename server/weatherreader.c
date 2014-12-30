@@ -73,7 +73,7 @@ void osv2_parse( char *s ) {
 			|| id == 0xFA28 	// THGR810
 			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
 			|| id == 0xCA2C ) {	// THGR328N
-		type = DEV_TEMPHUMID;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY;
 		float      temperature = osv2_temperature( s );
 		unsigned char humidity = osv2_humidity( s );
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
@@ -81,6 +81,7 @@ void osv2_parse( char *s ) {
 	// Temperature sensors
 	} else if ( id == 0x0A4D	// THR128
 			|| id == 0xEA4C ) {	// THWR288A, THN132N
+		type = DEV_TEMPERATURE;
 		float temperature = osv2_temperature( s );
 		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
 		
@@ -105,7 +106,7 @@ void vent_parse( char *s ) {
 	
 	// Temperature & Humidity
 	if ( ( type & 0x6 ) != 0x6 ) {
-		type = DEV_TEMPHUMID;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
 		temp = hex2char( s[5] );
 		float temperature = ( reverse_bits_lookup[hex2char( s[3] )] 
 				| reverse_bits_lookup[hex2char( s[4] )] << 4 
@@ -119,10 +120,20 @@ void vent_parse( char *s ) {
 	
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
-		type = DEV_WINDSPEED;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
 		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
 		printf( "Wind Speed: %.1f\n", wind );
+	
+	// Wind Gust & Bearing
+	} else if ( ( temp & 0xE ) == 0xE ) {
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
+		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
+		short dir = ( hex2char( s[3] ) & 0x1 )
+				| reverse_bits_lookup[hex2char( s[4] )] << 1
+				| reverse_bits_lookup[hex2char( s[5] )] << 5;
+		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
 	
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
@@ -130,16 +141,6 @@ void vent_parse( char *s ) {
 		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 		printf( "Rain: %.2f\n", rain );
-	
-	// Wind Gust & Bearing
-	} else if ( ( temp & 0xE ) == 0xE ) {
-		type = DEV_WINDGUST;
-		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
-				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
-		short dir = ( hex2char( s[3] ) & 0x1 )
-				| reverse_bits_lookup[hex2char( s[4] )] << 1
-				| reverse_bits_lookup[hex2char( s[5] )] << 5;
-		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
 	}
 }
 

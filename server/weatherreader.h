@@ -11,13 +11,13 @@
 #include "weatherreader.h"
 #include "config.h"
 
-#define DEV_UNDEFINED 0
-#define DEV_TEMP      1
-#define DEV_TEMPHUMID 2
-#define DEV_WINDSPEED 3
-#define DEV_WINDGUST  4
-#define DEV_WINDDIR   5
-#define DEV_RAIN      6
+#define DEV_UNDEFINED   0
+#define DEV_TEMPERATURE 1
+#define DEV_HUMIDITY    2
+#define DEV_WINDSPEED   4
+#define DEV_WINDGUST    8
+#define DEV_WINDDIR  	16
+#define DEV_RAIN        32
 
 void signal_callback_handler( int signum );
 
