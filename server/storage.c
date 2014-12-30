@@ -28,12 +28,7 @@
 
 *************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <mysql.h>
-#include <string.h>
 #include "storage.h"
-#include "config.h"
 
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 1
