@@ -67,8 +67,15 @@ void osv2_parse( char *s ) {
 		1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
 		CA CC 53 7D 70 19 50 83 61 1C		+Ttv	Temperature BCD +Tt.v (0x0=pos 0x8=neg)
 											Hh		Humidity BCD Hh		*/
-	if ( ( id&0xFFF ) == 0xACC	// TRGR328N	CS		CheckSun
-			|| id == 0xFA28 	// THGR810	CRC		CRC8 code?
+	if ( (id&0xFFF) == 0xACC ){	// RTGR328N	CS		CheckSun
+		id   = 0xCACC;	// 0x9ACC 0xAACC 0xBACC 0xCACC 0xDACC 
+		type = DEV_TEMPERATURE | DEV_HUMIDITY;
+		float      temperature = osv2_temperature( s );
+		unsigned char humidity = osv2_humidity( s );
+		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
+		
+	// Temperature & Humidity sensors
+	} else if( id == 0xFA28 	// THGR810	CRC		CRC8 code?
 			|| id == 0x1A2D		// THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
 			|| id == 0xFA28 	// THGR810
 			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
