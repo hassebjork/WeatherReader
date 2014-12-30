@@ -50,11 +50,13 @@ typedef struct {
 
 sensor  *sensor_list;
 
+char sensorInit();
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type, char battery );
 char sensorMysqlInsert( sensor *s );
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type );
 
+void sensorListFree();
 void sensorPrint( sensor *s );
 
 #endif

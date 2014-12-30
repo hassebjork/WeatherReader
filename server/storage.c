@@ -31,7 +31,7 @@
 #include "storage.h"
 
 static const char * CREATE_TABLE_MYSQL[] =  {
-#if _DEBUG > 1
+#if _DEBUG > 4
 #define CREATE_MYSQL_TABLE_NO 10
 	"DROP TABLE IF EXISTS weather_sensors ",
 	"DROP TABLE IF EXISTS weather_rain ",

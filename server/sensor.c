@@ -33,6 +33,45 @@
 extern MYSQL   *mysql;
 int sensor_list_no = 0;
 
+char sensorInit() {
+	MYSQL_RES   *result ;
+	MYSQL_ROW    row;
+	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type FROM weather_sensors";
+	
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "sensorMysqlFetchList - SELECT: %s\n%s\n", mysql_error( mysql ), query );
+		mysql_close( mysql );
+		return 1;
+	}
+	
+	result = mysql_store_result( mysql );
+	if ( result == NULL ) {
+		fprintf( stderr, "sensorMysqlFetchList - Store result: %s\n", mysql_error( mysql ) );
+		return 1;
+	}
+	
+	sensorListFree();
+	sensor_list = (sensor *) malloc( sizeof( sensor ) * mysql_num_rows( result ) );
+	if ( !sensor_list ) {
+		fprintf( stderr, "sensorMysqlFetchList - Could not allocate memory for sensor_list\n" );
+		return 1;
+	}
+	
+	while( ( row = mysql_fetch_row( result ) ) ) {
+		sensor_list[sensor_list_no].rowid       = atoi( row[0] );
+		sensor_list[sensor_list_no].name        = strdup( row[1] );
+		strncpy( sensor_list[sensor_list_no].protocol, row[2], 4 );
+		sensor_list[sensor_list_no].protocol[4] = '\0';
+		sensor_list[sensor_list_no].sensor_id   = atoi( row[3] );
+		sensor_list[sensor_list_no].channel     = atoi( row[4] );
+		sensor_list[sensor_list_no].rolling     = atoi( row[5] );
+		sensor_list[sensor_list_no].battery     = atoi( row[6] );
+		sensor_list[sensor_list_no].type        = atoi( row[7] );
+		sensor_list_no++;
+	}
+	return 0;
+}
+
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, int type, char battery ) {
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
@@ -91,6 +130,14 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 		}
 	}
 	return NULL;
+}
+
+void sensorListFree() {
+	int i;
+	for ( i = sensor_list_no - 1; i >= 0; i-- )
+		free( sensor_list[i].name );
+	free( sensor_list );
+	sensor_list_no = 0;
 }
 
 void sensorPrint( sensor *s ) {

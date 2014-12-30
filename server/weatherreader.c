@@ -255,6 +255,7 @@ int main( int argc, char *argv[]) {
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
 	storageInit();
+	sensorInit();
 	
 	/* Create independent threads each of which will execute function */
 	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
