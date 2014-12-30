@@ -1,21 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <string.h>
-#include <signal.h>
 #include "weatherreader.h"
 
-#define DEV_UNDEFINED 0
-#define DEV_TEMP      1
-#define DEV_TEMPHUMID 2
-#define DEV_WINDSPEED 3
-#define DEV_WINDGUST  4
-#define DEV_WINDDIR   5
-#define DEV_RAIN      6
-
 int terminate = 0;
+extern ConfigSettings configFile;
+
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
@@ -81,13 +68,20 @@ void osv2_parse( char *s ) {
 		1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
 		CA CC 53 7D 70 19 50 83 61 1C		+Ttv	Temperature BCD +Tt.v (0x0=pos 0x8=neg)
 											Hh		Humidity BCD Hh		*/
-	if ( ( id&0xFFF ) == 0xACC	// TRGR328N	CS		CheckSun
-			|| id == 0xFA28 	// THGR810	CRC		CRC8 code?
+	if ( (id&0xFFF) == 0xACC ){	// RTGR328N	CS		CheckSun
+		id   = 0xCACC;	// 0x9ACC 0xAACC 0xBACC 0xCACC 0xDACC 
+		type = DEV_TEMPERATURE | DEV_HUMIDITY;
+		float      temperature = osv2_temperature( s );
+		unsigned char humidity = osv2_humidity( s );
+		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
+		
+	// Temperature & Humidity sensors
+	} else if( id == 0xFA28 	// THGR810	CRC		CRC8 code?
 			|| id == 0x1A2D		// THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
 			|| id == 0xFA28 	// THGR810
 			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
 			|| id == 0xCA2C ) {	// THGR328N
-		type = DEV_TEMPHUMID;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY;
 		float      temperature = osv2_temperature( s );
 		unsigned char humidity = osv2_humidity( s );
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
@@ -95,6 +89,7 @@ void osv2_parse( char *s ) {
 	// Temperature sensors
 	} else if ( id == 0x0A4D	// THR128
 			|| id == 0xEA4C ) {	// THWR288A, THN132N
+		type = DEV_TEMPERATURE;
 		float temperature = osv2_temperature( s );
 		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
 		
@@ -102,7 +97,13 @@ void osv2_parse( char *s ) {
 	} else {
 		type = DEV_UNDEFINED;
 		printf( "\n" );
+		return;
 	}
+	
+	sensor *sptr;
+	sptr = sensorLookup( "OSV2", id, channel, rolling, type );
+	if ( !sptr )
+		sptr = sensorAdd( "OSV2", id, channel, rolling, type, batt );
 }
 
 void vent_parse( char *s ) {
@@ -119,7 +120,7 @@ void vent_parse( char *s ) {
 	
 	// Temperature & Humidity
 	if ( ( type & 0x6 ) != 0x6 ) {
-		type = DEV_TEMPHUMID;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
 		temp = hex2char( s[5] );
 		float temperature = ( reverse_bits_lookup[hex2char( s[3] )] 
 				| reverse_bits_lookup[hex2char( s[4] )] << 4 
@@ -133,10 +134,20 @@ void vent_parse( char *s ) {
 	
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
-		type = DEV_WINDSPEED;
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
 		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
 		printf( "Wind Speed: %.1f\n", wind );
+	
+	// Wind Gust & Bearing
+	} else if ( ( temp & 0xE ) == 0xE ) {
+		type = DEV_TEMPERATURE | DEV_HUMIDITY | DEV_WINDDIR | DEV_WINDGUST | DEV_WINDSPEED;
+		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
+		short dir = ( hex2char( s[3] ) & 0x1 )
+				| reverse_bits_lookup[hex2char( s[4] )] << 1
+				| reverse_bits_lookup[hex2char( s[5] )] << 5;
+		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
 	
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
@@ -145,16 +156,14 @@ void vent_parse( char *s ) {
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 		printf( "Rain: %.2f\n", rain );
 	
-	// Wind Gust & Bearing
-	} else if ( ( temp & 0xE ) == 0xE ) {
-		type = DEV_WINDGUST;
-		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
-				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
-		short dir = ( hex2char( s[3] ) & 0x1 )
-				| reverse_bits_lookup[hex2char( s[4] )] << 1
-				| reverse_bits_lookup[hex2char( s[5] )] << 5;
-		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
+	} else {
+		return;
 	}
+	
+	sensor *sptr;
+	sptr = sensorLookup( "VENT", id, 0, 0, type );
+	if ( !sptr )
+		sptr = sensorAdd( "VENT", id, 0, 0, type, batt );
 }
 
 void parse_input( char *s ) {
@@ -220,11 +229,13 @@ void *uart_receive( void *ptr ) {
 
 int main( int argc, char *argv[]) {
 	pthread_t thread1;
-	const char *dev0 = "/dev/ttyUSB0";
 	int iret1;
 	
+	confReadFile( CONFIG_FILE_NAME, &configFile );
+	storageInit();
+	
 	/* Create independent threads each of which will execute function */
-	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) dev0 );
+	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
 	if ( iret1 ) {
 		fprintf( stderr, "Error - pthread_create() return code: %d\n", iret1 );
 		exit(EXIT_FAILURE);

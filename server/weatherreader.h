@@ -1,5 +1,23 @@
-#ifndef AURIOL_DB_H_
-#define AURIOL_DB_H_
+#ifndef _WEATHER_READER_h_
+#define _WEATHER_READER_h_
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <string.h>
+#include <signal.h>
+#include "config.h"
+#include "sensor.h"
+
+#define DEV_UNDEFINED   0
+#define DEV_TEMPERATURE 1
+#define DEV_HUMIDITY    2
+#define DEV_WINDSPEED   4
+#define DEV_WINDGUST    8
+#define DEV_WINDDIR  	16
+#define DEV_RAIN        32
 
 void signal_callback_handler( int signum );
 
