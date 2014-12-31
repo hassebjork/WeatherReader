@@ -121,7 +121,7 @@ void sensorMysqlInit() {
 	}
 }
 
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery ) {
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
@@ -163,29 +163,42 @@ char sensorMysqlInsert( sensor *s ) {
 	return 0;
 }
 
-char sensorUpdateBattery( sensor *s ) {
+char sensorUpdateBattery( sensor *s, unsigned char battery ) {
 	char query[128] = "";
-	sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d)", s->battery, s->rowid );
+	sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d", battery, s->rowid );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorUpdateBattery: Updating\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
+	s->battery = battery;
 	return 0;
 }
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery ) {
+char sensorUpdateType( sensor *s, SensorType type ) {
+	char query[128] = "";
+	sprintf( query, "UPDATE wr_sensors SET type=%d WHERE id=%d", ( s->type | type ), s->rowid );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorUpdateType: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->type |= type;
+	return 0;
+}
+
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
 	sensor *ptr;
 	int i;
 	for ( i = 0; i < sensor_list_no; i++ ) {
-		if ( sensor_list[i].sensor_id == sensor_id
-				&& sensor_list[i].channel == channel
-				&& sensor_list[i].type    == type
-				&& sensor_list[i].rolling == rolling ) {
-			// Update sensor battery status if needed
-			if ( sensor_list[i].battery != battery ) {
-				sensor_list[i].battery == battery;
-				sensorUpdateBattery( &sensor_list[i] );
-			}
+		if ( sensor_list[i].sensor_id == sensor_id && sensor_list[i].channel == channel && sensor_list[i].rolling == rolling ) {
+			
+			// Update battery status if changed
+			if ( sensor_list[i].battery != battery )
+				sensorUpdateBattery( &sensor_list[i], battery );
+
+			// Update type if incorrect
+			if ( sensor_list[i].type^type )
+				sensorUpdateType( &sensor_list[i], type );
+
 #if _DEBUG > 4
 			printf( "Found " );
 			sensorPrint( &sensor_list[i] );

@@ -36,6 +36,16 @@
 #include <string.h>
 #include "config.h"
 
+typedef enum {
+	UNDEFINED   = 0,
+	TEMPERATURE = 1,
+	HUMIDITY    = 2,
+	WINDSPEED   = 4,
+	WINDGUST    = 8,
+	WINDDIR  	= 16,
+	RAIN        = 32
+} SensorType;
+
 typedef struct {
 	unsigned int     rowid;
 	char   			*name;
@@ -44,7 +54,7 @@ typedef struct {
 	unsigned char    channel;
 	unsigned char    rolling;
 	unsigned char    battery;
-	unsigned int     type;
+	SensorType       type;
 } sensor;
 
 sensor  *sensor_list;
@@ -53,11 +63,12 @@ MYSQL   *mysql;
 char sensorInit();
 void sensorMysqlInit();
 
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery );
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
-char sensorUpdateBattery( sensor *s );
+char sensorUpdateBattery( sensor *s, unsigned char battery );
+char sensorUpdateType( sensor *s, SensorType type );
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery  );
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 
 void sensorListFree();
 void sensorPrint( sensor *s );
