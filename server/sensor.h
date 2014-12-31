@@ -55,7 +55,7 @@ void sensorMysqlInit();
 
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
-char sensorUpdateBattery( sensor *s ):
+char sensorUpdateBattery( sensor *s );
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery  );
 
