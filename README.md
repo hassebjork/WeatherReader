@@ -30,6 +30,7 @@ Oregon Scientific sensors (version 2.1) with temperature / humidity
 - TRGR328N*
 - THGR810*
 - THGR918*, THGRN228NX*, THGN500*
+Not working yet: THGN132N
 
 Weather Stations with aneometer, pluviometer, temperature & humidity
 - Ventus WS155
