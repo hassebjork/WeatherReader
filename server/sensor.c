@@ -149,7 +149,7 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 }
 
 char sensorMysqlInsert( sensor *s ) {
-	char query[512] = "";
+	char query[256] = "";
 	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
 			 s->name, s->protocol, s->sensor_id, s->channel, s->rolling, s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
@@ -163,7 +163,17 @@ char sensorMysqlInsert( sensor *s ) {
 	return 0;
 }
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type  ) {
+char sensorUpdateBattery( sensor *s ) {
+	char query[128] = "";
+	sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d)", s->battery, s->rowid );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorUpdateBattery: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	return 0;
+}
+
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned int type, unsigned char battery ) {
 	sensor *ptr;
 	int i;
 	for ( i = 0; i < sensor_list_no; i++ ) {
@@ -171,6 +181,11 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 				&& sensor_list[i].channel == channel
 				&& sensor_list[i].type    == type
 				&& sensor_list[i].rolling == rolling ) {
+			// Update sensor battery status if needed
+			if ( sensor_list[i].battery != battery ) {
+				sensor_list[i].battery == battery;
+				sensorUpdateBattery( &sensor_list[i] );
+			}
 #if _DEBUG > 4
 			printf( "Found " );
 			sensorPrint( &sensor_list[i] );
@@ -178,7 +193,7 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 			return &sensor_list[i];
 		}
 	}
-	return NULL;
+	return sensorAdd( protocol, sensor_id, channel, rolling, type, battery );
 }
 
 void sensorListFree() {

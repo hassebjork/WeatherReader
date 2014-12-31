@@ -40,7 +40,7 @@
 #define MAX_TAG_SIZE 100
 #define MAX_CONFIG_NAME_SIZE 500
 
-typedef struct _ConfigSettings {
+typedef struct {
 	char  serialDevice[32];
 	
 	char  mysql;

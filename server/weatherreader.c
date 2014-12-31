@@ -63,6 +63,8 @@ void osv2_parse( char *s ) {
 	http://www.disk91.com/2013/technology/hardware/oregon-scientific-sensors-with-raspberry-pi/
 	http://www.mattlary.com/2012/06/23/weather-station-project/
 	
+	THGN132N https://github.com/phardy/WeatherStation
+	
 	Temperature & Humidity sensors		IDid	Product identifier
 		ID id Ci RR vB Tt h+ ?H CS CRC		C		Channel (some sensors 4=>3)
 		1A 2D 10 D6 22 05 68 C8 4F A5		i		ID LSB? then 2nd char (A) is preample
@@ -109,10 +111,7 @@ void osv2_parse( char *s ) {
 		return;
 	}
 	
-	sensor *sptr;
-	sptr = sensorLookup( "OSV2", id, channel, rolling, type );
-	if ( !sptr )
-		sptr = sensorAdd( "OSV2", id, channel, rolling, type, batt );
+	sensor *sptr = sensorLookup( "OSV2", id, channel, rolling, type, batt );
 }
 
 void vent_parse( char *s ) {
@@ -183,10 +182,7 @@ void vent_parse( char *s ) {
 		return;
 	}
 	
-	sensor *sptr;
-	sptr = sensorLookup( "VENT", id, 0, 0, type );
-	if ( !sptr )
-		sptr = sensorAdd( "VENT", id, 0, 0, type, batt );
+	sensor *sptr = sensorLookup( "VENT", id, 0, 0, type, batt );
 }
 
 void parse_input( char *s ) {
