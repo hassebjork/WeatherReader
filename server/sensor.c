@@ -1,9 +1,8 @@
 /*************************************************************************
-   storage.h
+   sensor.c
 
-   This module stores weather data into a database. Either the file based
-   server SQLite3 can be used or MySQL, wich gives you the option of 
-   saving data on a remote host. Both servers can be used independantly.
+   This module stores data of weather sensors into a MySQL database.
+   
    Configuration is done in the file weather-reader.conf
    
    This file is part of the Weather Station reader program WeatherReader.
@@ -35,20 +34,18 @@ int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 4
-#define CREATE_MYSQL_TABLE_NO 10
 	"DROP TABLE IF EXISTS wr_sensors ",
 	"DROP TABLE IF EXISTS wr_rain ",
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
-#else
-#define CREATE_MYSQL_TABLE_NO 5
 #endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
-	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );"
+	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
+	0
 };
 
 char sensorInit() {
@@ -114,7 +111,7 @@ void sensorMysqlInit() {
 		printf( "Using MySQL database:\t\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
 		
 		/* Create database tables, if not exits */
-		for ( i=0; i<CREATE_MYSQL_TABLE_NO; i++ ) {
+		for ( i=0; CREATE_TABLE_MYSQL[i] != 0; i++ ) {
 			if ( mysql_query( mysql, CREATE_TABLE_MYSQL[i] ) ) {
 				fprintf( stderr, "ERROR in sensorMysqlInit: Could not create db-table!\n%s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
 				mysql_close( mysql );

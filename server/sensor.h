@@ -1,9 +1,8 @@
 /*************************************************************************
    sensor.h
 
-   This module stores weather data into a database. Either the file based
-   server SQLite3 can be used or MySQL, wich gives you the option of 
-   saving data on a remote host. Both servers can be used independantly.
+   This module stores data of weather sensors into a MySQL database.
+   
    Configuration is done in the file weather-reader.conf
    
    This file is part of the Weather Station reader program WeatherReader.
