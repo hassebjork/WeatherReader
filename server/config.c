@@ -46,6 +46,8 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->mysqlPort         = 3306;
 	conf->mysqlDatabase[0]  = 0;
 	
+	conf->saveTemperatureTime = 3600;
+	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
 		return( 1 );
@@ -61,6 +63,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			else if ( confStringVar( rdBuf, "mysqlPass", conf->mysqlPass ) ) {}
 			else if ( confIntVar( rdBuf, "mysqlPort", &conf->mysqlPort ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlDatabase", conf->mysqlDatabase ) ) {}
+			else if ( confIntVar( rdBuf, "saveTemperatureTime", &conf->mysqlPort ) ) {}
 		}
 	}
 	fclose( infd );

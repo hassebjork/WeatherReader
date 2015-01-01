@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <mysql.h>
 #include <string.h>
+#include <time.h>
 #include "config.h"
 
 typedef enum {
@@ -64,12 +65,6 @@ typedef struct {
 } WindSample;
 
 typedef struct {
-	DataFloat *temperature;
-	DataInt   *humidity;
-	DataInt   *rain;
-} SensorData;
-
-typedef struct {
 	unsigned int     rowid;
 	char            *name;
 	unsigned int     sensor_id;
@@ -78,7 +73,10 @@ typedef struct {
 	unsigned char    rolling;
 	unsigned char    battery;
 	SensorType       type;
-	SensorData      *data;
+	DataFloat		*temperature;
+	DataInt			*humidity;
+	DataInt			*rain;
+	WindSample		*wind;
 } sensor;
 
 sensor  *sensor_list;

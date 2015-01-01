@@ -50,6 +50,8 @@ typedef struct {
 	int   mysqlPort;
 	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
 	
+	int   saveTemperatureTime;
+	
 } ConfigSettings;
 
 ConfigSettings configFile;

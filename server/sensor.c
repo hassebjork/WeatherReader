@@ -30,7 +30,8 @@
 #include "sensor.h"
 
 extern ConfigSettings configFile;
-int sensor_list_no = 0;
+time_t       start_time     = 0;
+unsigned int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 4
@@ -41,9 +42,9 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_wind",
 #endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
-	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
-	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
-	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, amount TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), direction SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	0
 };
@@ -89,6 +90,10 @@ char sensorInit() {
 		sensor_list[sensor_list_no].rolling     = atoi( row[5] );
 		sensor_list[sensor_list_no].battery     = atoi( row[6] );
 		sensor_list[sensor_list_no].type        = atoi( row[7] );
+		sensor_list[sensor_list_no].temperature = NULL;
+		sensor_list[sensor_list_no].humidity    = NULL;
+		sensor_list[sensor_list_no].rain        = NULL;
+		sensor_list[sensor_list_no].wind        = NULL;
 		sensor_list_no++;
 	}
 	return 0;
@@ -139,6 +144,10 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
  	sensor_list[sensor_list_no].protocol[4] = '\0';
  	sensor_list[sensor_list_no].name        = "";
  	sensor_list[sensor_list_no].rowid       = sensor_list_no;
+	sensor_list[sensor_list_no].temperature = NULL;
+	sensor_list[sensor_list_no].humidity    = NULL;
+	sensor_list[sensor_list_no].rain        = NULL;
+	sensor_list[sensor_list_no].wind        = NULL;
 	sensorMysqlInsert( &sensor_list[sensor_list_no] );
 #if _DEBUG > 4
 	printf( "Adding " );
@@ -186,19 +195,43 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 }
 
 char sensorTemperature( sensor *s, float value ) {
-	time_t time = time( NULL );
+	time_t now = time( NULL );
+	if ( s->temperature == NULL ) {
+		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
+		if ( !s->temperature ) {
+			fprintf( stderr, "ERROR in sensorTemperature: Could not allocate memory for temperature\n" );
+			return 1;
+		}
+		s->temperature->value = -300.0;
+		s->temperature->time   = 0;
+	}
+	
+	if ( s->temperature->value == value 
+		|| ( configFile.saveTemperatureTime > 0 
+		&& now < s->temperature->time ) )
+		return 0;
+
+	char query[128] = "";
+	sprintf( query, "INSERT INTO wr_temperature (sensor_id, value) VALUES(%d,%f)", s->rowid, value );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->temperature->value = value;
+	s->temperature->time  = now + configFile.saveTemperatureTime;
+	return 0;
 }
 
 char sensorHumidity( sensor *s, int value ) {
-	time_t time = time( NULL );
+	time_t now = time( NULL );
 }
 
 char sensorRain( sensor *s, float total ) {
-	time_t time = time( NULL );
+	time_t now = time( NULL );
 }
 
 char sensorWind( sensor *s, float speed, float gust, int direction ) {
-	time_t time = time( NULL );
+	time_t now = time( NULL );
 }
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
@@ -227,8 +260,13 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 
 void sensorListFree() {
 	int i;
-	for ( i = sensor_list_no - 1; i >= 0; i-- )
+	for ( i = sensor_list_no - 1; i >= 0; i-- ) {
 		free( sensor_list[i].name );
+		free( sensor_list[i].temperature );
+		free( sensor_list[i].humidity );
+		free( sensor_list[i].rain );
+		free( sensor_list[i].wind );
+	}
 	free( sensor_list );
 	sensor_list_no = 0;
 }
