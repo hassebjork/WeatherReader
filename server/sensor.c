@@ -185,6 +185,22 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 	return 0;
 }
 
+char sensorTemperature( sensor *s, float value ) {
+	time_t time = time( NULL );
+}
+
+char sensorHumidity( sensor *s, int value ) {
+	time_t time = time( NULL );
+}
+
+char sensorRain( sensor *s, float total ) {
+	time_t time = time( NULL );
+}
+
+char sensorWind( sensor *s, float speed, float gust, int direction ) {
+	time_t time = time( NULL );
+}
+
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
 	sensor *ptr;
 	int i;
