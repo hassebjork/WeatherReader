@@ -47,14 +47,38 @@ typedef enum {
 } SensorType;
 
 typedef struct {
+	float  value;
+	time_t time;
+} DataFloat;
+
+typedef struct {
+	float  windSpeed;
+	float  windGust;
+	int    windDir;
+	time_t time;
+} WindSample;
+
+typedef struct {
+	int humidity;
+	time_t time;
+} DataInt;
+
+typedef struct {
+	DataFloat *temperature;
+	DataInt   *humidity;
+	DataInt   *rain;
+} SensorData;
+
+typedef struct {
 	unsigned int     rowid;
-	char   			*name;
+	char            *name;
 	unsigned int     sensor_id;
 	char    		 protocol[5];
 	unsigned char    channel;
 	unsigned char    rolling;
 	unsigned char    battery;
 	SensorType       type;
+	SensorData     *data;
 } sensor;
 
 sensor  *sensor_list;
