@@ -52,16 +52,16 @@ typedef struct {
 } DataFloat;
 
 typedef struct {
+	int humidity;
+	time_t time;
+} DataInt;
+
+typedef struct {
 	float  windSpeed;
 	float  windGust;
 	int    windDir;
 	time_t time;
 } WindSample;
-
-typedef struct {
-	int humidity;
-	time_t time;
-} DataInt;
 
 typedef struct {
 	DataFloat *temperature;
@@ -78,7 +78,7 @@ typedef struct {
 	unsigned char    rolling;
 	unsigned char    battery;
 	SensorType       type;
-	SensorData     *data;
+	SensorData      *data;
 } sensor;
 
 sensor  *sensor_list;
@@ -91,6 +91,11 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
+
+char sensorTemperature( sensor *s, float value );
+char sensorHumidity( sensor *s, int value );
+char sensorRain( sensor *s, float total );
+char sensorWind( sensor *s, float speed, float gust, int direction );
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 
