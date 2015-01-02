@@ -249,6 +249,28 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 
 char sensorRain( sensor *s, float total ) {
 	time_t now = time( NULL );
+	if ( s->rain == NULL ) {
+		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
+		if ( !s->rain ) {
+			fprintf( stderr, "ERROR in sensorRain: Could not allocate memory for rain\n" );
+			return 1;
+		}
+		s->rain->value = -1.0;
+		s->rain->time   = 0;
+	}
+	
+	if ( s->rain->value == total || ( configFile.saveRainTime > 0 && now < s->rain->time ) )
+		return 0;
+
+	char query[128] = "";
+	sprintf( query, "INSERT INTO wr_rain (sensor_id, total) VALUES(%d,%f)", s->rowid, total );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->rain->value = total;
+	s->rain->time  = now + configFile.saveRainTime;
+	return 0;
 }
 
 char sensorWind( sensor *s, float speed, float gust, int direction ) {

@@ -48,7 +48,7 @@ unsigned char osv2_humidity( char *s ) {
 void osv2_parse( char *s ) {
 	unsigned int  id;
 	unsigned char channel, batt, rolling, humidity;
-	float temperature;
+	float         temperature, rain;
 	SensorType    type;
 	
 	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
@@ -119,6 +119,8 @@ void osv2_parse( char *s ) {
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY)
 			sensorHumidity( sptr, humidity );
+		if ( type & RAIN)
+			sensorRain( sptr, rain );
 	}
 }
 
@@ -126,7 +128,7 @@ void vent_parse( char *s ) {
 	unsigned int  id;
 	unsigned char crc, batt, btn, temp, tmp2, humidity;
 	SensorType    type;
-	float temperature;
+	float         temperature, rain;
 	
 	id   = (int) hex2char( s[0] ) << 4 | hex2char( s[1] );
 	tmp2 = hex2char( s[2] );
@@ -179,7 +181,7 @@ void vent_parse( char *s ) {
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
 		type = RAIN;
-		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
+		rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 #if _DEBUG > 2
 		printf( "Rain: %.2f\n", rain );
@@ -199,6 +201,8 @@ void vent_parse( char *s ) {
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY)
 			sensorHumidity( sptr, humidity );
+		if ( type & RAIN)
+			sensorRain( sptr, rain );
 	}
 }
 

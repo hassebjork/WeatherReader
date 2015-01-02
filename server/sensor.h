@@ -75,7 +75,7 @@ typedef struct {
 	SensorType       type;
 	DataFloat		*temperature;
 	DataInt			*humidity;
-	DataInt			*rain;
+	DataFloat		*rain;
 	WindSample		*wind;
 } sensor;
 
