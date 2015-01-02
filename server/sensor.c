@@ -34,13 +34,13 @@ time_t       start_time     = 0;
 unsigned int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
-#if _DEBUG > 4
-	"DROP TABLE IF EXISTS wr_sensors ",
-#endif
+#if _DEBUG > 1
+// 	"DROP TABLE IF EXISTS wr_sensors ",
 	"DROP TABLE IF EXISTS wr_rain ",
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
+#endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
@@ -216,7 +216,7 @@ char sensorTemperature( sensor *s, float value ) {
 		return 1;
 	}
 	s->temperature->value = value;
-	s->temperature->time  = now + configFile.saveTemperatureTime;
+	s->temperature->time  = ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
 	return 0;
 }
 
@@ -243,7 +243,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		return 1;
 	}
 	s->humidity->value = value;
-	s->humidity->time  = now + configFile.saveHumidityTime;
+	s->humidity->time  = ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -269,7 +269,7 @@ char sensorRain( sensor *s, float total ) {
 		return 1;
 	}
 	s->rain->value = total;
-	s->rain->time  = now + configFile.saveRainTime;
+	s->rain->time  = ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
 	return 0;
 }
 
