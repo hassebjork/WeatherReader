@@ -115,8 +115,10 @@ void osv2_parse( char *s ) {
 	
 	sensor *sptr = sensorLookup( "OSV2", id, channel, rolling, type, batt );
 	if ( sptr ) {
-		if ( type &TEMPERATURE )
+		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
+		if ( type & HUMIDITY)
+			sensorHumidity( sptr, humidity );
 	}
 }
 
@@ -193,8 +195,10 @@ void vent_parse( char *s ) {
 	
 	sensor *sptr = sensorLookup( "VENT", id, 0, 0, type, batt );
 	if ( sptr ) {
-		if ( type &TEMPERATURE )
+		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
+		if ( type & HUMIDITY)
+			sensorHumidity( sptr, humidity );
 	}
 }
 

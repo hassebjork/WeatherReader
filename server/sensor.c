@@ -36,11 +36,11 @@ unsigned int sensor_list_no = 0;
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 4
 	"DROP TABLE IF EXISTS wr_sensors ",
+#endif
 	"DROP TABLE IF EXISTS wr_rain ",
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
-#endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
@@ -206,9 +206,7 @@ char sensorTemperature( sensor *s, float value ) {
 		s->temperature->time   = 0;
 	}
 	
-	if ( s->temperature->value == value 
-		|| ( configFile.saveTemperatureTime > 0 
-		&& now < s->temperature->time ) )
+	if ( s->temperature->value == value || ( configFile.saveTemperatureTime > 0 && now < s->temperature->time ) )
 		return 0;
 
 	char query[128] = "";
@@ -222,8 +220,31 @@ char sensorTemperature( sensor *s, float value ) {
 	return 0;
 }
 
-char sensorHumidity( sensor *s, int value ) {
+char sensorHumidity( sensor *s, unsigned char value ) {
 	time_t now = time( NULL );
+	
+	if ( s->humidity == NULL ) {
+		s->humidity = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->humidity ) {
+			fprintf( stderr, "ERROR in sensorHumidity: Could not allocate memory for humidity\n" );
+			return 1;
+		}
+		s->humidity->value  = -1;
+		s->humidity->time   = 0;
+	}
+	
+	if ( s->humidity->value == value || ( configFile.saveHumidityTime > 0 && now < s->humidity->time ) )
+		return 0;
+
+	char query[128] = "";
+	sprintf( query, "INSERT INTO wr_humidity (sensor_id, value) VALUES(%d,%d)", s->rowid, value );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->humidity->value = value;
+	s->humidity->time  = now + configFile.saveHumidityTime;
+	return 0;
 }
 
 char sensorRain( sensor *s, float total ) {

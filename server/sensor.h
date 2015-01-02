@@ -53,7 +53,7 @@ typedef struct {
 } DataFloat;
 
 typedef struct {
-	int humidity;
+	int    value;
 	time_t time;
 } DataInt;
 
@@ -91,7 +91,7 @@ char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
 
 char sensorTemperature( sensor *s, float value );
-char sensorHumidity( sensor *s, int value );
+char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int direction );
 

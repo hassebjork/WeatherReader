@@ -51,6 +51,7 @@ typedef struct {
 	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
 	
 	int   saveTemperatureTime;
+	int   saveHumidityTime;
 	
 } ConfigSettings;
 
