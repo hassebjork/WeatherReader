@@ -206,7 +206,7 @@ char sensorTemperature( sensor *s, float value ) {
 		s->temperature->time   = 0;
 	}
 	
-	if ( s->temperature->value == value || ( configFile.saveTemperatureTime > 0 && now < s->temperature->time ) )
+	if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->time ) )
 		return 0;
 
 	char query[128] = "";
@@ -233,7 +233,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		s->humidity->time   = 0;
 	}
 	
-	if ( s->humidity->value == value || ( configFile.saveHumidityTime > 0 && now < s->humidity->time ) )
+	if ( s->humidity->value == value && ( configFile.saveHumidityTime > 0 && now < s->humidity->time ) )
 		return 0;
 
 	char query[128] = "";
@@ -259,7 +259,7 @@ char sensorRain( sensor *s, float total ) {
 		s->rain->time   = 0;
 	}
 	
-	if ( s->rain->value == total || ( configFile.saveRainTime > 0 && now < s->rain->time ) )
+	if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->time ) )
 		return 0;
 
 	char query[128] = "";
