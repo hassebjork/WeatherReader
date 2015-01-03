@@ -46,9 +46,10 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->mysqlPort         = 3306;
 	conf->mysqlDatabase[0]  = 0;
 	
-	conf->saveTemperatureTime = 3600;
-	conf->saveHumidityTime    = 3600;
-	conf->saveRainTime        = 3600;
+	conf->saveTemperatureTime = 60;
+	conf->saveHumidityTime    = 60;
+	conf->saveRainTime        = 60;
+	conf->sampleWindTime      = 60;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
@@ -65,15 +66,20 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			else if ( confStringVar( rdBuf, "mysqlPass", conf->mysqlPass ) ) {}
 			else if ( confIntVar( rdBuf, "mysqlPort", &conf->mysqlPort ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlDatabase", conf->mysqlDatabase ) ) {}
-			else if ( confIntVar( rdBuf, "saveTemperatureTime", &conf->mysqlPort ) ) {}
-			else if ( confIntVar( rdBuf, "saveHumidityTime", &conf->mysqlPort ) ) {}
-			else if ( confIntVar( rdBuf, "saveRainTime", &conf->mysqlPort ) ) {}
+			
+			else if ( confIntVar( rdBuf, "saveTemperatureTime", &conf->saveTemperatureTime ) ) {}
+			else if ( confIntVar( rdBuf, "saveHumidityTime", &conf->saveHumidityTime ) ) {}
+			else if ( confIntVar( rdBuf, "saveRainTime", &conf->saveRainTime ) ) {}
+			else if ( confIntVar( rdBuf, "sampleWindTime", &conf->sampleWindTime ) ) {}
 		}
 	}
 	fclose( infd );
-	
 	/* Calculated Values */
 	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
+	conf->saveTemperatureTime *= 60;
+	conf->saveHumidityTime    *= 60;
+	conf->saveRainTime        *= 60;
+	conf->sampleWindTime      *= 60;
 	return( 0 );
 }
 

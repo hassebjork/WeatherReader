@@ -128,7 +128,8 @@ void vent_parse( char *s ) {
 	unsigned int  id;
 	unsigned char crc, batt, btn, temp, tmp2, humidity;
 	SensorType    type;
-	float         temperature, rain;
+	float         temperature, rain, wind, gust;
+	short         dir;
 	
 	id   = (int) hex2char( s[0] ) << 4 | hex2char( s[1] );
 	tmp2 = hex2char( s[2] );
@@ -160,7 +161,7 @@ void vent_parse( char *s ) {
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
 		type = WINDSPEED;
-		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+		wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
 #if _DEBUG > 2
 		printf( "Wind Speed: %.1f\n", wind );
@@ -169,9 +170,9 @@ void vent_parse( char *s ) {
 	// Wind Gust & Bearing
 	} else if ( ( temp & 0xE ) == 0xE ) {
 		type = WINDDIR | WINDGUST;
-		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+		gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
-		short dir = ( hex2char( s[3] ) & 0x1 )
+		dir  = ( hex2char( s[3] ) & 0x1 )
 				| reverse_bits_lookup[hex2char( s[4] )] << 1
 				| reverse_bits_lookup[hex2char( s[5] )] << 5;
 #if _DEBUG > 2
@@ -203,6 +204,10 @@ void vent_parse( char *s ) {
 			sensorHumidity( sptr, humidity );
 		if ( type & RAIN)
 			sensorRain( sptr, rain );
+		if ( type & WINDSPEED)
+			sensorWind( sptr, wind, -1.0, -1 );
+		if ( type & WINDGUST)
+			sensorWind( sptr, -1.0, gust, dir );
 	}
 }
 

@@ -35,6 +35,8 @@
 #include <mysql.h>
 #include <string.h>
 #include <time.h>
+#include <float.h>
+#include <math.h>
 #include "config.h"
 
 typedef enum {
@@ -58,11 +60,18 @@ typedef struct {
 } DataInt;
 
 typedef struct {
-	float  windSpeed;
-	float  windGust;
-	int    windDir;
-	time_t time;
-} WindSample;
+	float			 speed;
+	float			 gust;
+	short			 dir;
+	char			 saved;
+	time_t			 time;
+	float			 gust_max;
+	float			*s_speed;
+	short			*s_dir;
+	time_t			 s_time;
+	unsigned int 	 samples;
+	unsigned int 	 row;
+} DataWind;
 
 typedef struct {
 	unsigned int     rowid;
@@ -76,7 +85,7 @@ typedef struct {
 	DataFloat		*temperature;
 	DataInt			*humidity;
 	DataFloat		*rain;
-	WindSample		*wind;
+	DataWind		*wind;
 } sensor;
 
 sensor  *sensor_list;
@@ -93,7 +102,7 @@ char sensorUpdateType( sensor *s, SensorType type );
 char sensorTemperature( sensor *s, float value );
 char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
-char sensorWind( sensor *s, float speed, float gust, int direction );
+char sensorWind( sensor *s, float speed, float gust, int dir );
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 
