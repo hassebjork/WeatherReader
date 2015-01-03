@@ -405,13 +405,17 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 }
 
 void sensorListFree() {
-	int i;
+	int i, j;
 	for ( i = sensor_list_no - 1; i >= 0; i-- ) {
 		free( sensor_list[i].name );
 		free( sensor_list[i].temperature );
 		free( sensor_list[i].humidity );
 		free( sensor_list[i].rain );
-		free( sensor_list[i].wind );
+		if ( sensor_list[i].type & ( WINDSPEED | WINDGUST | WINDDIR ) ) {
+			free( sensor_list[i].wind->s_speed );
+			free( sensor_list[i].wind->s_dir   );
+			free( sensor_list[i].wind );
+		}
 	}
 	free( sensor_list );
 	sensor_list_no = 0;
