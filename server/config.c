@@ -38,6 +38,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	char rdBuf[READ_BUFSIZE];
 	
 	/* Default Values */
+	conf->serverID          = 0;
 	conf->serialDevice[0]   = 0;
 
 	conf->mysqlServer[0]    = 0;
@@ -59,7 +60,8 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
-			if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
+			if ( confIntVar( rdBuf, "serverID", &conf->serverID ) ) {}
+			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}

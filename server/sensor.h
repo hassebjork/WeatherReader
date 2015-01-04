@@ -81,6 +81,7 @@ typedef struct {
 	unsigned char    channel;
 	unsigned char    rolling;
 	unsigned char    battery;
+	unsigned int     server;
 	SensorType       type;
 	DataFloat		*temperature;
 	DataInt			*humidity;
@@ -96,7 +97,7 @@ void sensorMysqlInit();
 sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
 		unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
-		unsigned char battery, SensorType type );
+		unsigned char battery, unsigned int server, SensorType type );
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );

@@ -42,6 +42,7 @@
 
 typedef struct {
 	char  serialDevice[32];
+	unsigned int serverID;
 	
 	char  mysql;
 	char  mysqlServer[MAX_CONFIG_NAME_SIZE];

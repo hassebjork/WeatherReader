@@ -41,7 +41,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
 #endif
-	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
@@ -59,7 +59,8 @@ char sensorInit() {
 	if ( !configFile.mysql )
 		printf( "WARNING: No database configured! Sending raw data to stdout only!\n" );
 	
-	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type FROM wr_sensors";
+	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,server,type "
+						 "FROM wr_sensors";
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorInit: Selecting\n%s\n%s\n", mysql_error( mysql ), query );
 		mysql_close( mysql );
@@ -81,7 +82,7 @@ char sensorInit() {
 	
 	while( ( row = mysql_fetch_row( result ) ) ) {
 		sensorListAdd( atoi( row[0] ), row[1], row[2], atoi( row[3] ), atoi( row[4] ), 
-					   atoi( row[5] ), atoi( row[6] ), atoi( row[7] ) );
+					   atoi( row[5] ), atoi( row[6] ), atoi( row[7] ), atoi( row[8] ) );
 	}
 	return 0;
 }
@@ -91,7 +92,8 @@ void sensorMysqlInit() {
 	mysql = mysql_init( NULL );
 	
 	if ( !mysql ) {
-		fprintf( stderr, "ERROR in sensorMysqlInit: Initiating MySQL database!\n%s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in sensorMysqlInit: Initiating MySQL database!\n%s\n", 
+				 mysql_error( mysql ) );
 		exit(5);
 	}
 	
@@ -113,14 +115,15 @@ void sensorMysqlInit() {
 	}
 }
 
-sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
+sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, 
+					  unsigned char rolling, SensorType type, unsigned char battery ) {
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
 	char         query[256] = "";
 	sensor      *s;
 	
 	sprintf( query, 
-			"SELECT id,name,protocol,sensor_id,channel,rolling,battery,type "
+			"SELECT id,name,protocol,sensor_id,channel,rolling,battery,server,type "
 			"FROM wr_sensors "
 			"WHERE protocol='%s' AND sensor_id=%d AND channel=%d AND rolling=%d",
 			protocol, sensor_id, channel, rolling );
@@ -136,15 +139,15 @@ sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned cha
 	}
 	
 	if( ( row = mysql_fetch_row( result ) ) )
-		return sensorListAdd( atoi( row[0] ), row[1], row[2], atoi( row[3] ), atoi( row[4] ), atoi( row[5] ), 
-			   atoi( row[6] ), atoi( row[7] ) );
+		return sensorListAdd( atoi( row[0] ), row[1], row[2], atoi( row[3] ), atoi( row[4] ), 
+							  atoi( row[5] ), atoi( row[6] ), atoi( row[7] ), atoi( row[8] ) );
 	
 	return NULL;
 }
 
-sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, unsigned int sensor_id,
-		unsigned char channel, unsigned char rolling, unsigned char battery,
-		SensorType type ) {
+sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
+					   unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
+					   unsigned char battery, unsigned int server, SensorType type ) {
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
@@ -162,6 +165,7 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	sensor_list[sensor_list_no].rolling     = rolling;
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
+	sensor_list[sensor_list_no].server      = server;
 	sensor_list[sensor_list_no].temperature = NULL;
 	sensor_list[sensor_list_no].humidity    = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
@@ -170,8 +174,10 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	return ptr;
 }
 
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
-	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, 
+				   unsigned char rolling, SensorType type, unsigned char battery ) {
+	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, 
+							   0xFFFF, type );
 	sensorMysqlInsert( s );
 #if _DEBUG > 4
 	printf( "Adding " );
@@ -182,8 +188,10 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 
 char sensorMysqlInsert( sensor *s ) {
 	char query[256] = "";
-	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
-			 s->name, s->protocol, s->sensor_id, s->channel, s->rolling, s->battery, s->type );
+	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,"
+				    "battery,server,type) VALUES ('%s','%s',%d,%d,%d,%d,%d,%d)", 
+			 	    s->name, s->protocol, s->sensor_id, s->channel, s->rolling, 
+				    s->battery, s->server, s->type );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorMysqlInsert: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
@@ -218,6 +226,8 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 }
 
 char sensorTemperature( sensor *s, float value ) {
+	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
+		return 0;
 	time_t now = time( NULL );
 	if ( s->temperature == NULL ) {
 		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
@@ -233,17 +243,21 @@ char sensorTemperature( sensor *s, float value ) {
 		return 0;
 
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_temperature (sensor_id, value,time) VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, value, now );
+	sprintf( query, "INSERT INTO wr_temperature (sensor_id, value,time) "
+					"VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, value, now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->temperature->value = value;
-	s->temperature->time  = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
+	s->temperature->time  = (time_t) ( now / configFile.saveTemperatureTime + 1 ) 
+							* configFile.saveTemperatureTime;
 	return 0;
 }
 
 char sensorHumidity( sensor *s, unsigned char value ) {
+	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
+		return 0;
 	time_t now = time( NULL );
 	
 	if ( s->humidity == NULL ) {
@@ -256,21 +270,26 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		s->humidity->time   = 0;
 	}
 	
-	if ( s->humidity->value == value && ( configFile.saveHumidityTime > 0 && now < s->humidity->time ) )
+	if ( s->humidity->value == value 
+			&& ( configFile.saveHumidityTime > 0 && now < s->humidity->time ) )
 		return 0;
 
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_humidity (sensor_id, value, time) VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, now );
+	sprintf( query, "INSERT INTO wr_humidity (sensor_id, value, time) "
+					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->humidity->value = value;
-	s->humidity->time  = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->humidity->time  = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
+						* configFile.saveHumidityTime;
 	return 0;
 }
 
 char sensorRain( sensor *s, float total ) {
+	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
+		return 0;
 	time_t now = time( NULL );
 	if ( s->rain == NULL ) {
 		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
@@ -286,17 +305,21 @@ char sensorRain( sensor *s, float total ) {
 		return 0;
 
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_rain (sensor_id, total,time) VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, total, now );
+	sprintf( query, "INSERT INTO wr_rain (sensor_id, total,time) "
+					"VALUES (%d,%f,FROM_UNIXTIME(%d))", s->rowid, total, now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->rain->value = total;
-	s->rain->time  = (time_t) ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
+	s->rain->time  = (time_t) ( now / configFile.saveRainTime + 1 ) 
+					 * configFile.saveRainTime;
 	return 0;
 }
 
 char sensorWind( sensor *s, float speed, float gust, int dir ) {
+	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
+		return 0;
 	time_t now   = time( NULL );
 	
 	// Initialize
@@ -333,8 +356,10 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		s->wind->dir   = dir;
 	
 #if _DEBUG > 2
-	printf( "sensorWind( speed=%.1f  gust=%.1f  dir=%d )\tSp:%.1f  Gu:%.1f  Di:%d Save:%d\tSamp:%d\n", 
-			speed, gust, dir, s->wind->speed, s->wind->gust, s->wind->dir, s->wind->saved, s->wind->samples );
+	printf( "sensorWind( speed=%.1f  gust=%.1f  dir=%d )\t"
+			"Sp:%.1f  Gu:%.1f  Di:%d Save:%d\tSamp:%d\n", 
+			speed, gust, dir, s->wind->speed, s->wind->gust, 
+		 s->wind->dir, s->wind->saved, s->wind->samples );
 #endif	
 	// Values incomplete
 	if ( s->wind->saved > 0 || s->wind->speed < 0.0 || s->wind->gust < 0.0 || s->wind->dir < 0 )
@@ -345,9 +370,11 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	if ( now > s->wind->s_time ) {
 		s->wind->gust_max = 0.0;
 		s->wind->samples  = 0;
-		s->wind->s_time   = (time_t) ( now / configFile.sampleWindTime + 1 ) * configFile.sampleWindTime;
-		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples,time) VALUES (%d,%.1f,%.1f,%d,1,FROM_UNIXTIME(%d))", 
-				 s->rowid, s->wind->speed, s->wind->gust, s->wind->dir, now );
+		s->wind->s_time   = (time_t) ( now / configFile.sampleWindTime + 1 ) 
+							* configFile.sampleWindTime;
+		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples,time) "
+						"VALUES (%d,%.1f,%.1f,%d,1,FROM_UNIXTIME(%d))", 
+						s->rowid, s->wind->speed, s->wind->gust, s->wind->dir, now );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 			return 1;
@@ -356,8 +383,10 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	}
 	
 	// Allocate memory
-	s->wind->s_speed = (float *) realloc( s->wind->s_speed, ( s->wind->samples + 1 ) * sizeof( float ) );
-	s->wind->s_dir   = (short *) realloc( s->wind->s_dir,   ( s->wind->samples + 1 ) * sizeof( short ) );
+	s->wind->s_speed = (float *) realloc( s->wind->s_speed, 
+									( s->wind->samples + 1 ) * sizeof( float ) );
+	s->wind->s_dir   = (short *) realloc( s->wind->s_dir,   
+									( s->wind->samples + 1 ) * sizeof( short ) );
 	if ( !s->wind->s_speed || !s->wind->s_dir ) {
 		fprintf( stderr, "ERROR in sensorWind: Out of memory allocating sample\n" );
 		return 1;
@@ -395,8 +424,10 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	dir = dir % 360;
 	
 	// Update latest data to database
-	sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-				speed, s->wind->gust_max, dir, s->wind->samples, now, s->wind->row );
+	sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
+					"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
+					speed, s->wind->gust_max, dir, s->wind->samples, 
+					now, s->wind->row );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
@@ -404,11 +435,15 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	return 0;
 }
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
+sensor *sensorLookup( const char *protocol, unsigned int sensor_id, 
+					  unsigned char channel, unsigned char rolling, 
+					  SensorType type, unsigned char battery ) {
 	sensor *ptr;
 	int i;
 	for ( i = 0; i < sensor_list_no; i++ ) {
-		if ( sensor_list[i].sensor_id == sensor_id && sensor_list[i].channel == channel && sensor_list[i].rolling == rolling ) {
+		if ( sensor_list[i].sensor_id == sensor_id 
+				&& sensor_list[i].channel == channel 
+				&& sensor_list[i].rolling == rolling ) {
 			
 			// Update battery status if changed
 			if ( sensor_list[i].battery != battery )
@@ -450,6 +485,8 @@ void sensorListFree() {
 
 void sensorPrint( sensor *s ) {
 	if ( !s ) return;
-	printf( "id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d Rolling:%X Battery:%d Type:%d\n", 
-			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, s->rolling, s->battery, s->type );
+	printf( "id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d "
+			"Rolling:%X Battery:%d Type:%d\n", 
+			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, 
+			s->rolling, s->battery, s->type );
 }
