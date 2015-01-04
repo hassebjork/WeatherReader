@@ -212,18 +212,12 @@ void vent_parse( char *s ) {
 }
 
 void parse_input( char *s ) {
-	char *str = malloc( sizeof(char) * ( strlen( s ) + 1 ) );
-	if ( str == NULL )
-		perror( "Malloc: Out of memory!" );
-	strcpy( str, s );
+	if ( strncmp( s, "OSV2", 4 ) == 0 )
+		osv2_parse( s + 5 );
+	else if ( strncmp( s, "VENT", 4 ) == 0 )
+		vent_parse( s + 5 );
 	
-	if ( strncmp( str, "OSV2", 4 ) == 0 )
-		osv2_parse( str + 5 );
-	else if ( strncmp( str, "VENT", 4 ) == 0 )
-		vent_parse( str + 5 );
-	
-	printf( "%s\n", str );
-	free( str );
+	printf( "%s\n", s );
 }
 
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html

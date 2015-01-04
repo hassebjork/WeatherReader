@@ -80,20 +80,8 @@ char sensorInit() {
 	}
 	
 	while( ( row = mysql_fetch_row( result ) ) ) {
-		sensor_list[sensor_list_no].rowid       = atoi( row[0] );
-		sensor_list[sensor_list_no].name        = strdup( row[1] );
-		strncpy( sensor_list[sensor_list_no].protocol, row[2], 4 );
-		sensor_list[sensor_list_no].protocol[4] = '\0';
-		sensor_list[sensor_list_no].sensor_id   = atoi( row[3] );
-		sensor_list[sensor_list_no].channel     = atoi( row[4] );
-		sensor_list[sensor_list_no].rolling     = atoi( row[5] );
-		sensor_list[sensor_list_no].battery     = atoi( row[6] );
-		sensor_list[sensor_list_no].type        = atoi( row[7] );
-		sensor_list[sensor_list_no].temperature = NULL;
-		sensor_list[sensor_list_no].humidity    = NULL;
-		sensor_list[sensor_list_no].rain        = NULL;
-		sensor_list[sensor_list_no].wind        = NULL;
-		sensor_list_no++;
+		sensorListAdd( atoi( row[0] ), row[1], row[2], atoi( row[3] ), atoi( row[4] ), 
+					   atoi( row[5] ), atoi( row[6] ), atoi( row[7] ) );
 	}
 	return 0;
 }
@@ -125,35 +113,71 @@ void sensorMysqlInit() {
 	}
 }
 
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
+sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
+	MYSQL_RES   *result ;
+	MYSQL_ROW    row;
+	char         query[256] = "";
+	sensor      *s;
+	
+	sprintf( query, 
+			"SELECT id,name,protocol,sensor_id,channel,rolling,battery,type "
+			"FROM wr_sensors "
+			"WHERE protocol='%s' AND sensor_id=%d AND channel=%d AND rolling=%d",
+			protocol, sensor_id, channel, rolling );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorSearch: Selecting\n%s\n%s\n", mysql_error( mysql ), query );
+		return NULL;
+	}
+	
+	result = mysql_store_result( mysql );
+	if ( result == NULL ) {
+		fprintf( stderr, "ERROR in sensorSearch: Storing result!\n%s\n", mysql_error( mysql ) );
+		return NULL;
+	}
+	
+	if( ( row = mysql_fetch_row( result ) ) )
+		return sensorListAdd( atoi( row[0] ), row[1], row[2], atoi( row[3] ), atoi( row[4] ), atoi( row[5] ), 
+			   atoi( row[6] ), atoi( row[7] ) );
+	
+	return NULL;
+}
+
+sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, unsigned int sensor_id,
+		unsigned char channel, unsigned char rolling, unsigned char battery,
+		SensorType type ) {
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
-		fprintf( stderr, "ERROR in sensorAdd: Out of memory allocating sensor_list\n" );
+		fprintf( stderr, "ERROR in sensorListAdd: Out of memory allocating sensor_list\n" );
 		return NULL;
 	}
 	sensor_list = ptr;
-	
+	ptr = &sensor_list[sensor_list_no];
+	sensor_list[sensor_list_no].rowid       = rowid;
+	sensor_list[sensor_list_no].name        = strdup( name );
+	strncpy( sensor_list[sensor_list_no].protocol, protocol, 5 );
+	sensor_list[sensor_list_no].protocol[4] = '\0';
 	sensor_list[sensor_list_no].sensor_id   = sensor_id;
 	sensor_list[sensor_list_no].channel     = channel;
 	sensor_list[sensor_list_no].rolling     = rolling;
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
- 	strncpy( sensor_list[sensor_list_no].protocol, protocol, 4 );
- 	sensor_list[sensor_list_no].protocol[4] = '\0';
- 	sensor_list[sensor_list_no].name        = "";
- 	sensor_list[sensor_list_no].rowid       = sensor_list_no;
 	sensor_list[sensor_list_no].temperature = NULL;
 	sensor_list[sensor_list_no].humidity    = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
 	sensor_list[sensor_list_no].wind        = NULL;
-	sensorMysqlInsert( &sensor_list[sensor_list_no] );
+	sensor_list_no++;
+	return ptr;
+}
+
+sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery ) {
+	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
+	sensorMysqlInsert( s );
 #if _DEBUG > 4
 	printf( "Adding " );
-	sensorPrint( &sensor_list[sensor_list_no] );
+	sensorPrint( s );
 #endif
-	++sensor_list_no;
-	return &sensor_list[sensor_list_no];
+	return s;
 }
 
 char sensorMysqlInsert( sensor *s ) {
@@ -401,7 +425,10 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 			return &sensor_list[i];
 		}
 	}
-	return sensorAdd( protocol, sensor_id, channel, rolling, type, battery );
+	ptr = sensorSearch( protocol, sensor_id, channel, rolling, type, battery );
+	if ( !ptr )
+		return sensorAdd( protocol, sensor_id, channel, rolling, type, battery );
+	return ptr;
 }
 
 void sensorListFree() {
