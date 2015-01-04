@@ -40,12 +40,14 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
+	"DROP TABLE IF EXISTS wr_test",
 #endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
+	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, server INT, count INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	0
 };
 
@@ -166,6 +168,8 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
 	sensor_list[sensor_list_no].server      = server;
+	sensor_list[sensor_list_no].receiveRow  = 0;
+	sensor_list[sensor_list_no].receiveCount= 0;
 	sensor_list[sensor_list_no].temperature = NULL;
 	sensor_list[sensor_list_no].humidity    = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
@@ -222,6 +226,34 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 		return 1;
 	}
 	s->type |= type;
+	return 0;
+}
+
+char sensorReceiveTest( sensor *s ) {
+	static time_t next = 0;
+	time_t now = time( NULL );
+	char query[255] = "";
+	
+	if ( s->receiveRow < 1 || now > next ) {
+		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,1)", 
+				s->rowid, configFile.serverID );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+		s->receiveRow   = mysql_insert_id( mysql );
+		s->receiveCount = 1;
+		next = (time_t) ( now / 3600 + 1 ) * 3600;
+		
+	} else {
+		++(s->receiveCount);
+		sprintf( query, "UPDATE wr_test SET count=%d WHERE id=%d", 
+				 s->receiveCount, s->receiveRow );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorReceiveTest: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -452,6 +484,9 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id,
 			// Update type if incorrect
 			if ( sensor_list[i].type^type )
 				sensorUpdateType( &sensor_list[i], type );
+			
+			if ( configFile.sensorReceiveTest > 0 )
+				sensorReceiveTest( &sensor_list[i] );
 
 #if _DEBUG > 4
 			printf( "Found " );

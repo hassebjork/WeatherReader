@@ -271,8 +271,6 @@ int main( int argc, char *argv[]) {
 	int iret1;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	if ( configFile.serverID > 0 )
-		printf( "This servers ID is %d\n", configFile.serverID );
 	sensorInit();
 	
 	/* Create independent threads each of which will execute function */

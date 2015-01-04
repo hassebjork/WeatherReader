@@ -42,6 +42,7 @@
 
 typedef struct {
 	char  serialDevice[32];
+	int   sensorReceiveTest;
 	unsigned int serverID;
 	
 	char  mysql;

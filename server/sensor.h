@@ -82,6 +82,8 @@ typedef struct {
 	unsigned char    rolling;
 	unsigned char    battery;
 	unsigned int     server;
+	unsigned int     receiveRow;
+	unsigned int     receiveCount;
 	SensorType       type;
 	DataFloat		*temperature;
 	DataInt			*humidity;
@@ -102,6 +104,7 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
+char sensorReceiveTest( sensor *s );
 
 char sensorTemperature( sensor *s, float value );
 char sensorHumidity( sensor *s, unsigned char value );

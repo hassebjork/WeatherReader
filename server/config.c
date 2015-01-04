@@ -40,7 +40,8 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Default Values */
 	conf->serverID          = 0;
 	conf->serialDevice[0]   = 0;
-
+	conf->sensorReceiveTest = 0;
+	
 	conf->mysqlServer[0]    = 0;
 	conf->mysqlUser[0]      = 0;
 	conf->mysqlPass[0]      = 0;
@@ -62,6 +63,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
 			if ( confIntVar( rdBuf, "serverID", &conf->serverID ) ) {}
 			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
+			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
@@ -82,6 +84,12 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveHumidityTime    *= 60;
 	conf->saveRainTime        *= 60;
 	conf->sampleWindTime      *= 60;
+	
+	if ( conf->serverID > 0 )
+		printf( "This servers ID is %d\n", conf->serverID );
+	if ( conf->sensorReceiveTest > 0 )
+		printf( "Sensor receive test is ACTIVE!\n" );
+	
 	return( 0 );
 }
 
