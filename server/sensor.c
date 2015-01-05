@@ -234,7 +234,15 @@ char sensorReceiveTest( sensor *s ) {
 	time_t now = time( NULL );
 	char query[255] = "";
 	
-	if ( s->receiveRow < 1 || now > next ) {
+	// Reset counters every hour
+	if ( now > next ) {
+		int i;
+		next = (time_t) ( now / 3600 + 1 ) * 3600;
+		for ( i = 0; i < sensor_list_no; i++ )
+			sensor_list[i].receiveRow = 0;
+	}
+	
+	if ( s->receiveRow < 1 ) {
 		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,1)", 
 				s->rowid, configFile.serverID );
 		if ( mysql_query( mysql, query ) ) {
@@ -243,7 +251,6 @@ char sensorReceiveTest( sensor *s ) {
 		}
 		s->receiveRow   = mysql_insert_id( mysql );
 		s->receiveCount = 1;
-		next = (time_t) ( now / 3600 + 1 ) * 3600;
 		
 	} else {
 		++(s->receiveCount);

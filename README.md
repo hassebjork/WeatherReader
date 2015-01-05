@@ -1,4 +1,4 @@
-WeatherReader
+Weather-Reader
 =============
 
 This project uses an Arduino to read radio signals from wireless Weather Sensors. The Arduino is 
@@ -9,6 +9,10 @@ displayed on stdout and stored in a MySQL database.
 
 The MySQL database is configured in a configuration file. It can be set up to operate locally or 
 on a remote server.
+
+Multiple Weather-Reader servers can be run simultaneously on a local 
+network. They can be configured to receieve the sensors with the best 
+reception.
 
 Directories:
 ============
