@@ -1,0 +1,4 @@
+
+- Sensors: Store wiind dir as NULL when speed = 0.0
+- Config file: Move some config data into database?
+- Weather-reader: Look up hostname

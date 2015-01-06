@@ -1,18 +1,18 @@
 Weather-Reader
-=============
+==============
 
-This project uses an Arduino to read radio signals from wireless Weather Sensors. The Arduino is 
-powered over USB and reduces payload on the Raspberry Pi.
-All sensors work over the 433MHz band. 
-Data is sent over the USB port to a Raspberry Pi, reading it as a serial port. The raw data is 
-displayed on stdout and stored in a MySQL database.
+This project uses an Arduino to read radio signals from wireless 
+Weather Sensors. The Arduino is powered over USB and reduces payload 
+on the Raspberry Pi. All sensors work over the 433MHz band. Data is 
+sent over the USB port to a Raspberry Pi, reading it as a serial port. 
+The raw data is displayed on stdout and stored in a MySQL database.
 
-The MySQL database is configured in a configuration file. It can be set up to operate locally or 
-on a remote server.
+The MySQL database is configured in a configuration file. It can be 
+set up to operate locally or on a remote server.
 
 Multiple Weather-Reader servers can be run simultaneously on a local 
-network. They can be configured to receieve the sensors with the best 
-reception.
+network. They can be configured to receieve only certain sensors with 
+the best reception.
 
 Directories:
 ============
