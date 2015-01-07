@@ -216,6 +216,8 @@ void parse_input( char *s ) {
 		osv2_parse( s + 5 );
 	else if ( strncmp( s, "VENT", 4 ) == 0 )
 		vent_parse( s + 5 );
+	else
+		printf( "Not recognised: " );
 	
 	printf( "%s\n", s );
 }
@@ -255,7 +257,7 @@ void *uart_receive( void *ptr ) {
 		rcount = read( fd, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
 			perror( "Read" );
-		} else if ( rcount > 0 ) {
+		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
 			parse_input( buffer );
 		}
