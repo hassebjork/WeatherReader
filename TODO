@@ -1,4 +1,7 @@
 
-- Sensors: Store wiind dir as NULL when speed = 0.0
+- Sensors: Store wind dir as NULL when speed = 0.0
 - Config file: Move some config data into database?
+- Config file: Database prefix for tables
 - Weather-reader: Look up hostname
+- Weather-reader: Save test-data before exit
+

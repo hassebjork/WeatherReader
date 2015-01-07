@@ -232,32 +232,34 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 char sensorReceiveTest( sensor *s ) {
 	static time_t next = 0;
 	time_t now = time( NULL );
-	char query[255] = "";
 	
 	// Reset counters every hour
 	if ( now > next ) {
+		char query[255] = "";
 		int i;
 		MYSQL_RES   *result ;
 		MYSQL_ROW    row;
 		
-		char query[255] = "SELECT UNIX_TIMESTAMP()";
+		if ( next > 0 ) {
+			for ( i = 0; i < sensor_list_no; i++ ) {
+				sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
+						sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
+				if ( mysql_query( mysql, query ) ) {
+					fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
+								mysql_error( mysql ), query );
+					return 1;
+				}
+				sensor_list[i].receiveCount = 0;
+			}
+		}
+		
+		sprintf( query, "SELECT UNIX_TIMESTAMP()" );
 		mysql_query( mysql, query );
 		result = mysql_store_result( mysql );
 		if( result && ( row = mysql_fetch_row( result ) ) )
 			next = ( now / 3600 + 1 ) * 3600 + now - atoi( row[0] );
 		else
 			next = (time_t) ( now / 3600 + 1 ) * 3600;
-		
-		for ( i = 0; i < sensor_list_no; i++ ) {
-			sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
-					sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
-			if ( mysql_query( mysql, query ) ) {
-				fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
-							mysql_error( mysql ), query );
-				return 1;
-			}
-			sensor_list[i].receiveCount = 0;
-		}
 	}
 	++(s->receiveCount);
 	return 0;
