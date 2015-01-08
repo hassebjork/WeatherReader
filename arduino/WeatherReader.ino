@@ -122,44 +122,10 @@ public:
 
 	// add one bit to the packet data buffer
 	virtual void gotBit (char value) {
-		if(!(total_bits & 0x01))
-		{
+		if( !( total_bits & 0x01 ) )
 			data[pos] = (data[pos] >> 1) | (value ? 0x80 : 00);
-		}
 		total_bits++;
 		pos = total_bits >> 4;
-		
-		// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-33
-		if ( pos == 2 ) {
-			if ( data[0] == 0x1A ) {
-				if ( data[1] == 0x89 )			// WRGR800
-					max_bits = 176;
-				else if ( data[1] == 0x99 )		// WRGR800
-					max_bits = 176;
-			} else if ( data[0] == 0x2A ) {
-				if ( data[1] == 0x19 )			// RCR800 cs8
-					max_bits = 184;
-				else if ( data[1] == 0x1D )		// RGR918
-					max_bits = 168;
-			} else if ( data[0] == 0x5A ) {
-				if ( data[1] == 0x5D )			// BTHR918
-					max_bits = 176;
-				else if ( data[1] == 0x6D )		// BTHR918N
-					max_bits = 192;
-			} else if ( ( data[0] == 0x8A || data[0] == 0x9A ) && data[1] == 0xEC ) {	// RTGR328N
-				max_bits = 208;
-			} else if ( ( data[0] == 0xDA ) && ( data[1] == 0x78 ) ) {	// UVN800
-				max_bits = 144;
-			} else if ( data[0] == 0xEA ) {
-				if ( data[1] == 0x4C )			// TH132N cs1
-					max_bits = 136;
-				else if ( data[1] == 0x7C )		// UV138 cs1
-					max_bits = 240;
-			} else {
-				max_bits = 160;
-			}
-		}
-		
 		if (pos >= sizeof data) {
 			resetDecoder();
 			return;
@@ -206,8 +172,36 @@ public:
 		} else {
 			return -1;
 		}
-// 		if ( total_bits == max_bits )
-// 			checkSum();
+		
+		if ( pos == 2 ) {
+			if ( data[0] == 0x1A ) {
+				if ( data[1] == 0x89 )			// WRGR800
+					max_bits = 176;
+				else if ( data[1] == 0x99 )		// WRGR800
+					max_bits = 176;
+			} else if ( data[0] == 0x2A ) {
+				if ( data[1] == 0x19 )			// RCR800 cs8
+					max_bits = 184;
+				else if ( data[1] == 0x1D )		// RGR918
+					max_bits = 168;
+			} else if ( data[0] == 0x5A ) {
+				if ( data[1] == 0x5D )			// BTHR918
+					max_bits = 176;
+				else if ( data[1] == 0x6D )		// BTHR918N
+					max_bits = 192;
+			} else if ( ( data[0] == 0x8A || data[0] == 0x9A ) && data[1] == 0xEC ) {	// RTGR328N
+				max_bits = 208;
+			} else if ( ( data[0] == 0xDA ) && ( data[1] == 0x78 ) ) {	// UVN800
+				max_bits = 144;
+			} else if ( data[0] == 0xEA ) {
+				if ( data[1] == 0x4C )			// TH132N cs1
+					max_bits = 136;
+				else if ( data[1] == 0x7C )		// UV138 cs1
+					max_bits = 240;
+			} else {
+				max_bits = 160;
+			}
+		}
 		return total_bits == max_bits ? 1: 0;
 	}
 	
