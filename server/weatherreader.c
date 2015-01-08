@@ -47,7 +47,8 @@ unsigned char osv2_humidity( char *s ) {
 // http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
 void osv2_parse( char *s ) {
 	unsigned int  id;
-	unsigned char channel, batt, rolling;
+	unsigned char channel, batt, rolling, humidity;
+	float         temperature, rain;
 	SensorType    type;
 	
 	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
@@ -74,10 +75,10 @@ void osv2_parse( char *s ) {
 		CA CC 53 7D 70 19 50 83 61 1C		+Ttv	Temperature BCD +Tt.v (0x0=pos 0x8=neg)
 											Hh		Humidity BCD Hh		*/
 	if ( (id&0xFFF) == 0xACC ){	// RTGR328N	CS		CheckSun
-		id   = 0xCACC;	// 0x9ACC 0xAACC 0xBACC 0xCACC 0xDACC 
-		type = TEMPERATURE | HUMIDITY;
-		float      temperature = osv2_temperature( s );
-		unsigned char humidity = osv2_humidity( s );
+		id          = 0xCACC;	// 0x9ACC 0xAACC 0xBACC 0xCACC 0xDACC 
+		type        = TEMPERATURE | HUMIDITY;
+		temperature = osv2_temperature( s );
+		humidity    = osv2_humidity( s );
 #if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
 #endif
@@ -88,9 +89,9 @@ void osv2_parse( char *s ) {
 			|| id == 0xFA28 	// THGR810
 			|| id == 0x1A3D 	// THGR918, THGRN228NX, THGN500
 			|| id == 0xCA2C ) {	// THGR328N
-		type = TEMPERATURE | HUMIDITY;
-		float      temperature = osv2_temperature( s );
-		unsigned char humidity = osv2_humidity( s );
+		type        = TEMPERATURE | HUMIDITY;
+		temperature = osv2_temperature( s );
+		humidity    = osv2_humidity( s );
 #if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
 #endif
@@ -98,8 +99,8 @@ void osv2_parse( char *s ) {
 	// Temperature sensors
 	} else if ( id == 0x0A4D	// THR128
 			|| id == 0xEA4C ) {	// THWR288A, THN132N
-		type = TEMPERATURE;
-		float temperature = osv2_temperature( s );
+		type        = TEMPERATURE;
+		temperature = osv2_temperature( s );
 #if _DEBUG > 2
 		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
 #endif
@@ -113,12 +114,22 @@ void osv2_parse( char *s ) {
 	}
 	
 	sensor *sptr = sensorLookup( "OSV2", id, channel, rolling, type, batt );
+	if ( sptr ) {
+		if ( type & TEMPERATURE )
+			sensorTemperature( sptr, temperature );
+		if ( type & HUMIDITY)
+			sensorHumidity( sptr, humidity );
+		if ( type & RAIN)
+			sensorRain( sptr, rain );
+	}
 }
 
 void vent_parse( char *s ) {
 	unsigned int  id;
-	unsigned char crc, batt, btn, temp, tmp2;
+	unsigned char crc, batt, btn, temp, tmp2, humidity;
 	SensorType    type;
+	float         temperature, rain, wind, gust;
+	short         dir;
 	
 	id   = (int) hex2char( s[0] ) << 4 | hex2char( s[1] );
 	tmp2 = hex2char( s[2] );
@@ -135,13 +146,13 @@ void vent_parse( char *s ) {
 	if ( ( tmp2 & 0x6 ) != 0x6 ) {
 		type = TEMPERATURE | HUMIDITY;
 		temp = hex2char( s[5] );
-		float temperature = ( reverse_bits_lookup[hex2char( s[3] )] 
+		temperature = ( reverse_bits_lookup[hex2char( s[3] )] 
 				| reverse_bits_lookup[hex2char( s[4] )] << 4 
 				| reverse_bits_lookup[temp & 0xE] << 8 );
 		temperature /= 10;
 		if ( temp & 0x1 )
 			temperature -= 204.8;
-		unsigned char humidity = reverse_bits_lookup[hex2char( s[6] )] 
+		humidity = reverse_bits_lookup[hex2char( s[6] )] 
 				+ reverse_bits_lookup[hex2char( s[7] )] * 10;
 #if _DEBUG > 2
 		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
@@ -150,7 +161,7 @@ void vent_parse( char *s ) {
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
 		type = WINDSPEED;
-		float wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+		wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
 #if _DEBUG > 2
 		printf( "Wind Speed: %.1f\n", wind );
@@ -159,9 +170,9 @@ void vent_parse( char *s ) {
 	// Wind Gust & Bearing
 	} else if ( ( temp & 0xE ) == 0xE ) {
 		type = WINDDIR | WINDGUST;
-		float gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
+		gust = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
-		short dir = ( hex2char( s[3] ) & 0x1 )
+		dir  = ( hex2char( s[3] ) & 0x1 )
 				| reverse_bits_lookup[hex2char( s[4] )] << 1
 				| reverse_bits_lookup[hex2char( s[5] )] << 5;
 #if _DEBUG > 2
@@ -171,7 +182,7 @@ void vent_parse( char *s ) {
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
 		type = RAIN;
-		float rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
+		rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 #if _DEBUG > 2
 		printf( "Rain: %.2f\n", rain );
@@ -186,21 +197,29 @@ void vent_parse( char *s ) {
 	}
 	
 	sensor *sptr = sensorLookup( "VENT", id, 0, 0, type, batt );
+	if ( sptr ) {
+		if ( type & TEMPERATURE )
+			sensorTemperature( sptr, temperature );
+		if ( type & HUMIDITY)
+			sensorHumidity( sptr, humidity );
+		if ( type & RAIN)
+			sensorRain( sptr, rain );
+		if ( type & WINDSPEED)
+			sensorWind( sptr, wind, -1.0, -1 );
+		if ( type & WINDGUST)
+			sensorWind( sptr, -1.0, gust, dir );
+	}
 }
 
 void parse_input( char *s ) {
-	char *str = malloc( sizeof(char) * ( strlen( s ) + 1 ) );
-	if ( str == NULL )
-		perror( "Malloc: Out of memory!" );
-	strcpy( str, s );
+	if ( strncmp( s, "OSV2", 4 ) == 0 )
+		osv2_parse( s + 5 );
+	else if ( strncmp( s, "VENT", 4 ) == 0 )
+		vent_parse( s + 5 );
+	else
+		printf( "Not recognised: " );
 	
-	if ( strncmp( str, "OSV2", 4 ) == 0 )
-		osv2_parse( str + 5 );
-	else if ( strncmp( str, "VENT", 4 ) == 0 )
-		vent_parse( str + 5 );
-	
-	printf( "%s\n", str );
-	free( str );
+	printf( "%s\n", s );
 }
 
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
@@ -238,7 +257,7 @@ void *uart_receive( void *ptr ) {
 		rcount = read( fd, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
 			perror( "Read" );
-		} else if ( rcount > 0 ) {
+		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
 			parse_input( buffer );
 		}

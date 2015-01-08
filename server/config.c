@@ -38,13 +38,20 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	char rdBuf[READ_BUFSIZE];
 	
 	/* Default Values */
+	conf->serverID          = 0;
 	conf->serialDevice[0]   = 0;
-
+	conf->sensorReceiveTest = 0;
+	
 	conf->mysqlServer[0]    = 0;
 	conf->mysqlUser[0]      = 0;
 	conf->mysqlPass[0]      = 0;
 	conf->mysqlPort         = 3306;
 	conf->mysqlDatabase[0]  = 0;
+	
+	conf->saveTemperatureTime = 60;
+	conf->saveHumidityTime    = 60;
+	conf->saveRainTime        = 60;
+	conf->sampleWindTime      = 60;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
@@ -54,19 +61,35 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
-			if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
+			if ( confIntVar( rdBuf, "serverID", &conf->serverID ) ) {}
+			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
+			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlPass", conf->mysqlPass ) ) {}
 			else if ( confIntVar( rdBuf, "mysqlPort", &conf->mysqlPort ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlDatabase", conf->mysqlDatabase ) ) {}
+			
+			else if ( confIntVar( rdBuf, "saveTemperatureTime", &conf->saveTemperatureTime ) ) {}
+			else if ( confIntVar( rdBuf, "saveHumidityTime", &conf->saveHumidityTime ) ) {}
+			else if ( confIntVar( rdBuf, "saveRainTime", &conf->saveRainTime ) ) {}
+			else if ( confIntVar( rdBuf, "sampleWindTime", &conf->sampleWindTime ) ) {}
 		}
 	}
 	fclose( infd );
-	
 	/* Calculated Values */
 	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
+	conf->saveTemperatureTime *= 60;
+	conf->saveHumidityTime    *= 60;
+	conf->saveRainTime        *= 60;
+	conf->sampleWindTime      *= 60;
+	
+	if ( conf->serverID > 0 )
+		printf( "This servers ID is %d\n", conf->serverID );
+	if ( conf->sensorReceiveTest > 0 )
+		printf( "Sensor receive test is ACTIVE!\n" );
+	
 	return( 0 );
 }
 

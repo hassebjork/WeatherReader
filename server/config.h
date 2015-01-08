@@ -42,6 +42,8 @@
 
 typedef struct {
 	char  serialDevice[32];
+	int   sensorReceiveTest;
+	unsigned int serverID;
 	
 	char  mysql;
 	char  mysqlServer[MAX_CONFIG_NAME_SIZE];
@@ -49,6 +51,11 @@ typedef struct {
 	char  mysqlPass[MAX_CONFIG_NAME_SIZE];
 	int   mysqlPort;
 	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
+	
+	int   saveTemperatureTime;
+	int   saveHumidityTime;
+	int   saveRainTime;
+	int   sampleWindTime;
 	
 } ConfigSettings;
 

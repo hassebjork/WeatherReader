@@ -34,6 +34,9 @@
 #include <stdlib.h>
 #include <mysql.h>
 #include <string.h>
+#include <time.h>
+#include <float.h>
+#include <math.h>
 #include "config.h"
 
 typedef enum {
@@ -52,22 +55,23 @@ typedef struct {
 } DataFloat;
 
 typedef struct {
-	int humidity;
+	int    value;
 	time_t time;
 } DataInt;
 
 typedef struct {
-	float  windSpeed;
-	float  windGust;
-	int    windDir;
-	time_t time;
-} WindSample;
-
-typedef struct {
-	DataFloat *temperature;
-	DataInt   *humidity;
-	DataInt   *rain;
-} SensorData;
+	float			 speed;
+	float			 gust;
+	short			 dir;
+	char			 saved;
+	time_t			 time;
+	float			 gust_max;
+	float			*s_speed;
+	short			*s_dir;
+	time_t			 s_time;
+	unsigned int 	 samples;
+	unsigned int 	 row;
+} DataWind;
 
 typedef struct {
 	unsigned int     rowid;
@@ -77,8 +81,14 @@ typedef struct {
 	unsigned char    channel;
 	unsigned char    rolling;
 	unsigned char    battery;
+	unsigned int     server;
+	unsigned int     receiveRow;
+	unsigned int     receiveCount;
 	SensorType       type;
-	SensorData      *data;
+	DataFloat		*temperature;
+	DataInt			*humidity;
+	DataFloat		*rain;
+	DataWind		*wind;
 } sensor;
 
 sensor  *sensor_list;
@@ -86,16 +96,20 @@ MYSQL   *mysql;
 
 char sensorInit();
 void sensorMysqlInit();
-
+sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
+sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
+		unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
+		unsigned char battery, unsigned int server, SensorType type );
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
+char sensorReceiveTest( sensor *s );
 
 char sensorTemperature( sensor *s, float value );
-char sensorHumidity( sensor *s, int value );
+char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
-char sensorWind( sensor *s, float speed, float gust, int direction );
+char sensorWind( sensor *s, float speed, float gust, int dir );
 
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 
