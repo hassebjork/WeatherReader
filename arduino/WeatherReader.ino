@@ -47,19 +47,13 @@ public:
 		state = UNKNOWN;
 	}
 
-	// add one bit to the packet data buffer
-
 	virtual void gotBit (char value) {
+		data[pos] = (data[pos] << 1) | value;
 		total_bits++;
-		byte *ptr = data + pos;
-		*ptr = (*ptr >> 1) | (value << 7);
-
-		if (++bits >= 8) {
-			bits = 0;
-			if (++pos >= sizeof data) {
-				resetDecoder();
-				return;
-			}
+		pos = total_bits >> 3;
+		if (pos >= sizeof data) {
+			resetDecoder();
+			return;
 		}
 		state = OK;
 	}
@@ -239,19 +233,6 @@ public:
 			return;
 		}
 		state = OK;
-
-		total_bits++;
-		byte *ptr = data + pos;
-		*ptr = (*ptr >> 1) | (value << 7);
-
-		if (++bits >= 8) {
-			bits = 0;
-			if (++pos >= sizeof data) {
-				resetDecoder();
-				return;
-			}
-		}
-		state = OK;
 	}
 
 	virtual char decode (word width) {
@@ -291,19 +272,8 @@ class VentusDecoder : public DecodeOOK {
 public:
 	
 	VentusDecoder () {}
-	// see also http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
 	
-	virtual void gotBit (char value) {
-		data[pos] = (data[pos] << 1) | value;
-		total_bits++;
-		pos = total_bits >> 3;
-		if (pos >= sizeof data) {
-			resetDecoder();
-			return;
-		}
-		state = OK;
-	}
-
+	// see also http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
 	virtual char decode (word width) {
 		switch (state ) {
 			case UNKNOWN:	// Preample
@@ -356,6 +326,71 @@ public:
 	}
 };
 
+class FineOffsetDecoder : public DecodeOOK {
+public:
+	// https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/FineOffsetDecoder.java
+	// https://github.com/lucsmall/BetterWH2/blob/master/BetterWH2.ino
+	FineOffsetDecoder() { }
+
+    virtual char decode (word width) {
+		if (width < 400 || width > 1600)
+			return -1;
+		
+		switch (state) {
+			case UNKNOWN:	// Signal start (on)
+				if (width < 600) {
+					state = OK;
+				} else
+					return -1;
+				break;
+			case OK:		// Signal off
+				if (900 < width && width < 1100) {
+					++flip;
+					state = T1;
+				} else
+					return -1;
+				break;
+			case T1:		// Signal on = bit
+				if (width < 600 && flip > 10) {
+					gotBit(1);
+				} else if ( width > 1350 ) {
+					flip = 11;
+					gotBit(0);
+				} else {
+					return -1;
+				}
+				
+				// Temperature & humidity
+				if ( total_bits == 40 && ( data[0] & 0xF0 ) != 0x30 )
+    					return 1;
+				// Rain
+				else if ( total_bits == 56 )
+					return 1;
+				break;
+			default:
+				return -1;
+		}
+        return 0;
+    }
+    
+	virtual bool checkSum() {
+		char len, i, mix, inbyte, crc = 0;
+
+		// Indicated changes are from reference CRC-8 function in OneWire library
+		for ( len = 0; len < pos - 1; len ++ ) {
+			inbyte = data[len];
+			for ( i = 8; i; i-- ) {
+				mix = ( crc ^ inbyte ) & 0x80; // changed from & 0x01
+				crc <<= 1; // changed from right shift
+				if ( mix ) 
+					crc ^= 0x31;// changed from 0x8C;
+				inbyte <<= 1; // changed from right shift
+			}
+		}
+		return ( ( crc & 0xFF ) == data[pos-1] );
+	}
+};
+
 struct os_timedate {
 	byte sec;
 	byte min;
@@ -369,6 +404,7 @@ struct os_timedate {
 OregonDecoderV2 orscV2;
 OregonDecoderV3 orscV3;
 VentusDecoder   ventus;
+FineOffsetDecoder fineOffset;
 
 #define PORT 2
 
@@ -386,6 +422,8 @@ ISR(ANALOG_COMP_vect) {
 }
 
 void reportSerial (const char* s, class DecodeOOK& decoder) {
+	if ( !decoder.checkSum() )
+		return;
 	byte pos;
 	const byte* data = decoder.getData(pos);
 	Serial.print(s);
@@ -394,10 +432,6 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] >> 4, HEX);
 		Serial.print(data[i] & 0x0F, HEX);
 	}
-	Serial.print('\t');
-	Serial.print( decoder.checkSum() ? "OK" : "Fail" );
-	// Serial.print(' ');
-	// Serial.print(millis() / 1000);
 	Serial.println();
 
 	decoder.resetDecoder();
@@ -443,6 +477,8 @@ void loop () {
 			reportSerial("OSV3", orscV3);
 		if (ventus.nextPulse(p))
 			reportSerial("VENT", ventus);
+		if (fineOffset.nextPulse(p))
+			reportSerial("FINE", fineOffset);
 	}
 }
 
