@@ -403,9 +403,6 @@ public:
 					state = T1;
 				} else if ( width > 1800 ) {
 					gotBit( 0 );
-// 					if ( flip++ == 0 )
-// 						Serial.print( '\n' );
-// 					Serial.print( 1 );
 				} else {
 					return -1;
 				}
@@ -415,10 +412,8 @@ public:
 				if ( width < 1100) {	// Second short
 					gotBit( 1 );
 					state = OK;
-// 					if ( flip++ == 0 )
-// 						Serial.print( '\n' );
-// 					Serial.print( 0 );
 				} else {
+
 					return -1;
 				}
 				break;
@@ -426,24 +421,21 @@ public:
 			default:
 				return -1;
 		}
+		// Not geting last nibble with checkSum. Total bits should be 40 with preample 0xC
 		if ( total_bits == 36 )
 			return 1;
         return 0;
     }
 
 	virtual bool checkSum() {
-		unsigned char i, bit, crc = 3;
+		// Checking fixed positions preamble b00-b04 being b1100 and position b11-b12 being b11
+		return ( ( data[0] & 0xF0 ) == 0xC0 && ( data[1] & 0x30 ) == 0x30 );
+		unsigned char i, bit, crc = 0;
 		for (i = 0; i < pos - 2; i++) {
 			for ( bit = 0; bit < 8; bit += 2 ) {
 				crc ^= ( ( data[i] >> bit ) & 0x3 );
 			}
 		}
-		Serial.print( ' ' );
-		Serial.print( ( data[pos-1] & 0x03 ), HEX );
-		Serial.print( ':' );
-		Serial.print( (pos-1) );
-		Serial.print( ':' );
-		Serial.println( crc, HEX );
 		return ( crc == ( data[pos-1] & 0x3 ) );
 	}
 };
