@@ -122,44 +122,10 @@ public:
 
 	// add one bit to the packet data buffer
 	virtual void gotBit (char value) {
-		if(!(total_bits & 0x01))
-		{
+		if( !( total_bits & 0x01 ) )
 			data[pos] = (data[pos] >> 1) | (value ? 0x80 : 00);
-		}
 		total_bits++;
 		pos = total_bits >> 4;
-		
-		// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-33
-		if ( pos == 2 ) {
-			if ( data[0] == 0x1A ) {
-				if ( data[1] == 0x89 )			// WRGR800
-					max_bits = 176;
-				else if ( data[1] == 0x99 )		// WRGR800
-					max_bits = 176;
-			} else if ( data[0] == 0x2A ) {
-				if ( data[1] == 0x19 )			// RCR800 cs8
-					max_bits = 184;
-				else if ( data[1] == 0x1D )		// RGR918
-					max_bits = 168;
-			} else if ( data[0] == 0x5A ) {
-				if ( data[1] == 0x5D )			// BTHR918
-					max_bits = 176;
-				else if ( data[1] == 0x6D )		// BTHR918N
-					max_bits = 192;
-			} else if ( ( data[0] == 0x8A || data[0] == 0x9A ) && data[1] == 0xEC ) {	// RTGR328N
-				max_bits = 208;
-			} else if ( ( data[0] == 0xDA ) && ( data[1] == 0x78 ) ) {	// UVN800
-				max_bits = 144;
-			} else if ( data[0] == 0xEA ) {
-				if ( data[1] == 0x4C )			// TH132N cs1
-					max_bits = 136;
-				else if ( data[1] == 0x7C )		// UV138 cs1
-					max_bits = 240;
-			} else {
-				max_bits = 160;
-			}
-		}
-		
 		if (pos >= sizeof data) {
 			resetDecoder();
 			return;
@@ -206,8 +172,36 @@ public:
 		} else {
 			return -1;
 		}
-// 		if ( total_bits == max_bits )
-// 			checkSum();
+		
+		if ( pos == 2 ) {
+			if ( data[0] == 0x1A ) {
+				if ( data[1] == 0x89 )			// WRGR800
+					max_bits = 176;
+				else if ( data[1] == 0x99 )		// WRGR800
+					max_bits = 176;
+			} else if ( data[0] == 0x2A ) {
+				if ( data[1] == 0x19 )			// RCR800 cs8
+					max_bits = 184;
+				else if ( data[1] == 0x1D )		// RGR918
+					max_bits = 168;
+			} else if ( data[0] == 0x5A ) {
+				if ( data[1] == 0x5D )			// BTHR918
+					max_bits = 176;
+				else if ( data[1] == 0x6D )		// BTHR918N
+					max_bits = 192;
+			} else if ( ( data[0] == 0x8A || data[0] == 0x9A ) && data[1] == 0xEC ) {	// RTGR328N
+				max_bits = 208;
+			} else if ( ( data[0] == 0xDA ) && ( data[1] == 0x78 ) ) {	// UVN800
+				max_bits = 144;
+			} else if ( data[0] == 0xEA ) {
+				if ( data[1] == 0x4C )			// TH132N cs1
+					max_bits = 136;
+				else if ( data[1] == 0x7C )		// UV138 cs1
+					max_bits = 240;
+			} else {
+				max_bits = 160;
+			}
+		}
 		return total_bits == max_bits ? 1: 0;
 	}
 	
@@ -373,21 +367,76 @@ public:
         return 0;
     }
     
+    // https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:fineoffset.c
 	virtual bool checkSum() {
-		char len, i, mix, inbyte, crc = 0;
+		unsigned char i, bit, crc = 0;
 
-		// Indicated changes are from reference CRC-8 function in OneWire library
-		for ( len = 0; len < pos - 1; len ++ ) {
-			inbyte = data[len];
-			for ( i = 8; i; i-- ) {
-				mix = ( crc ^ inbyte ) & 0x80; // changed from & 0x01
-				crc <<= 1; // changed from right shift
-				if ( mix ) 
-					crc ^= 0x31;// changed from 0x8C;
-				inbyte <<= 1; // changed from right shift
+		for (i = 0; i < pos - 1; i++) {
+			crc = (data[i] ^ crc);
+			for (bit = 0; bit < 8; bit++) {
+				crc = ((crc << 1) ^ ((crc & 0x80) ? 0x131 : 0)) & 0xff;
 			}
 		}
-		return ( ( crc & 0xFF ) == data[pos-1] );
+		return ( crc == data[pos-1] );
+	}
+};
+
+class MandolynDecoder : public DecodeOOK {
+public:
+	// https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/UPMDecoder.java
+	// http://ala-paavola.fi/jaakko/doku.php?id=wt450h
+	MandolynDecoder() { }
+
+    virtual char decode (word width) {
+		if (width < 870 || width > 2100)
+			return -1;
+		
+		switch (state) {
+			case UNKNOWN:	// First short
+				if (width < 1100) {
+					state = T1;
+				} else
+					return -1;
+				break;
+			case OK:
+				if ( width < 1100) {	// First short
+					state = T1;
+				} else if ( width > 1800 ) {
+					gotBit( 0 );
+				} else {
+					return -1;
+				}
+				break;
+
+			case T1:		// Signal off
+				if ( width < 1100) {	// Second short
+					gotBit( 1 );
+					state = OK;
+				} else {
+
+					return -1;
+				}
+				break;
+
+			default:
+				return -1;
+		}
+		// Not geting last nibble with checkSum. Total bits should be 40 with preample 0xC
+		if ( total_bits == 36 )
+			return 1;
+        return 0;
+    }
+
+	virtual bool checkSum() {
+		// Checking fixed positions preamble b00-b04 being b1100 and position b11-b12 being b11
+		return ( ( data[0] & 0xF0 ) == 0xC0 && ( data[1] & 0x30 ) == 0x30 );
+		unsigned char i, bit, crc = 0;
+		for (i = 0; i < pos - 2; i++) {
+			for ( bit = 0; bit < 8; bit += 2 ) {
+				crc ^= ( ( data[i] >> bit ) & 0x3 );
+			}
+		}
+		return ( crc == ( data[pos-1] & 0x3 ) );
 	}
 };
 
@@ -401,11 +450,11 @@ struct os_timedate {
 	byte year;
 };
 
-OregonDecoderV2 orscV2;
-OregonDecoderV3 orscV3;
-VentusDecoder   ventus;
+OregonDecoderV2   orscV2;
+OregonDecoderV3   orscV3;
+VentusDecoder     ventus;
 FineOffsetDecoder fineOffset;
-
+MandolynDecoder   mandolyn;
 #define PORT 2
 
 volatile word pulse;
@@ -422,8 +471,8 @@ ISR(ANALOG_COMP_vect) {
 }
 
 void reportSerial (const char* s, class DecodeOOK& decoder) {
-	if ( !decoder.checkSum() )
-		return;
+// 	if ( !decoder.checkSum() )
+// 		return;
 	byte pos;
 	const byte* data = decoder.getData(pos);
 	Serial.print(s);
@@ -432,6 +481,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] >> 4, HEX);
 		Serial.print(data[i] & 0x0F, HEX);
 	}
+	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
 	Serial.println();
 
 	decoder.resetDecoder();
@@ -462,13 +512,11 @@ void setup () {
 }
 
 void loop () {
+	
 	cli();
 	word p = pulse;
-
 	pulse = 0;
 	sei();
-
-	//if (p != 0){ Serial.print(++i); Serial.print('\n');}
 
 	if (p != 0) {
 		if (orscV2.nextPulse(p))
@@ -479,6 +527,8 @@ void loop () {
 			reportSerial("VENT", ventus);
 		if (fineOffset.nextPulse(p))
 			reportSerial("FINE", fineOffset);
+		if (mandolyn.nextPulse(p))
+			reportSerial("MAND", mandolyn);
 	}
 }
 
