@@ -8,10 +8,78 @@ static unsigned char reverse_bits_lookup[16] = {
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
 };
 
+int main( int argc, char *argv[]) {
+	pthread_t thread1;
+	int iret1;
+	
+	confReadFile( CONFIG_FILE_NAME, &configFile );
+	sensorInit();
+	
+	/* Create independent threads each of which will execute function */
+	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
+	if ( iret1 ) {
+		fprintf( stderr, "ERROR in main: pthread_create() return code: %d\n", iret1 );
+		exit(EXIT_FAILURE);
+	}
+
+	signal( SIGINT, signal_callback_handler );
+
+	/* Wait till threads are complete before main continues.  */
+	pthread_join( thread1, NULL);
+
+	exit(EXIT_SUCCESS);
+}
+
 void signal_callback_handler( int signum ) {
 	printf( "\nCaught signal %d\nExiting!\n", signum );
 	terminate = 1;
 	exit( EXIT_SUCCESS );
+}
+
+// http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
+void *uart_receive( void *ptr ) {
+	struct termios options;
+	int    fd, rcount;
+	char   buffer[256];
+	char  *dev;
+	dev = (char *) ptr;
+
+	fd = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
+	if ( fd == -1 ) {
+		perror( dev );
+		exit(EXIT_FAILURE);
+	}
+	printf( "Opening %s\n", dev );
+	
+	if ( tcgetattr( fd, &options ) < 0 ) {
+		perror( "ERROR: Getting configuration" );
+		close( fd );
+		exit(EXIT_FAILURE);
+	}
+	
+	options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 8 data bits, enable receiver, local line 
+	options.c_cflag &= ~PARENB | ~CSTOPB; // No parity, one stop bit 
+	options.c_iflag &= ~( IXON | IXOFF | IXANY ); // Disable software flow control
+	options.c_oflag = 0;
+	options.c_lflag = ICANON; // Read line
+	options.c_cc[VTIME] = 0; // No timeout clock for read
+	options.c_cc[VMIN] = 1; // Wait for one character before reading another
+	tcflush( fd, TCIFLUSH ); 
+	tcsetattr( fd, TCSANOW, &options ); // Set fd with new settings immediately
+	
+	while ( !terminate ) {
+		rcount = read( fd, buffer, sizeof( buffer ) );
+		if ( rcount < 0 ) {
+			perror( "Read" );
+		} else if ( rcount > 4 ) {
+			buffer[rcount-1] = '\0';
+			parse_input( buffer );
+		}
+		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
+		usleep( 200 );
+	}
+	
+	close( fd );
 }
 
 // http://stackoverflow.com/questions/26839558/hex-char-to-int-conversion
@@ -30,18 +98,22 @@ unsigned char reverse_8bits( unsigned char n ) {
 	return ( reverse_bits_lookup[n&0x0F] << 4 | reverse_bits_lookup[n>>4] );
 }
 
-float osv2_temperature( char *s ) {
-	float temp =  hex2char( s[10] ) * 10 
-				+ hex2char( s[11] ) 
-				+ hex2char( s[8] ) / 10;
-	if ( hex2char( s[13] ) & 0x8 )
-		return -temp;
-	return temp;
+void parse_input( char *s ) {
+	if ( strncmp( s, "OSV2", 4 ) == 0 )
+		osv2_parse( s + 5 );
+	else if ( strncmp( s, "VENT", 4 ) == 0 )
+		vent_parse( s + 5 );
+	else if ( strncmp( s, "MAND", 4 ) == 0 )
+		mandolyn_parse( s + 5 );
+	else
+		printf( "Not recognised: " );
+	
+	printf( "%s\n", s );
 }
 
-unsigned char osv2_humidity( char *s ) {
-	return hex2char( s[15] ) * 10 + hex2char( s[12] );
-}
+/*******************************************************************/
+/* OREGON SCIENTIFIC VER 2.1                                       */
+/*******************************************************************/
 
 // http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
 // http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
@@ -123,6 +195,23 @@ void osv2_parse( char *s ) {
 			sensorRain( sptr, rain );
 	}
 }
+
+float osv2_temperature( char *s ) {
+	float temp =  hex2char( s[10] ) * 10 
+				+ hex2char( s[11] ) 
+				+ hex2char( s[8] ) / 10;
+	if ( hex2char( s[13] ) & 0x8 )
+		return -temp;
+	return temp;
+}
+
+unsigned char osv2_humidity( char *s ) {
+	return hex2char( s[15] ) * 10 + hex2char( s[12] );
+}
+
+/*******************************************************************/
+/* VENTUS/AURIOL WEATHER STATION                                   */
+/*******************************************************************/
 
 void vent_parse( char *s ) {
 	unsigned int  id;
@@ -211,81 +300,26 @@ void vent_parse( char *s ) {
 	}
 }
 
-void parse_input( char *s ) {
-	if ( strncmp( s, "OSV2", 4 ) == 0 )
-		osv2_parse( s + 5 );
-	else if ( strncmp( s, "VENT", 4 ) == 0 )
-		vent_parse( s + 5 );
-	else
-		printf( "Not recognised: " );
-	
-	printf( "%s\n", s );
-}
+/*******************************************************************/
+/* MANDOLYN                                                        */
+/*******************************************************************/
 
-// http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
-void *uart_receive( void *ptr ) {
-	struct termios options;
-	int    fd, rcount;
-	char   buffer[256];
-	char  *dev;
-	dev = (char *) ptr;
-
-	fd = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
-	if ( fd == -1 ) {
-		perror( dev );
-		exit(EXIT_FAILURE);
-	}
-	printf( "Opening %s\n", dev );
+// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
+// http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
+void mandolyn_parse( char *s ) {
+	unsigned int  id;
+	unsigned char channel, batt, sequence, humidity;
+	float         temperature, rain;
+	SensorType    type;
 	
-	if ( tcgetattr( fd, &options ) < 0 ) {
-		perror( "ERROR: Getting configuration" );
-		close( fd );
-		exit(EXIT_FAILURE);
-	}
+	id          = s[0] & 0xf;
+	channel     = s[4] >> 6;
+	batt        = ( ( s[1] & 0x8 ) == 0x8 ? 0 : 1 );
+	temperature = ( ( ( s[2] & 0xF ) << 8 ) | s[3] ) / 16.0 - 50;
+	humidity    = ( ( s[1] & 0x07 ) << 4 ) + ( s[2] >> 4 );
+	sequence    = ( s[4] >> 2 ) & 0x3;
+	type        = TEMPERATURE | HUMIDITY;
 	
-	options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 8 data bits, enable receiver, local line 
-	options.c_cflag &= ~PARENB | ~CSTOPB; // No parity, one stop bit 
-	options.c_iflag &= ~( IXON | IXOFF | IXANY ); // Disable software flow control
-	options.c_oflag = 0;
-	options.c_lflag = ICANON; // Read line
-	options.c_cc[VTIME] = 0; // No timeout clock for read
-	options.c_cc[VMIN] = 1; // Wait for one character before reading another
-	tcflush( fd, TCIFLUSH ); 
-	tcsetattr( fd, TCSANOW, &options ); // Set fd with new settings immediately
-	
-	while ( !terminate ) {
-		rcount = read( fd, buffer, sizeof( buffer ) );
-		if ( rcount < 0 ) {
-			perror( "Read" );
-		} else if ( rcount > 4 ) {
-			buffer[rcount-1] = '\0';
-			parse_input( buffer );
-		}
-		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
-		usleep( 200 );
-	}
-	
-	close( fd );
-}
-
-int main( int argc, char *argv[]) {
-	pthread_t thread1;
-	int iret1;
-	
-	confReadFile( CONFIG_FILE_NAME, &configFile );
-	sensorInit();
-	
-	/* Create independent threads each of which will execute function */
-	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
-	if ( iret1 ) {
-		fprintf( stderr, "ERROR in main: pthread_create() return code: %d\n", iret1 );
-		exit(EXIT_FAILURE);
-	}
-
-	signal( SIGINT, signal_callback_handler );
-
-	/* Wait till threads are complete before main continues.  */
-	pthread_join( thread1, NULL);
-
-	exit(EXIT_SUCCESS);
+	printf( "Id:%d Ch:%d Temp:%.1f Humid:%d Seq:%d, Batt:%d\n",
+			id, channel, temperature, humidity, sequence, batt );
 }
