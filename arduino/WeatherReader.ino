@@ -367,21 +367,84 @@ public:
         return 0;
     }
     
+    // https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:fineoffset.c
 	virtual bool checkSum() {
-		char len, i, mix, inbyte, crc = 0;
+		unsigned char i, bit, crc = 0;
 
-		// Indicated changes are from reference CRC-8 function in OneWire library
-		for ( len = 0; len < pos - 1; len ++ ) {
-			inbyte = data[len];
-			for ( i = 8; i; i-- ) {
-				mix = ( crc ^ inbyte ) & 0x80; // changed from & 0x01
-				crc <<= 1; // changed from right shift
-				if ( mix ) 
-					crc ^= 0x31;// changed from 0x8C;
-				inbyte <<= 1; // changed from right shift
+		for (i = 0; i < pos - 1; i++) {
+			crc = (data[i] ^ crc);
+			for (bit = 0; bit < 8; bit++) {
+				crc = ((crc << 1) ^ ((crc & 0x80) ? 0x131 : 0)) & 0xff;
 			}
 		}
-		return ( ( crc & 0xFF ) == data[pos-1] );
+		return ( crc == data[pos-1] );
+	}
+};
+
+class MandolynDecoder : public DecodeOOK {
+public:
+	// https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/UPMDecoder.java
+	// http://ala-paavola.fi/jaakko/doku.php?id=wt450h
+	MandolynDecoder() { }
+
+    virtual char decode (word width) {
+		if (width < 870 || width > 2100)
+			return -1;
+		
+		switch (state) {
+			case UNKNOWN:	// First short
+				if (width < 1100) {
+					state = T1;
+				} else
+					return -1;
+				break;
+			case OK:
+				if ( width < 1100) {	// First short
+					state = T1;
+				} else if ( width > 1800 ) {
+					gotBit( 0 );
+// 					if ( flip++ == 0 )
+// 						Serial.print( '\n' );
+// 					Serial.print( 1 );
+				} else {
+					return -1;
+				}
+				break;
+
+			case T1:		// Signal off
+				if ( width < 1100) {	// Second short
+					gotBit( 1 );
+					state = OK;
+// 					if ( flip++ == 0 )
+// 						Serial.print( '\n' );
+// 					Serial.print( 0 );
+				} else {
+					return -1;
+				}
+				break;
+
+			default:
+				return -1;
+		}
+		if ( total_bits == 36 )
+			return 1;
+        return 0;
+    }
+
+	virtual bool checkSum() {
+		unsigned char i, bit, crc = 3;
+		for (i = 0; i < pos - 2; i++) {
+			for ( bit = 0; bit < 8; bit += 2 ) {
+				crc ^= ( ( data[i] >> bit ) & 0x3 );
+			}
+		}
+		Serial.print( ' ' );
+		Serial.print( ( data[pos-1] & 0x03 ), HEX );
+		Serial.print( ':' );
+		Serial.print( (pos-1) );
+		Serial.print( ':' );
+		Serial.println( crc, HEX );
+		return ( crc == ( data[pos-1] & 0x3 ) );
 	}
 };
 
@@ -395,11 +458,11 @@ struct os_timedate {
 	byte year;
 };
 
-OregonDecoderV2 orscV2;
-OregonDecoderV3 orscV3;
-VentusDecoder   ventus;
+OregonDecoderV2   orscV2;
+OregonDecoderV3   orscV3;
+VentusDecoder     ventus;
 FineOffsetDecoder fineOffset;
-
+MandolynDecoder   mandolyn;
 #define PORT 2
 
 volatile word pulse;
@@ -416,8 +479,8 @@ ISR(ANALOG_COMP_vect) {
 }
 
 void reportSerial (const char* s, class DecodeOOK& decoder) {
-	if ( !decoder.checkSum() )
-		return;
+// 	if ( !decoder.checkSum() )
+// 		return;
 	byte pos;
 	const byte* data = decoder.getData(pos);
 	Serial.print(s);
@@ -426,6 +489,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] >> 4, HEX);
 		Serial.print(data[i] & 0x0F, HEX);
 	}
+	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
 	Serial.println();
 
 	decoder.resetDecoder();
@@ -456,13 +520,11 @@ void setup () {
 }
 
 void loop () {
+	
 	cli();
 	word p = pulse;
-
 	pulse = 0;
 	sei();
-
-	//if (p != 0){ Serial.print(++i); Serial.print('\n');}
 
 	if (p != 0) {
 		if (orscV2.nextPulse(p))
@@ -473,6 +535,8 @@ void loop () {
 			reportSerial("VENT", ventus);
 		if (fineOffset.nextPulse(p))
 			reportSerial("FINE", fineOffset);
+		if (mandolyn.nextPulse(p))
+			reportSerial("MAND", mandolyn);
 	}
 }
 
