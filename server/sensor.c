@@ -40,9 +40,9 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
-	"DROP TABLE IF EXISTS wr_test",
 #endif
-	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, type SMALLINT, PRIMARY KEY (id) )",
+	"DROP TABLE IF EXISTS wr_test",
+	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, group SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
@@ -183,10 +183,6 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, 
 							   0xFFFF, type );
 	sensorMysqlInsert( s );
-#if _DEBUG > 4
-	printf( "Adding " );
-	sensorPrint( s );
-#endif
 	return s;
 }
 
@@ -201,9 +197,6 @@ char sensorMysqlInsert( sensor *s ) {
 		return 1;
 	}
 	s->rowid = mysql_insert_id( mysql );
-#if _DEBUG > 4
-	printf( "SQL: %s\n", query );
-#endif
 	return 0;
 }
 
@@ -395,12 +388,6 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	if ( dir  >= 0 )
 		s->wind->dir   = dir;
 	
-#if _DEBUG > 2
-	printf( "sensorWind( speed=%.1f  gust=%.1f  dir=%d )\t"
-			"Sp:%.1f  Gu:%.1f  Di:%d Save:%d\tSamp:%d\n", 
-			speed, gust, dir, s->wind->speed, s->wind->gust, 
-		 s->wind->dir, s->wind->saved, s->wind->samples );
-#endif	
 	// Values incomplete
 	if ( s->wind->saved > 0 || s->wind->speed < 0.0 || s->wind->gust < 0.0 || s->wind->dir < 0 )
 		return 0;
@@ -496,10 +483,6 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id,
 			if ( configFile.sensorReceiveTest > 0 )
 				sensorReceiveTest( &sensor_list[i] );
 
-#if _DEBUG > 4
-			printf( "Found " );
-			sensorPrint( &sensor_list[i] );
-#endif
 			return &sensor_list[i];
 		}
 	}

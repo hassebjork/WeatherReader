@@ -14,6 +14,7 @@ Multiple Weather-Reader servers can be run simultaneously on a local
 network. They can be configured to receieve only certain sensors with 
 the best reception.
 
+
 Directories:
 ============
 
@@ -21,12 +22,18 @@ arduino - Sketchbook for the arduino packet demodulizer & decoder.
           Compile and upload with Arduino IDE. Set serial baudrate to 
           115200 view the raw data.
 
-server  - Program reading the arduino and storing data to database. 
+server  - Server program reading the arduino. It will be run on a Raspberry 
+          Pi with Raspian linux.
           Build the source files like this:
           $ make
 
+
+
 Supported sensors:
 ==================
+
+These sensors sholud work, but they have not all been tested. Sensors 
+with the same protocol have been tested.
 
 Oregon Scientific sensors (version 2.1) with temperature / humidity
   - THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
@@ -49,7 +56,32 @@ Weather Stations with aneometer, pluviometer, temperature & humidity
  Mandolyn protocol (labled UPM or ESIC)
   - Temperature
   - Humidity
-  - Wind
-  - Raind
+  - Wind*
+  - Raind*
 
    * Not tested
+
+
+HARDWARE:
+=========
+
+My heardware setup is a LAMP server, Raspberry Pi, Arduino Nano and a receiver.
+The LAMP server (Linux, Apache2, MySQL, PHP) is used for data storage and 
+(yet to come) displaying the data on a web page.
+
+The Raspberry Pi decodes data and sends it to the database. In theory, it could 
+hold the LAMP server too, but many write cycles to the SD card will wear it out.
+
+Connected to a USB port on the Raspberry Pi, is an Arduino Nano (US$ 3). It draws 
+power from the USB and sends serial data back to the Raspberry Pi. It decodes the 
+radio signal and verify the checksum, before transmitting the data for decoding. 
+
+The Arduino has built in interrupts and a timer, which makes it very efficient at 
+decoding the signal lengths, while still running other code. The Raspberry Pi running 
+a polling algorithm will use 98% of the CPU time (using Wiring Pi) and any additional 
+load on the CPU will disturb the timing calculations.
+
+As a receiver I use a 433 MHz receiver shield module called RXB6. It is sensitive 
+and cheap (US$ 3.5). Any similar receiver should do. It connects to the Arduino Nanos 
+pins +5V, GND and data to analogue pin 1 (A1). The rest of the pins are unused.
+
