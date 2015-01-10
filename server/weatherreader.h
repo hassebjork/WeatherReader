@@ -23,6 +23,6 @@ unsigned char osv2_humidity( char *s );
 float osv2_temperature( char *s );
 void vent_parse( char *s );
 void mandolyn_parse( char *s );
-
+void fineoffset_parse( char *s );
 
 #endif

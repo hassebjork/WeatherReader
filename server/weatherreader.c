@@ -105,55 +105,44 @@ void parse_input( char *s ) {
 		vent_parse( s + 5 );
 	else if ( strncmp( s, "MAND", 4 ) == 0 )
 		mandolyn_parse( s + 5 );
+	else if ( strncmp( s, "FINE", 4 ) == 0 )
+		fineoffset_parse( s + 5 );
 	else
 		printf( "Not recognised: " );
 	
 	printf( "%s\n", s );
 }
 
-/*******************************************************************/
-/* OREGON SCIENTIFIC VER 2.1                                       */
-/*******************************************************************/
+/**************************************************************************************************
+ * OREGON SCIENTIFIC VER 2.1                                       
+ * http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
+ * http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
+ * http://www.disk91.com/2013/technology/hardware/oregon-scientific-sensors-with-raspberry-pi/
+ * http://www.mattlary.com/2012/06/23/weather-station-project/
+ * THGN132N https://github.com/phardy/WeatherStation
+ *************************************************************************************************/
 
-// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
-// http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
 void osv2_parse( char *s ) {
 	unsigned int  id;
 	unsigned char channel, batt, rolling, humidity;
 	float         temperature, rain;
 	SensorType    type;
 	
+	// ID is suggested as all nibbles straight [0][1][2][3] (0x1A2D)
+	// or nibbles switched [0][3][2][4] (0x1D20), leaving nibble [1] as preamble
 	id = hex2char( s[0] ) << 12 | hex2char( s[1] ) << 8 | hex2char( s[2] ) << 4 | hex2char( s[3] );
 	channel = hex2char( s[4] );
 	if ( id == 0x1A2D && channel == 4 )
 		channel = 3;
 	batt = hex2char( s[9] ) == 0;
 	rolling = hex2char( s[6] ) << 4 | hex2char( s[7] );
-
-#if _DEBUG > 2
-	printf( "Id: %X Ch: %d:%X ", id, channel, rolling );
-#endif
-/*
-	http://www.disk91.com/2013/technology/hardware/oregon-scientific-sensors-with-raspberry-pi/
-	http://www.mattlary.com/2012/06/23/weather-station-project/
 	
-	THGN132N https://github.com/phardy/WeatherStation
-	
-	Temperature & Humidity sensors		IDid	Product identifier
-		ID id Ci RR vB Tt h+ ?H CS CRC		C		Channel (some sensors 4=>3)
-		1A 2D 10 D6 22 05 68 C8 4F A5		i		ID LSB? then 2nd char (A) is preample
-		1A 2D 20 72 40 18 80 83 3B 98		RR		Rolling code
-		1A 2D 40 2D 10 07 40 06 35 E9		B		Battery 0=OK
-		CA CC 53 7D 70 19 50 83 61 1C		+Ttv	Temperature BCD +Tt.v (0x0=pos 0x8=neg)
-											Hh		Humidity BCD Hh		*/
-	if ( (id&0xFFF) == 0xACC ){	// RTGR328N	CS		CheckSun
+	// Temperature, humidity and time sensor
+	if ( (id&0xFFF) == 0xACC ){	// RTGR328N
 		id          = 0xCACC;	// 0x9ACC 0xAACC 0xBACC 0xCACC 0xDACC 
 		type        = TEMPERATURE | HUMIDITY;
 		temperature = osv2_temperature( s );
 		humidity    = osv2_humidity( s );
-#if _DEBUG > 2
-		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
-#endif
 		
 	// Temperature & Humidity sensors
 	} else if( id == 0xFA28 	// THGR810	CRC		CRC8 code?
@@ -164,24 +153,15 @@ void osv2_parse( char *s ) {
 		type        = TEMPERATURE | HUMIDITY;
 		temperature = osv2_temperature( s );
 		humidity    = osv2_humidity( s );
-#if _DEBUG > 2
-		printf( "Temp: %.1f Humid: %d Batt: %d \n", temperature, humidity, batt );
-#endif
 	
 	// Temperature sensors
 	} else if ( id == 0x0A4D	// THR128
 			|| id == 0xEA4C ) {	// THWR288A, THN132N
 		type        = TEMPERATURE;
 		temperature = osv2_temperature( s );
-#if _DEBUG > 2
-		printf( "Temp: %.1f Batt: %d \n", temperature, batt );
-#endif
 	
 	} else {
 		type = UNDEFINED;
-#if _DEBUG > 2
-		printf( "Not identified!\n" );
-#endif
 		return;
 	}
 	
@@ -209,9 +189,10 @@ unsigned char osv2_humidity( char *s ) {
 	return hex2char( s[15] ) * 10 + hex2char( s[12] );
 }
 
-/*******************************************************************/
-/* VENTUS/AURIOL WEATHER STATION                                   */
-/*******************************************************************/
+/**************************************************************************************************
+ * VENTUS/AURIOL WEATHER STATION
+ * http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
+ *************************************************************************************************/
 
 void vent_parse( char *s ) {
 	unsigned int  id;
@@ -227,10 +208,6 @@ void vent_parse( char *s ) {
 	crc  = hex2char( s[8] );
 	temp = hex2char( s[3] );
 	
-#if _DEBUG > 2
-	printf( "Id: %X Batt: %X CheckSum: %X ", id, batt, crc );
-#endif
-	
 	// Temperature & Humidity
 	if ( ( tmp2 & 0x6 ) != 0x6 ) {
 		type = TEMPERATURE | HUMIDITY;
@@ -243,18 +220,12 @@ void vent_parse( char *s ) {
 			temperature -= 204.8;
 		humidity = reverse_bits_lookup[hex2char( s[6] )] 
 				+ reverse_bits_lookup[hex2char( s[7] )] * 10;
-#if _DEBUG > 2
-		printf( "Temp: %.1f Humid: %d\n", temperature, humidity );
-#endif
 	
 	// Average Wind Speed
 	} else if ( ( temp & 0xF ) == 0x8 ) {
 		type = WINDSPEED;
 		wind = ( reverse_bits_lookup[hex2char( s[7] ) << 4 ]
 				| reverse_bits_lookup[hex2char( s[6] )] ) / 5;
-#if _DEBUG > 2
-		printf( "Wind Speed: %.1f\n", wind );
-#endif
 	
 	// Wind Gust & Bearing
 	} else if ( ( temp & 0xE ) == 0xE ) {
@@ -264,24 +235,15 @@ void vent_parse( char *s ) {
 		dir  = ( hex2char( s[3] ) & 0x1 )
 				| reverse_bits_lookup[hex2char( s[4] )] << 1
 				| reverse_bits_lookup[hex2char( s[5] )] << 5;
-#if _DEBUG > 2
-		printf( "Wind Gust: %.1f Dir: %d\n", gust, dir );
-#endif
 	
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
 		type = RAIN;
 		rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
-#if _DEBUG > 2
-		printf( "Rain: %.2f\n", rain );
-#endif
 	
 	} else {
 		type = UNDEFINED;
-#if _DEBUG > 2
-		printf( "Not identified!\n" );
-#endif
 		return;
 	}
 	
@@ -300,12 +262,12 @@ void vent_parse( char *s ) {
 	}
 }
 
-/*******************************************************************/
-/* MANDOLYN                                                        */
-/*******************************************************************/
+/**************************************************************************************************
+ * MANDOLYN
+ * https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/UPMDecoder.java
+ * https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:mandolyn.c
+ **************************************************************************************************/
 
-// https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/UPMDecoder.java
-// https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:mandolyn.c
 void mandolyn_parse( char *s ) {
 	unsigned char id, channel, batt, sec;
 	float         pri;
@@ -317,7 +279,7 @@ void mandolyn_parse( char *s ) {
 	pri     = ( ( hex2char( s[5] ) << 8 ) | ( hex2char( s[6] ) << 4 ) | hex2char( s[7] ) ) / 16.0 - 50;
 	sec     = ( ( hex2char( s[3] ) & 0x07 ) << 4 ) | hex2char( s[4] );
 	
-	// Rain and wind not tested!
+	// Rain and wind not tested
 	if ( id == 10 ) {
 		if ( channel == 2 ) {
 			type = WINDSPEED | WINDGUST;
@@ -339,3 +301,44 @@ void mandolyn_parse( char *s ) {
 		sensorTemperature( sptr, pri );
 	}
 }
+
+/**************************************************************************************************
+ * FINE OFFSET
+ * https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/FineOffsetDecoder.java
+ * https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:mandolyn.c
+ **************************************************************************************************/
+
+void fineoffset_parse( char *s ) {
+	unsigned char id, rolling, batt, humidity;
+	float         temp, rain;
+	SensorType    type;
+	
+	id       = hex2char( s[0] );
+	rolling  = ( hex2char( s[1] ) << 4 ) | hex2char( s[2] );
+	temp     = ( hex2char( s[3] ) & 0x7 ) * 10 + hex2char( s[4] ) + hex2char( s[5] ) / 10.0;
+	if ( !hex2char( s[3] & 0x8 ) )
+		temp = -temp;
+	humidity = hex2char( s[6] ) * 10 + hex2char( s[7] );
+	
+	if ( id = 3 ) {
+		type = RAIN;
+		rain = (float) ( hex2char( s[6] ) * 100 + hex2char( s[7] ) * 10 + hex2char( s[9] ) ) * 0.03;
+	} else {
+		if ( humidity )
+			type = TEMPERATURE | HUMIDITY;
+		else
+			type = TEMPERATURE;
+	}
+	
+	// Temperature and humidity not tested!
+	sensor *sptr = sensorLookup( "MANDO", id, 0, rolling, type, 1 );
+	if ( sptr ) {
+		if ( type & TEMPERATURE )
+			sensorTemperature( sptr, temp );
+		if ( type & HUMIDITY)
+			sensorHumidity( sptr, humidity );
+		if ( type & RAIN)
+			sensorRain( sptr, rain );
+	}
+}
+
