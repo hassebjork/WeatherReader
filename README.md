@@ -20,13 +20,19 @@ Directories:
 
 arduino - Sketchbook for the arduino packet demodulizer & decoder. 
           Compile and upload with Arduino IDE. Set serial baudrate to 
-          115200 view the raw data.
+          115200 view the raw data. The finished HEX file can also be 
+          uploaded using avrdude:
+          $ avrdude -C/etc/avrdude.conf -v -patmega328p -carduino \
+                    -P/dev/ttyUSB0 -b57600 -D -Uflash:w:WeatherReader.cpp.hex:i
 
 server  - Server program reading the arduino. It will be run on a Raspberry 
-          Pi with Raspian linux.
+          Pi with Raspian linux. Configuration is done in the file
+          /etc/weather-reader.conf
+          
           Build the source files like this:
           $ make
-
+          $ sudo make install
+          $ weather-reader
 
 
 Supported sensors:
@@ -74,7 +80,8 @@ hold the LAMP server too, but many write cycles to the SD card will wear it out.
 
 Connected to a USB port on the Raspberry Pi, is an Arduino Nano (US$ 3). It draws 
 power from the USB and sends serial data back to the Raspberry Pi. It decodes the 
-radio signal and verify the checksum, before transmitting the data for decoding. 
+radio signal and tries to verify the checksum, before transmitting the data for 
+decoding. 
 
 The Arduino has built in interrupts and a timer, which makes it very efficient at 
 decoding the signal lengths, while still running other code. The Raspberry Pi running 
