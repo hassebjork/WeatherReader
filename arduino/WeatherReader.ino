@@ -388,15 +388,26 @@ public:
 	MandolynDecoder() { }
 
     virtual char decode (word width) {
-		if (width < 870 || width > 2100)
-			return -1;
+		static word array[50];
+		static unsigned int count = 0;
+	
+		array[count++ % 50] = width;
+		if ( count > 50 ) count = 0;
 		
+		if (width > 2100) {
+			return -1;
+		} else if (width < 800) {
+			if ( total_bits > 35 )
+				return 1;
+			return -1;
+		}
 		switch (state) {
-			case UNKNOWN:	// First short
+			case UNKNOWN:				// First short
 				if (width < 1100) {
 					state = T1;
-				} else
+				} else {
 					return -1;
+				}
 				break;
 			case OK:
 				if ( width < 1100) {	// First short
@@ -407,13 +418,12 @@ public:
 					return -1;
 				}
 				break;
-
-			case T1:		// Signal off
+			
+			case T1:					// Signal off
 				if ( width < 1100) {	// Second short
 					gotBit( 1 );
 					state = OK;
 				} else {
-
 					return -1;
 				}
 				break;
@@ -421,9 +431,6 @@ public:
 			default:
 				return -1;
 		}
-		// Not geting last nibble with checkSum. Total bits should be 40 with preample 0xC
-		if ( total_bits == 36 )
-			return 1;
         return 0;
     }
 
@@ -471,8 +478,8 @@ ISR(ANALOG_COMP_vect) {
 }
 
 void reportSerial (const char* s, class DecodeOOK& decoder) {
-// 	if ( !decoder.checkSum() )
-// 		return;
+	if ( !decoder.checkSum() )
+		return;
 	byte pos;
 	const byte* data = decoder.getData(pos);
 	Serial.print(s);
@@ -481,7 +488,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] >> 4, HEX);
 		Serial.print(data[i] & 0x0F, HEX);
 	}
-	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
+// 	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
 	Serial.println();
 
 	decoder.resetDecoder();
