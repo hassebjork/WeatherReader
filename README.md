@@ -29,16 +29,27 @@ Supported sensors:
 ==================
 
 Oregon Scientific sensors (version 2.1) with temperature / humidity
-- THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
-- THGR328N (not time)
-- TRGR328N*
-- THGR810*
-- THGR918*, THGRN228NX*, THGN500*
+  - THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
+  - THGR328N (not time)
+  - TRGR328N*
+  - THGR810*
+  - THGR918*, THGRN228NX*, THGN500*
 Not working yet: THGN132N
 
 Weather Stations with aneometer, pluviometer, temperature & humidity
-- Ventus WS155
-- Auriol H13726*
-- Hama EWS 1500*
-- Meteoscan W155/W160*
-  * Not tested
+  - Ventus WS155
+  - Auriol H13726*
+  - Hama EWS 1500*
+  - Meteoscan W155/W160*
+
+ Fine Offset protocol before 2012 (labled Viking, Prolouge)
+  - Temperature & humidity*
+  - Rain guage
+
+ Mandolyn protocol (labled UPM or ESIC)
+  - Temperature
+  - Humidity
+  - Wind
+  - Raind
+
+   * Not tested
