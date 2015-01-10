@@ -319,7 +319,7 @@ void mandolyn_parse( char *s ) {
 	pri     = ( ( hex2char( s[5] ) << 8 ) | ( hex2char( s[6] ) << 4 ) | hex2char( s[7] ) ) / 16.0 - 50;
 	sec     = ( ( hex2char( s[3] ) & 0x07 ) << 4 ) | hex2char( s[4] );
 	
-	// Rain and wind not tested!
+	// Rain and wind not tested
 	if ( id == 10 ) {
 		if ( channel == 2 ) {
 			type = WINDSPEED | WINDGUST;
