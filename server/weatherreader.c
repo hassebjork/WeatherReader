@@ -304,22 +304,38 @@ void vent_parse( char *s ) {
 /* MANDOLYN                                                        */
 /*******************************************************************/
 
-// http://connectingstuff.net/blog/decodage-des-protocoles-oregon-scientific-sur-arduino-2/
-// http://cpansearch.perl.org/src/BEANZ/Device-RFXCOM-1.110800/lib/Device/RFXCOM/Decoder/Oregon.pm
+// https://github.com/NetHome/Coders/blob/master/src/main/java/nu/nethome/coders/decoders/UPMDecoder.java
+// https://gitorious.org/sticktools/protocols/source/4698e465843a0eddc4c7029759f9c1dc79d4aab8:mandolyn.c
 void mandolyn_parse( char *s ) {
-	unsigned int  id;
-	unsigned char channel, batt, sequence, humidity;
-	float         temperature, rain;
+	unsigned char id, channel, batt, sec;
+	float         pri;
 	SensorType    type;
 	
-	id          = s[0] & 0xf;
-	channel     = s[4] >> 6;
-	batt        = ( ( s[1] & 0x8 ) == 0x8 ? 0 : 1 );
-	temperature = ( ( ( s[2] & 0xF ) << 8 ) | s[3] ) / 16.0 - 50;
-	humidity    = ( ( s[1] & 0x07 ) << 4 ) + ( s[2] >> 4 );
-	sequence    = ( s[4] >> 2 ) & 0x3;
-	type        = TEMPERATURE | HUMIDITY;
+	id      = hex2char( s[1] );
+	channel = hex2char( s[2] ) >> 2;	
+	batt    = ( ( hex2char( s[3] ) & 0x8 ) == 0x8 ? 0 : 1 );
+	pri     = ( ( hex2char( s[5] ) << 8 ) | ( hex2char( s[6] ) << 4 ) | hex2char( s[7] ) ) / 16.0 - 50;
+	sec     = ( ( hex2char( s[3] ) & 0x07 ) << 4 ) | hex2char( s[4] );
 	
-	printf( "Id:%d Ch:%d Temp:%.1f Humid:%d Seq:%d, Batt:%d\n",
-			id, channel, temperature, humidity, sequence, batt );
+	// Rain and wind not tested!
+	if ( id == 10 ) {
+		if ( channel == 2 ) {
+			type = WINDSPEED | WINDGUST;
+			sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+			sensorWind( sptr, pri, 0.0, sec );
+		} else if ( channel == 3 ) {
+			type = RAIN;
+			sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+			sensorRain( sptr, pri );
+		}
+	} else if ( sec ) {
+		type = TEMPERATURE | HUMIDITY;
+		sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+		sensorTemperature( sptr, pri );
+		sensorHumidity( sptr, sec );
+	} else {
+		type = HUMIDITY;
+		sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+		sensorTemperature( sptr, pri );
+	}
 }
