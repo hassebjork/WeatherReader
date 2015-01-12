@@ -42,7 +42,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_wind",
 #endif
 	"DROP TABLE IF EXISTS wr_test",
-	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, group SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
@@ -395,7 +395,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	// Store new data
 	char query[255] = "";
 	if ( now > s->wind->s_time ) {
-		s->wind->gust_max = 0.0;
+		s->wind->gust_max = -1.0;
 		s->wind->samples  = 0;
 		s->wind->s_time   = (time_t) ( now / configFile.sampleWindTime + 1 ) 
 							* configFile.sampleWindTime;

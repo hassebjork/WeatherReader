@@ -99,7 +99,8 @@ unsigned char reverse_8bits( unsigned char n ) {
 }
 
 void parse_input( char *s ) {
-	if ( strncmp( s, "OSV2", 4 ) == 0 )
+	if ( strncmp( s, "[", 1 ) == 0 );
+	else if ( strncmp( s, "OSV2", 4 ) == 0 )
 		osv2_parse( s + 5 );
 	else if ( strncmp( s, "VENT", 4 ) == 0 )
 		vent_parse( s + 5 );
