@@ -13,7 +13,7 @@ const byte reverse_bits_lookup[] = {
 
 class DecodeOOK {
 protected:
-	byte total_bits, bits, flip, state, pos, data[25];
+	byte total_bits, flip, state, pos, data[25];
 
 	virtual char decode (word width) =0;
 
@@ -30,7 +30,7 @@ public:
 		
 			switch (decode(width)) {
 				case -1: resetDecoder(); break;
-				case 1:  done(); break;
+				case 1:  state = DONE; break;
 			}
 		return isDone();
 	}
@@ -43,7 +43,7 @@ public:
 	}
 
 	void resetDecoder () {
-		total_bits = bits = pos = flip = 0;
+		total_bits = pos = flip = 0;
 		state = UNKNOWN;
 	}
 
@@ -64,48 +64,6 @@ public:
 		gotBit(flip);
 	}
 
-	// move bits to the front so that all the bits are aligned to the end
-	void alignTail (byte max =0) {
-		// align bits
-		if (bits != 0) {
-			data[pos] >>= 8 - bits;
-			for (byte i = 0; i < pos; ++i)
-				data[i] = (data[i] >> bits) | (data[i+1] << (8 - bits));
-			bits = 0;
-		}
-		// optionally shift bytes down if there are too many of 'em
-		if (max > 0 && pos > max) {
-			byte n = pos - max;
-			pos = max;
-			for (byte i = 0; i < pos; ++i)
-				data[i] = data[i+n];
-		}
-	}
-
-	void reverseBits () {
-		for (byte i = 0; i < pos; ++i) {
-			byte b = data[i];
-			for (byte j = 0; j < 8; ++j) {
-				data[i] = (data[i] << 1) | (b & 1);
-				b >>= 1;
-			}
-		}
-	}
-
-	void reverseNibbles () {
-		for (byte i = 0; i < pos; ++i)
-			data[i] = (data[i] << 4) | (data[i] >> 4);
-	}
-
-	byte reverseByte ( byte b ) {
-		return ( reverse_bits_lookup[b&0x0F] << 4 | reverse_bits_lookup[b>>4] );
-	}
-
-	void done () {
-		while (bits)
-			gotBit(0); // padding
-		state = DONE;
-	}
 };
 
 // 433 MHz decoders
@@ -119,7 +77,7 @@ public:
 	OregonDecoderV2() {
 		max_bits = 160;
 	}
-
+	
 	// add one bit to the packet data buffer
 	virtual void gotBit (char value) {
 		if( !( total_bits & 0x01 ) )
@@ -439,16 +397,6 @@ public:
 		}
 		return ( crc == ( data[pos-1] & 0x3 ) );
 	}
-};
-
-struct os_timedate {
-	byte sec;
-	byte min;
-	byte hour;
-	byte mday;
-	byte month;
-	byte wday;
-	byte year;
 };
 
 OregonDecoderV2   orscV2;
