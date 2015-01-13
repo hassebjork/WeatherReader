@@ -269,14 +269,9 @@ public:
 	
 	// see also http://www.tfd.hu/tfdhu/files/wsprotocol/auriol_protocol_v20.pdf
 	virtual char decode (word width) {
+
 		switch (state ) {
-			case UNKNOWN:	// Preample
-				if (  8500 < width && width < 9500 )
-					state = OK;
-				else
-					return -1;
-				break;
-			case OK:		// Signal On
+			case UNKNOWN:	// Signal on
 				if ( 450 <= width && width < 550)
 					state = T0;
 				else
@@ -284,18 +279,17 @@ public:
 				break;
 			case T0:		// Signal off = bit
 				if ( 1800 < width && width < 4400 ) {
-					byte w = ( width > 3000 );
-					gotBit( w );
-					if ( total_bits > 35 ) {
-						data[pos] = data[pos] << 4;
-						++pos;
-// 						checkSum();
-						return 1;
-					}
-				} else if (  8500 < width && width < 9500 ) {
-					done();
-					state = OK;
-					return 0;
+					if ( width < 2200 )
+						gotBit( 0 );
+					else if ( width > 3800 )
+						gotBit( 1 );
+					else
+						return -1;
+					state = UNKNOWN;
+				} else if ( total_bits > 35 && 8500 < width && width < 9500 ) {
+					data[pos] = data[pos] << 4;
+					pos++;
+					return 1;
 				} else
 					return -1;
 				break;
