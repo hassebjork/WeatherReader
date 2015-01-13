@@ -13,7 +13,7 @@ const byte reverse_bits_lookup[] = {
 
 class DecodeOOK {
 protected:
-	byte total_bits, bits, flip, state, pos, data[25];
+	byte total_bits, flip, state, pos, data[25];
 
 	virtual char decode (word width) =0;
 
@@ -30,7 +30,7 @@ public:
 		
 			switch (decode(width)) {
 				case -1: resetDecoder(); break;
-				case 1:  done(); break;
+				case 1:  state = DONE; break;
 			}
 		return isDone();
 	}
@@ -43,7 +43,7 @@ public:
 	}
 
 	void resetDecoder () {
-		total_bits = bits = pos = flip = 0;
+		total_bits = pos = flip = 0;
 		state = UNKNOWN;
 	}
 
@@ -64,48 +64,6 @@ public:
 		gotBit(flip);
 	}
 
-	// move bits to the front so that all the bits are aligned to the end
-	void alignTail (byte max =0) {
-		// align bits
-		if (bits != 0) {
-			data[pos] >>= 8 - bits;
-			for (byte i = 0; i < pos; ++i)
-				data[i] = (data[i] >> bits) | (data[i+1] << (8 - bits));
-			bits = 0;
-		}
-		// optionally shift bytes down if there are too many of 'em
-		if (max > 0 && pos > max) {
-			byte n = pos - max;
-			pos = max;
-			for (byte i = 0; i < pos; ++i)
-				data[i] = data[i+n];
-		}
-	}
-
-	void reverseBits () {
-		for (byte i = 0; i < pos; ++i) {
-			byte b = data[i];
-			for (byte j = 0; j < 8; ++j) {
-				data[i] = (data[i] << 1) | (b & 1);
-				b >>= 1;
-			}
-		}
-	}
-
-	void reverseNibbles () {
-		for (byte i = 0; i < pos; ++i)
-			data[i] = (data[i] << 4) | (data[i] >> 4);
-	}
-
-	byte reverseByte ( byte b ) {
-		return ( reverse_bits_lookup[b&0x0F] << 4 | reverse_bits_lookup[b>>4] );
-	}
-
-	void done () {
-		while (bits)
-			gotBit(0); // padding
-		state = DONE;
-	}
 };
 
 // 433 MHz decoders
@@ -119,7 +77,7 @@ public:
 	OregonDecoderV2() {
 		max_bits = 160;
 	}
-
+	
 	// add one bit to the packet data buffer
 	virtual void gotBit (char value) {
 		if( !( total_bits & 0x01 ) )
@@ -210,55 +168,6 @@ public:
 		for ( byte i = 0; i < pos-2 ; i++ )
 			s += ( data[i] & 0xF ) + ( data[i] >> 4 );
 		return ( s - 10 ) == data[pos-2];
-	}
-};
-
-class OregonDecoderV3 : public DecodeOOK {
-public:
-	OregonDecoderV3() {}
-
-	// add one bit to the packet data buffer
-	virtual void gotBit (char value) {
-		data[pos] = (data[pos] >> 1) | (value ? 0x80 : 00);
-		total_bits++;
-		pos = total_bits >> 3;
-		if (pos >= sizeof data) {
-			resetDecoder();
-			return;
-		}
-		state = OK;
-	}
-
-	virtual char decode (word width) {
-		if (200 <= width && width < 1200) {
-			byte w = width >= 700;
-			switch (state) {
-				case UNKNOWN:
-					if (w == 0)
-						++flip;
-					else if (32 <= flip) {
-						flip = 1;
-						manchester(1);
-					} else
-						return -1;
-					break;
-				case OK:
-					if (w == 0)
-						state = T0;
-					else
-						manchester(1);
-					break;
-				case T0:
-					if (w == 0)
-						manchester(0);
-					else
-						return -1;
-					break;
-			}
-		} else {
-			return -1;
-		}
-		return  total_bits == 80 ? 1: 0;
 	}
 };
 
@@ -441,18 +350,7 @@ public:
 	}
 };
 
-struct os_timedate {
-	byte sec;
-	byte min;
-	byte hour;
-	byte mday;
-	byte month;
-	byte wday;
-	byte year;
-};
-
 OregonDecoderV2   orscV2;
-OregonDecoderV3   orscV3;
 VentusDecoder     ventus;
 FineOffsetDecoder fineOffset;
 MandolynDecoder   mandolyn;
@@ -522,8 +420,6 @@ void loop () {
 	if (p != 0) {
 		if (orscV2.nextPulse(p))
 			reportSerial("OSV2", orscV2);  
-		if (orscV3.nextPulse(p))
-			reportSerial("OSV3", orscV3);
 		if (ventus.nextPulse(p))
 			reportSerial("VENT", ventus);
 		if (fineOffset.nextPulse(p))
