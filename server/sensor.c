@@ -180,6 +180,8 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, 
 				   unsigned char rolling, SensorType type, unsigned char battery ) {
+	if ( !configFile.sensorAutoAdd )
+		return NULL;
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, 
 							   0xFFFF, type );
 	sensorMysqlInsert( s );
@@ -224,7 +226,7 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 
 char sensorReceiveTest( sensor *s ) {
 	static time_t next = 0;
-	time_t now = time( NULL );
+	time_t now = sensorTimeSync();
 	
 	// Reset counters every hour
 	if ( now > next ) {
@@ -245,14 +247,7 @@ char sensorReceiveTest( sensor *s ) {
 				sensor_list[i].receiveCount = 0;
 			}
 		}
-		
-		sprintf( query, "SELECT UNIX_TIMESTAMP()" );
-		mysql_query( mysql, query );
-		result = mysql_store_result( mysql );
-		if( result && ( row = mysql_fetch_row( result ) ) )
-			next = ( now / 3600 + 1 ) * 3600 + now - atoi( row[0] );
-		else
-			next = (time_t) ( now / 3600 + 1 ) * 3600;
+		next = (time_t) ( now / 3600 + 1 ) * 3600;
 	}
 	++(s->receiveCount);
 	return 0;
@@ -261,7 +256,7 @@ char sensorReceiveTest( sensor *s ) {
 char sensorTemperature( sensor *s, float value ) {
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
-	time_t now = time( NULL );
+	time_t now = sensorTimeSync();
 	if ( s->temperature == NULL ) {
 		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
 		if ( !s->temperature ) {
@@ -291,7 +286,7 @@ char sensorTemperature( sensor *s, float value ) {
 char sensorHumidity( sensor *s, unsigned char value ) {
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
-	time_t now = time( NULL );
+	time_t now = sensorTimeSync();
 	
 	if ( s->humidity == NULL ) {
 		s->humidity = (DataInt *) malloc( sizeof( DataInt ) );
@@ -323,7 +318,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 char sensorRain( sensor *s, float total ) {
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
-	time_t now = time( NULL );
+	time_t now = sensorTimeSync();
 	if ( s->rain == NULL ) {
 		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
 		if ( !s->rain ) {
@@ -353,7 +348,7 @@ char sensorRain( sensor *s, float total ) {
 char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
-	time_t now   = time( NULL );
+	time_t now = sensorTimeSync();
 	
 	// Initialize
 	if ( s->wind == NULL ) {
@@ -507,6 +502,41 @@ void sensorListFree() {
 	}
 	free( sensor_list );
 	sensor_list_no = 0;
+}
+
+time_t sensorTimeSync() {
+	static time_t update = 0;
+	static int    correction = 0, syncTime = 3000;
+	time_t        now = time( NULL );
+	
+	if ( now > update ) {
+		char query[255] = "";
+		int  diff = correction;
+		MYSQL_RES   *result ;
+		MYSQL_ROW    row;
+		
+		// Fetch database time and calculate correction
+		sprintf( query, "SELECT UNIX_TIMESTAMP()" );
+		mysql_query( mysql, query );
+		result = mysql_store_result( mysql );
+		if( result && ( row = mysql_fetch_row( result ) ) ) 
+			correction = now - atoi( row[0] );
+		else
+			correction = 0;
+		
+		// Adjust sync time and add 1 sec so it will not become static
+		diff = correction - diff;
+		if ( diff < 0 )
+			diff = -diff;
+		if ( diff != 0 )
+			syncTime = syncTime / diff;
+		syncTime++;
+#if _DEBUG > 1
+		printf( "Synctime: %d\tCorr: %d\tDiff: %d\n", syncTime, correction, diff );
+#endif
+		update = (time_t) now + syncTime - correction;
+	}
+	return (time_t) now - correction;
 }
 
 void sensorPrint( sensor *s ) {

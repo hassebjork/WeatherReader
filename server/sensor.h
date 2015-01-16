@@ -114,6 +114,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir );
 sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 
 void sensorListFree();
+time_t sensorTimeSync();
 void sensorPrint( sensor *s );
 
 #endif

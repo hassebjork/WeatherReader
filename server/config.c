@@ -41,6 +41,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->serverID          = 0;
 	conf->serialDevice[0]   = 0;
 	conf->sensorReceiveTest = 0;
+	conf->sensorAutoAdd     = 1;
 	
 	conf->mysqlServer[0]    = 0;
 	conf->mysqlUser[0]      = 0;
@@ -64,6 +65,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			if ( confIntVar( rdBuf, "serverID", &conf->serverID ) ) {}
 			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
 			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
+			else if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
