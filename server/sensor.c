@@ -504,7 +504,7 @@ void sensorListFree() {
 
 time_t sensorTimeSync() {
 	static time_t update = 0;
-	static int    correction = 0, syncTime = 300;
+	static int    correction = 0, syncTime = 3000;
 	time_t        now = time( NULL );
 	
 	if ( now > update ) {
@@ -529,6 +529,9 @@ time_t sensorTimeSync() {
 		if ( diff != 0 )
 			syncTime = syncTime / diff;
 		syncTime++;
+#if _DEBUG > 1
+		printf( "Synctime: %d\tCorr: %d\tDiff: %d\n", syncTime, correction, diff );
+#endif
 		update = (time_t) now + syncTime - correction;
 	}
 	return (time_t) now - correction;
