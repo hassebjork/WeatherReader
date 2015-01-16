@@ -45,7 +45,7 @@ typedef struct {
 	int   sensorReceiveTest;
 	int   serverID;
 	
-	char  sensorAutoAdd;
+	int   sensorAutoAdd;
 	
 	char  mysql;
 	char  mysqlServer[MAX_CONFIG_NAME_SIZE];
