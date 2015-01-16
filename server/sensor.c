@@ -180,6 +180,8 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 
 sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, 
 				   unsigned char rolling, SensorType type, unsigned char battery ) {
+	if ( !configFile.sensorAutoAdd )
+		return NULL;
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, 
 							   0xFFFF, type );
 	sensorMysqlInsert( s );
