@@ -116,5 +116,6 @@ sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned cha
 void sensorListFree();
 time_t sensorTimeSync();
 void sensorPrint( sensor *s );
+void printTime( char *s );
 
 #endif

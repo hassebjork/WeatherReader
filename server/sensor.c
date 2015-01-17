@@ -546,3 +546,19 @@ void sensorPrint( sensor *s ) {
 			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, 
 			s->rolling, s->battery, s->type );
 }
+
+/**
+ * printTime returns a formatted string of current time in s (min 20 characters)
+ */
+void printTime( char *s ) {
+	struct tm *local;
+	time_t t = time(NULL);
+	local = localtime(&t);
+	sprintf(s, "[%i-%02i-%02i %02i:%02i:%02i] ", 
+			(local->tm_year + 1900), 
+			(local->tm_mon) + 1, 
+			local->tm_mday, 
+			local->tm_hour,
+			local->tm_min, 
+			local->tm_sec );
+}
