@@ -62,6 +62,7 @@ typedef struct {
 } ConfigSettings;
 
 ConfigSettings configFile;
+FILE *fdebug;
 
 int confReadFile( char *inFname, ConfigSettings *conf );
 int confStringVar( char *buf, char *matchStr, char *destStr );
