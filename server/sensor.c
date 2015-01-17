@@ -237,14 +237,16 @@ char sensorReceiveTest( sensor *s ) {
 		
 		if ( next > 0 ) {
 			for ( i = 0; i < sensor_list_no; i++ ) {
-				sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
-						sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
-				if ( mysql_query( mysql, query ) ) {
-					fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
-								mysql_error( mysql ), query );
-					return 1;
+				if ( sensor_list[i].receiveCount > 0 ) {
+					sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
+							sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
+					if ( mysql_query( mysql, query ) ) {
+						fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
+									mysql_error( mysql ), query );
+						return 1;
+					}
+					sensor_list[i].receiveCount = 0;
 				}
-				sensor_list[i].receiveCount = 0;
 			}
 		}
 		next = (time_t) ( now / 3600 + 1 ) * 3600;
