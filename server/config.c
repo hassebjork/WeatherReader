@@ -108,7 +108,7 @@ int confStringVar( char *buf, char *matchStr, char *destStr ) {
 		while ( ( ( buf[i] == ' ' ) || ( buf[i] =='\t' ) ) && ( i < READ_BUFSIZE ) )
 			i++;
 		while ( ( buf[i] != 0 ) && ( buf[i] != '\r' ) && ( buf[i] != '\n' ) 
-			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_CONFIG_NAME_SIZE - 1 ) ) )
+			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_TAG_SIZE - 1 ) ) )
 			destStr[j++] = buf[i++];
 		destStr[j] = 0;
 		retVal     = 1;

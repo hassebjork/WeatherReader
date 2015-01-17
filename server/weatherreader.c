@@ -47,8 +47,12 @@ int main( int argc, char *argv[]) {
 }
 
 void signal_interrupt( int signum ) {
-	printf( "\nCaught signal %d\nExiting!\n", signum );
 	terminate = 1;
+	if ( configFile.sensorReceiveTest > 0 ) {
+		printf( "\nSaving sensor recieve-test data!\n", signum );
+		sensorSaveTests();
+	}
+	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
 }
 

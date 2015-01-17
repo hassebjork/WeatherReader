@@ -224,29 +224,30 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 	return 0;
 }
 
+void sensorSaveTests() {
+	char query[255] = "";
+	int i;
+	MYSQL_RES   *result ;
+	MYSQL_ROW    row;
+
+	for ( i = 0; i < sensor_list_no; i++ ) {
+		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
+				sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
+		if ( sensor_list[i].receiveCount > 0 && mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
+						mysql_error( mysql ), query );
+		}
+		sensor_list[i].receiveCount = 0;
+	}
+}
+
 char sensorReceiveTest( sensor *s ) {
 	static time_t next = 0;
 	time_t now = sensorTimeSync();
 	
-	// Reset counters every hour
 	if ( now > next ) {
-		char query[255] = "";
-		int i;
-		MYSQL_RES   *result ;
-		MYSQL_ROW    row;
-		
-		if ( next > 0 ) {
-			for ( i = 0; i < sensor_list_no; i++ ) {
-			sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
-					sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
-			if ( sensor_list[i].receiveCount > 0 && mysql_query( mysql, query ) ) {
-				fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
-							mysql_error( mysql ), query );
-				return 1;
-			}
-			sensor_list[i].receiveCount = 0;
-			}
-		}
+		if ( next > 0 )
+			sensorSaveTests();
 		next = (time_t) ( now / 3600 + 1 ) * 3600;
 	}
 	++(s->receiveCount);
@@ -530,7 +531,7 @@ time_t sensorTimeSync() {
 			diff = -diff;
 		if ( diff != 0 && update != 0 )
 			syncTime = syncTime / diff;
-		syncTime++;
+		syncTime += 10;
 #if _DEBUG > 1
 		char s[20];
 		printTime( s );

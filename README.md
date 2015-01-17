@@ -11,8 +11,8 @@ The MySQL database is configured in a configuration file. It can be
 set up to operate locally or on a remote server.
 
 Multiple Weather-Reader servers can be run simultaneously on a local 
-network. They can be configured to receieve only certain sensors with 
-the best reception.
+network. They can manually be configured to receieve only certain sensors 
+with the best reception.
 
 
 Directories:
@@ -81,7 +81,7 @@ hold the LAMP server too, but many write cycles to the SD card will wear it out.
 Connected to a USB port on the Raspberry Pi, is an Arduino Nano (US$ 3). It draws 
 power from the USB and sends serial data back to the Raspberry Pi. It decodes the 
 radio signal and tries to verify the checksum, before transmitting the data for 
-decoding. 
+decoding.
 
 The Arduino has built in interrupts and a timer, which makes it very efficient at 
 decoding the signal lengths, while still running other code. The Raspberry Pi running 
@@ -92,3 +92,15 @@ As a receiver I use a 433 MHz receiver shield module called RXB6. It is sensitiv
 and cheap (US$ 3.5). Any similar receiver should do. It connects to the Arduino Nanos 
 pins +5V, GND and data to analogue pin 1 (A1). The rest of the pins are unused.
 
+
+ISSUES:
+=======
+- These cheap Arduino Nano boards, seem to have a ceramic ocillator. The clock speed 
+  varies between different boards and reception of different protocols might not work 
+  100% on every board.
+  
+- The Arduino sketch fails to decode some protocols after a few hours. Different protocols 
+  drop out on different boards. A temporary workaround is implemented, to restart the 
+  Arduino board every hour.
+  
+  

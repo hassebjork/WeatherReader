@@ -37,8 +37,7 @@
 
 #define CONFIG_FILE_NAME "/etc/weather-reader.conf"
 #define READ_BUFSIZE 1000
-#define MAX_TAG_SIZE 100
-#define MAX_CONFIG_NAME_SIZE 500
+#define MAX_TAG_SIZE 200
 
 typedef struct {
 	char  serialDevice[32];
@@ -48,11 +47,11 @@ typedef struct {
 	int   sensorAutoAdd;
 	
 	char  mysql;
-	char  mysqlServer[MAX_CONFIG_NAME_SIZE];
-	char  mysqlUser[MAX_CONFIG_NAME_SIZE];
-	char  mysqlPass[MAX_CONFIG_NAME_SIZE];
+	char  mysqlServer[MAX_TAG_SIZE];
+	char  mysqlUser[MAX_TAG_SIZE];
+	char  mysqlPass[MAX_TAG_SIZE];
 	int   mysqlPort;
-	char  mysqlDatabase[MAX_CONFIG_NAME_SIZE];
+	char  mysqlDatabase[MAX_TAG_SIZE];
 	
 	int   saveTemperatureTime;
 	int   saveHumidityTime;

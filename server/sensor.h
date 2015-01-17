@@ -104,6 +104,7 @@ sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char c
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
+void sensorSaveTests();
 char sensorReceiveTest( sensor *s );
 
 char sensorTemperature( sensor *s, float value );

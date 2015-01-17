@@ -1,7 +1,6 @@
 TODO
 - Sensors: Store wind dir as NULL when speed = 0.0
 - Config file: Database prefix for tables
-- Weather-reader: Save test-data before exit
 - Startscripts in /etc/init.d and links to /etc/rc.X
 
 Wish list
