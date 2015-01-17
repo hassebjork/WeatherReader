@@ -506,7 +506,7 @@ void sensorListFree() {
 
 time_t sensorTimeSync() {
 	static time_t update = 0;
-	static int    correction = 0, syncTime = 3000;
+	static int    correction = 0, syncTime = 3600;
 	time_t        now = time( NULL );
 	
 	if ( now > update ) {
@@ -528,11 +528,13 @@ time_t sensorTimeSync() {
 		diff = correction - diff;
 		if ( diff < 0 )
 			diff = -diff;
-		if ( diff != 0 )
+		if ( diff != 0 && update != 0 )
 			syncTime = syncTime / diff;
 		syncTime++;
 #if _DEBUG > 1
-		printf( "Synctime: %d\tCorr: %d\tDiff: %d\n", syncTime, correction, diff );
+		char s[20];
+		printTime( s );
+		fprintf( stderr, "%s SyncTime: %d\tCorr: %d\tDiff: %d\n", s, syncTime, correction, diff );
 #endif
 		update = (time_t) now + syncTime - correction;
 	}
@@ -554,7 +556,7 @@ void printTime( char *s ) {
 	struct tm *local;
 	time_t t = time(NULL);
 	local = localtime(&t);
-	sprintf(s, "[%i-%02i-%02i %02i:%02i:%02i] ", 
+	sprintf(s, "[%i-%02i-%02i %02i:%02i:%02i]", 
 			(local->tm_year + 1900), 
 			(local->tm_mon) + 1, 
 			local->tm_mday, 

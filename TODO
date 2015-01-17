@@ -7,3 +7,4 @@ TODO
 Wish list
 - Config file: Move some config data into database?
 - Weather-reader: Look up hostname
+- Reconnect database if connection reset

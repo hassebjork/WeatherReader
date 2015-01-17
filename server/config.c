@@ -54,11 +54,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveRainTime        = 60;
 	conf->sampleWindTime      = 60;
 	
-#if _DEBUG > 0
-	if ( ( fdebug = fopen( "weather-reader.dbg", "w") ) != NULL )
-		printf( "Debug file: weather-reader.dbg\n" );
-#endif
-	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
 		return( 1 );
