@@ -17,6 +17,7 @@
 int main(int argc, char *argv[]);
 void signal_interrupt( int signum );
 void signal_alarm( void );
+void reset_arduino( void );
 void *uart_receive( void *ptr );
 unsigned char hex2char( unsigned char c );
 unsigned char reverse_8bits( unsigned char n );

@@ -19,6 +19,11 @@ int main( int argc, char *argv[]) {
 	char s[20];
 	printTime( s );
 	fprintf( stderr, "%s Debug mode enabled\n", s );
+	if ( configFile.serverID > 0 )
+		printf( "This servers ID is %d\n", configFile.serverID );
+	if ( configFile.sensorReceiveTest > 0 )
+		printf( "Sensor receive test is ACTIVE!\n" );
+	
 #endif
 	
 	/* Create independent threads each of which will execute function */
@@ -48,6 +53,11 @@ void signal_interrupt( int signum ) {
 }
 
 void signal_alarm( void ) {
+	reset_arduino();
+	confReadFile( CONFIG_FILE_NAME, &configFile );
+}
+
+void reset_arduino( void ) {
 	// http://www.linuxtv.org/mailinglists/vdr/2003/02-2003/msg00543.html
 	int flag = TIOCM_DTR;
 	ioctl( tty, TIOCMBIC, &flag );
@@ -56,7 +66,7 @@ void signal_alarm( void ) {
 #if _DEBUG > 1
 	char s[20];
 	printTime( s );
-	fprintf( stderr, "%s: Resetting Arduino\n", s );
+	fprintf( stderr, "%s Resetting Arduino\n", s );
 #endif
 }
 
