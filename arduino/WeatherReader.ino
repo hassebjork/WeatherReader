@@ -92,7 +92,7 @@ public:
 	}
 
 	virtual char decode (word width) {
-		if (200 <= width && width < 1200) {
+		if (200 <= width && width < 1400) {
 			byte w = width >= 700;
 			switch (state) {
 				case UNKNOWN:
@@ -181,21 +181,21 @@ public:
 
 		switch (state ) {
 			case UNKNOWN:	// Signal on
-				if ( 450 <= width && width < 550)
+				if ( 425 <= width && width < 575)
 					state = T0;
 				else
 					return -1;
 				break;
 			case T0:		// Signal off = bit
-				if ( 1800 < width && width < 4400 ) {
-					if ( width < 2200 )
+				if ( 1700 < width && width < 4600 ) {
+					if ( width < 2300 )
 						gotBit( 0 );
-					else if ( width > 3800 )
+					else if ( width > 3400 )
 						gotBit( 1 );
 					else
 						return -1;
 					state = UNKNOWN;
-				} else if ( total_bits > 35 && 8500 < width && width < 9500 ) {
+				} else if ( total_bits > 35 && 7650 < width && width < 10350 ) {
 					data[pos] = data[pos] << 4;
 					pos++;
 					return 1;
@@ -291,12 +291,6 @@ public:
 	MandolynDecoder() { }
 
     virtual char decode (word width) {
-		static word array[50];
-		static unsigned int count = 0;
-	
-		array[count++ % 50] = width;
-		if ( count > 50 ) count = 0;
-		
 		if (width > 2100) {
 			return -1;
 		} else if (width < 800) {
@@ -389,7 +383,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 
 void setup () {
 	Serial.begin(115200);
-	Serial.println("\n[WeatherReader]\n");
+// 	Serial.println("\n[WeatherReader]\n");
 
 #if !defined(__AVR_ATmega1280__)
 	pinMode(13 + PORT, INPUT);  // use the AIO pin

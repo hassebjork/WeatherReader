@@ -1,6 +1,6 @@
 #include "weatherreader.h"
 
-int terminate = 0;
+int tty, terminate = 0;
 extern ConfigSettings configFile;
 
 static unsigned char reverse_bits_lookup[16] = {
@@ -9,51 +9,91 @@ static unsigned char reverse_bits_lookup[16] = {
 };
 
 int main( int argc, char *argv[]) {
-	pthread_t thread1;
-	int iret1;
+	pthread_t threadUart;
+	int       iret1;
+	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
 	sensorInit();
+#if _DEBUG > 0
+	char s[20];
+	printTime( s );
+	fprintf( stderr, "%s Debug mode enabled\n", s );
+	if ( configFile.serverID > 0 )
+		printf( "This servers ID is %d\n", configFile.serverID );
+	if ( configFile.sensorReceiveTest > 0 )
+		printf( "Sensor receive test is ACTIVE!\n" );
+	
+#endif
 	
 	/* Create independent threads each of which will execute function */
-	iret1 = pthread_create( &thread1, NULL, uart_receive, (void*) configFile.serialDevice );
+	iret1 = pthread_create( &threadUart, NULL, uart_receive, (void*) configFile.serialDevice );
 	if ( iret1 ) {
 		fprintf( stderr, "ERROR in main: pthread_create() return code: %d\n", iret1 );
 		exit(EXIT_FAILURE);
 	}
 
-	signal( SIGINT, signal_callback_handler );
+	signal( SIGINT, signal_interrupt );
+	timer.it_value.tv_sec  = 3600;
+	timer.it_value.tv_usec = 0;
+	timer.it_interval      = timer.it_value;
+	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
+		fprintf( stderr, "ERROR in main: Could not set timer\n" );
 
 	/* Wait till threads are complete before main continues.  */
-	pthread_join( thread1, NULL);
+	pthread_join( threadUart, NULL);
 
 	exit(EXIT_SUCCESS);
 }
 
-void signal_callback_handler( int signum ) {
-	printf( "\nCaught signal %d\nExiting!\n", signum );
+void signal_interrupt( int signum ) {
 	terminate = 1;
+	if ( configFile.sensorReceiveTest > 0 ) {
+		printf( "\nSaving sensor recieve-test data!\n", signum );
+		sensorSaveTests();
+	}
+	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
+}
+
+void signal_alarm( void ) {
+	reset_arduino();
+	confReadFile( CONFIG_FILE_NAME, &configFile );
+}
+
+void reset_arduino( void ) {
+	// http://www.linuxtv.org/mailinglists/vdr/2003/02-2003/msg00543.html
+	int flag = TIOCM_DTR;
+	ioctl( tty, TIOCMBIC, &flag );
+	sleep( 1 );
+	ioctl( tty, TIOCMBIS, &flag );
+#if _DEBUG > 1
+	char s[20];
+	printTime( s );
+	fprintf( stderr, "%s Resetting Arduino\n", s );
+#endif
 }
 
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
 void *uart_receive( void *ptr ) {
 	struct termios options;
-	int    fd, rcount;
-	char   buffer[256];
-	char  *dev;
-	dev = (char *) ptr;
+	int   rcount;
+	char  buffer[256];
+	char *dev = (char *) ptr;
 
-	fd = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
-	if ( fd == -1 ) {
+	tty = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
+	if ( tty == -1 ) {
 		perror( dev );
 		exit(EXIT_FAILURE);
 	}
+	
+	signal( SIGALRM, (void(*)(int)) signal_alarm );
+	
 	printf( "Opening %s\n", dev );
 	
-	if ( tcgetattr( fd, &options ) < 0 ) {
+	if ( tcgetattr( tty, &options ) < 0 ) {
 		perror( "ERROR: Getting configuration" );
-		close( fd );
+		close( tty );
 		exit(EXIT_FAILURE);
 	}
 	
@@ -64,11 +104,11 @@ void *uart_receive( void *ptr ) {
 	options.c_lflag = ICANON; // Read line
 	options.c_cc[VTIME] = 0; // No timeout clock for read
 	options.c_cc[VMIN] = 1; // Wait for one character before reading another
-	tcflush( fd, TCIFLUSH ); 
-	tcsetattr( fd, TCSANOW, &options ); // Set fd with new settings immediately
+	tcflush( tty, TCIFLUSH ); 
+	tcsetattr( tty, TCSANOW, &options ); // Set tty with new settings immediately
 	
 	while ( !terminate ) {
-		rcount = read( fd, buffer, sizeof( buffer ) );
+		rcount = read( tty, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
 			perror( "Read" );
 		} else if ( rcount > 4 ) {
@@ -79,7 +119,7 @@ void *uart_receive( void *ptr ) {
 		usleep( 200 );
 	}
 	
-	close( fd );
+	close( tty );
 }
 
 // http://stackoverflow.com/questions/26839558/hex-char-to-int-conversion

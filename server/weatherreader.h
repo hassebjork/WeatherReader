@@ -8,11 +8,16 @@
 #include <termios.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
 #include "config.h"
 #include "sensor.h"
 
 int main(int argc, char *argv[]);
-void signal_callback_handler( int signum );
+void signal_interrupt( int signum );
+void signal_alarm( void );
+void reset_arduino( void );
 void *uart_receive( void *ptr );
 unsigned char hex2char( unsigned char c );
 unsigned char reverse_8bits( unsigned char n );

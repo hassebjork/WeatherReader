@@ -1,4 +1,5 @@
 server/weather-reader
 server/core
 arduino/build-*
+server/*.dbg
 .kateproject

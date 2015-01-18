@@ -224,29 +224,30 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 	return 0;
 }
 
+void sensorSaveTests() {
+	char query[255] = "";
+	int i;
+	MYSQL_RES   *result ;
+	MYSQL_ROW    row;
+
+	for ( i = 0; i < sensor_list_no; i++ ) {
+		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
+				sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
+		if ( sensor_list[i].receiveCount > 0 && mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
+						mysql_error( mysql ), query );
+		}
+		sensor_list[i].receiveCount = 0;
+	}
+}
+
 char sensorReceiveTest( sensor *s ) {
 	static time_t next = 0;
 	time_t now = sensorTimeSync();
 	
-	// Reset counters every hour
 	if ( now > next ) {
-		char query[255] = "";
-		int i;
-		MYSQL_RES   *result ;
-		MYSQL_ROW    row;
-		
-		if ( next > 0 ) {
-			for ( i = 0; i < sensor_list_no; i++ ) {
-				sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
-						sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
-				if ( mysql_query( mysql, query ) ) {
-					fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
-								mysql_error( mysql ), query );
-					return 1;
-				}
-				sensor_list[i].receiveCount = 0;
-			}
-		}
+		if ( next > 0 )
+			sensorSaveTests();
 		next = (time_t) ( now / 3600 + 1 ) * 3600;
 	}
 	++(s->receiveCount);
@@ -506,7 +507,7 @@ void sensorListFree() {
 
 time_t sensorTimeSync() {
 	static time_t update = 0;
-	static int    correction = 0, syncTime = 3000;
+	static int    correction = 0, syncTime = 3600;
 	time_t        now = time( NULL );
 	
 	if ( now > update ) {
@@ -528,11 +529,13 @@ time_t sensorTimeSync() {
 		diff = correction - diff;
 		if ( diff < 0 )
 			diff = -diff;
-		if ( diff != 0 )
+		if ( diff != 0 && update != 0 )
 			syncTime = syncTime / diff;
-		syncTime++;
+		syncTime += 10;
 #if _DEBUG > 1
-		printf( "Synctime: %d\tCorr: %d\tDiff: %d\n", syncTime, correction, diff );
+		char s[20];
+		printTime( s );
+		fprintf( stderr, "%s SyncTime: %d\tCorr: %d\tDiff: %d\n", s, syncTime, correction, diff );
 #endif
 		update = (time_t) now + syncTime - correction;
 	}
@@ -545,4 +548,20 @@ void sensorPrint( sensor *s ) {
 			"Rolling:%X Battery:%d Type:%d\n", 
 			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, 
 			s->rolling, s->battery, s->type );
+}
+
+/**
+ * printTime returns a formatted string of current time in s (min 20 characters)
+ */
+void printTime( char *s ) {
+	struct tm *local;
+	time_t t = time(NULL);
+	local = localtime(&t);
+	sprintf(s, "[%i-%02i-%02i %02i:%02i:%02i]", 
+			(local->tm_year + 1900), 
+			(local->tm_mon) + 1, 
+			local->tm_mday, 
+			local->tm_hour,
+			local->tm_min, 
+			local->tm_sec );
 }

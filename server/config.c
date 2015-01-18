@@ -58,7 +58,9 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
 		return( 1 );
 	}
-
+	
+	printf( "Reading configuration file %s\n", inFname );
+	
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
@@ -87,11 +89,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveRainTime        *= 60;
 	conf->sampleWindTime      *= 60;
 	
-	if ( conf->serverID > 0 )
-		printf( "This servers ID is %d\n", conf->serverID );
-	if ( conf->sensorReceiveTest > 0 )
-		printf( "Sensor receive test is ACTIVE!\n" );
-	
 	return( 0 );
 }
 
@@ -111,7 +108,7 @@ int confStringVar( char *buf, char *matchStr, char *destStr ) {
 		while ( ( ( buf[i] == ' ' ) || ( buf[i] =='\t' ) ) && ( i < READ_BUFSIZE ) )
 			i++;
 		while ( ( buf[i] != 0 ) && ( buf[i] != '\r' ) && ( buf[i] != '\n' ) 
-			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_CONFIG_NAME_SIZE - 1 ) ) )
+			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_TAG_SIZE - 1 ) ) )
 			destStr[j++] = buf[i++];
 		destStr[j] = 0;
 		retVal     = 1;
