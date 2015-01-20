@@ -7,12 +7,14 @@ on the Raspberry Pi. All sensors work over the 433MHz band. Data is
 sent over the USB port to a Raspberry Pi, reading it as a serial port. 
 The raw data is displayed on stdout and stored in a MySQL database.
 
-The MySQL database is configured in a configuration file. It can be 
-set up to operate locally or on a remote server.
+The MySQL database is configured in a configuration file. The file is 
+read every hour, so changes can be implemented while running. 
+The server can be set up to operate on localhost or a remote server.
 
 Multiple Weather-Reader servers can be run simultaneously on a local 
 network. They can manually be configured to receieve only certain sensors 
-with the best reception.
+with the best reception. The servers sync their clocks against a MySQL 
+database.
 
 
 Directories:

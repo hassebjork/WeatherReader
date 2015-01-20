@@ -391,7 +391,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	// Store new data
 	char query[255] = "";
 	if ( now > s->wind->s_time ) {
-		s->wind->gust_max = -1.0;
+		s->wind->gust_max = 0;
 		s->wind->samples  = 0;
 		s->wind->s_time   = (time_t) ( now / configFile.sampleWindTime + 1 ) 
 							* configFile.sampleWindTime;

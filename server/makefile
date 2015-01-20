@@ -1,5 +1,5 @@
 # File to compile the helopi example
-PREFIX=/usr/local
+PREFIX=/usr/
 MYSQL_CFLAGS=$(shell mysql_config --cflags)
 MYSQL_LIBS=$(shell mysql_config --libs)
 
@@ -26,6 +26,7 @@ clean:
 
 install: weather-reader
 	install -m 0755 weather-reader $(PREFIX)/bin
+	install -m 0755 weather-reader.sh /etc/init.d
 	install -b -m 0644 weather-reader.conf /etc
 
 uninstall:
