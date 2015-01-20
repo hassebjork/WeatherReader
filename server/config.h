@@ -43,8 +43,10 @@ typedef struct {
 	char  serialDevice[32];
 	int   sensorReceiveTest;
 	int   serverID;
-	
 	int   sensorAutoAdd;
+	
+	FILE *log;
+	char  logFilename[MAX_TAG_SIZE];
 	
 	char  mysql;
 	char  mysqlServer[MAX_TAG_SIZE];
@@ -58,6 +60,7 @@ typedef struct {
 	int   saveRainTime;
 	int   sampleWindTime;
 	
+	int   daemon;
 } ConfigSettings;
 
 ConfigSettings configFile;
@@ -66,5 +69,4 @@ int confReadFile( char *inFname, ConfigSettings *conf );
 int confStringVar( char *buf, char *matchStr, char *destStr );
 int confIntVar( char *buf, char *matchStr, int *valp );
 int confFloatVar( char *buf, char *matchStr, float *valp );
-
 #endif

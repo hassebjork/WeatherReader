@@ -32,6 +32,7 @@
 #include "config.h"
 
 static const char LANG_CONF_OPEN_ERR[] = "ERROR: Can not open configuration file \"%s\" for reading!\n";
+static const char LANG_LOGFILE_OPEN_ERR[] = "ERROR: Can not open log file \"%s\"!\n";
 
 int confReadFile( char *inFname, ConfigSettings *conf ) {
 	FILE *infd;
@@ -42,6 +43,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->serialDevice[0]   = 0;
 	conf->sensorReceiveTest = 0;
 	conf->sensorAutoAdd     = 1;
+	conf->logFilename[0]    = 0;
 	
 	conf->mysqlServer[0]    = 0;
 	conf->mysqlUser[0]      = 0;
@@ -54,12 +56,12 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveRainTime        = 60;
 	conf->sampleWindTime      = 60;
 	
+	conf->daemon            = 1;
+	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
 		return( 1 );
 	}
-	
-	printf( "Reading configuration file %s\n", inFname );
 	
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
@@ -68,6 +70,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
 			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
 			else if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
+			else if ( confStringVar( rdBuf, "logFilename", conf->logFilename ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
@@ -89,6 +92,12 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveRainTime        *= 60;
 	conf->sampleWindTime      *= 60;
 	
+	if ( conf->logFilename[0] == 0 )
+		strncpy( conf->logFilename, "/var/log/weather-reader.log", MAX_TAG_SIZE );
+	if ( ( conf->log = fopen( conf->logFilename, "w+" ) ) == NULL ) {
+		fprintf( stderr, LANG_LOGFILE_OPEN_ERR, conf->logFilename );
+		return( 1 );
+	}
 	return( 0 );
 }
 
@@ -96,9 +105,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
  * Must be of the form 'StringVar=str' with no spaces or special characters before the '='.  After the = whitespace is treated
  * as part of the string. */
 int confStringVar( char *buf, char *matchStr, char *destStr ) {
-	int retVal = 0;
 	int len    = strlen( matchStr );
-
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		int i = len;
 		int j = 0;
@@ -111,15 +118,14 @@ int confStringVar( char *buf, char *matchStr, char *destStr ) {
 			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_TAG_SIZE - 1 ) ) )
 			destStr[j++] = buf[i++];
 		destStr[j] = 0;
-		retVal     = 1;
+		return 1;
 	}
-	return( retVal );
+	return 0;
 }
 
 /* Process a config file line with a numeric var  on it
  * Must be of the form 'numericVar=n' with no spaces or special characters. */
 int confIntVar( char *buf, char *matchStr, int *valp ) {
-	int retVal = 0;
 	int len    = strlen( matchStr );
 	int varCount, temp = 0;
 
@@ -127,16 +133,14 @@ int confIntVar( char *buf, char *matchStr, int *valp ) {
 		varCount = sscanf( &buf[len+1], "%d", &temp );
 		if ( varCount == 1 ) 
 			*valp = temp;
-		retVal = 1;
+		return 1;
 	}
-
-	return( retVal );   
+	return 0;
 }
 
 /* Process a config file line with a float var  on it
  * Must be of the form 'floatVar=n.n' with no spaces or special characters. */
 int confFloatVar( char *buf, char *matchStr, float *valp ) {
-	int retVal = 0;
 	int len    = strlen( matchStr );
 	int varCount;
 	float temp = 0.0;
@@ -145,8 +149,7 @@ int confFloatVar( char *buf, char *matchStr, float *valp ) {
 		varCount = sscanf( &buf[len+1], "%f", &temp );
 		if ( varCount == 1 ) 
 			*valp = temp;
-		retVal = 1;
+		return 1;
 	}
-
-	return( retVal );   
+	return 0;
 }
