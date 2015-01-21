@@ -96,7 +96,7 @@ void signal_interrupt( int signum ) {
 		printf( "\nSaving sensor recieve-test data!\n", signum );
 		sensorSaveTests();
 	}
-// 	sensorListFree();	// Segmentation fault!?
+	sensorListFree();	// Segmentation fault!?
 	fflush( stderr );
 	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
