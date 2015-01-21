@@ -10,19 +10,56 @@ static unsigned char reverse_bits_lookup[16] = {
 
 int main( int argc, char *argv[]) {
 	pthread_t threadUart;
-	int       iret1;
+	int       iret1, fd, opt;
 	struct itimerval timer;
+	pid_t     sid, pid = 0;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
+	
+    while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
+        switch (opt) {
+        case 's':
+            configFile.daemon = 0;
+            break;
+		default:
+			usage();
+			break;
+		}
+	}
+	
+	if ( configFile.daemon ) {
+		pid = fork();					// http://www.thegeekstuff.com/2012/02/c-daemon-process/
+		if ( pid < 0 ) {
+			fprintf( stderr, "main: Failed to fork!\n" );
+			exit( 1 );
+		} else if ( pid > 0 ) {
+			printf( "weather-reader started with process id: %d\n", pid );
+			exit( 0 );
+		}
+		
+		sid = setsid();
+		if ( sid < 0 ) {
+			exit( 2 );
+		}
+		
+		fd = dup( fileno( stderr ) );	// http://stackoverflow.com/a/14543455/4405465
+		freopen( configFile.logFilename, "w+", stderr );
+		close( STDIN_FILENO );
+		close( STDOUT_FILENO );
+		
+		umask( 0 );
+		chdir( "/" );
+	}
+	
 	sensorInit();
 #if _DEBUG > 0
 	char s[20];
 	printTime( s );
 	fprintf( stderr, "%s Debug mode enabled\n", s );
 	if ( configFile.serverID > 0 )
-		printf( "This servers ID is %d\n", configFile.serverID );
+		fprintf( stderr, "Server %d started\n", configFile.serverID );
 	if ( configFile.sensorReceiveTest > 0 )
-		printf( "Sensor receive test is ACTIVE!\n" );
+		fprintf( stderr, "Sensor receive test is ACTIVE!\n" );
 	
 #endif
 	
@@ -46,12 +83,21 @@ int main( int argc, char *argv[]) {
 	exit(EXIT_SUCCESS);
 }
 
+void usage( void ) {
+    fprintf( stderr,
+        "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
+        "Usage:\t[-s Run as a standard program, not in daemon mode\n\n" );
+    exit(1);
+}
+
 void signal_interrupt( int signum ) {
 	terminate = 1;
 	if ( configFile.sensorReceiveTest > 0 ) {
 		printf( "\nSaving sensor recieve-test data!\n", signum );
 		sensorSaveTests();
 	}
+// 	sensorListFree();	// Segmentation fault!?
+	fflush( stderr );
 	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
 }

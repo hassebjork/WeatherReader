@@ -11,10 +11,12 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include "config.h"
 #include "sensor.h"
 
 int main(int argc, char *argv[]);
+void usage( void );
 void signal_interrupt( int signum );
 void signal_alarm( void );
 void reset_arduino( void );
