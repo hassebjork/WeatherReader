@@ -81,7 +81,7 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	char *dev = (char *) ptr;
 
-	tty = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
+	tty = open( dev, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
 	if ( tty == -1 ) {
 		perror( dev );
 		exit(EXIT_FAILURE);
