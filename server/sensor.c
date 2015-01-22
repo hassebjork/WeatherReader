@@ -40,8 +40,8 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"DROP TABLE IF EXISTS wr_temperature",
 	"DROP TABLE IF EXISTS wr_humidity",
 	"DROP TABLE IF EXISTS wr_wind",
-#endif
 	"DROP TABLE IF EXISTS wr_test",
+#endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
