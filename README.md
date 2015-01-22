@@ -32,6 +32,7 @@ server  - Server program reading the arduino. It will be run on a Raspberry
           /etc/weather-reader.conf
           
           Build the source files like this:
+          $ sudo apt-get install libmysqlclient-dev
           $ make
           $ sudo make install
           $ weather-reader
