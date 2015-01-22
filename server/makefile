@@ -22,15 +22,20 @@ debug: weatherreader.c config.c sensor.c
 		weatherreader.c config.c sensor.c
 
 clean:
-	- rm -f weather-reader core
+	@- rm -f weather-reader core
 
 install: weather-reader
-	install -m 0755 weather-reader $(PREFIX)/bin
-	install -m 0755 weather-reader.sh /etc/init.d
-	install -b -m 0644 weather-reader.conf /etc
+	install -p -m 0755 weather-reader $(PREFIX)/bin
+	install -p -b -m 0644 weather-reader.conf /etc
+	install -p -m 0755 init/weather-reader.conf /etc/init
+	install -p -m 0755 weather-reader.sh /etc/init.d/weather-reader
+	update-rc.d weather-reader defaults
 
 uninstall:
+	update-rc.d -f weather-reader remove
 	-rm -f $(PREFIX)/bin/weather-reader
 	-rm -f /etc/weather-reader.conf
+	-rm -f /etc/init/weather-reader.conf
+	-rm -f /etc/init.d/weather-reader
 
 .PHONY: install uninstall clean

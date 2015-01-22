@@ -10,9 +10,8 @@ static unsigned char reverse_bits_lookup[16] = {
 
 int main( int argc, char *argv[]) {
 	pthread_t threadUart;
-	int       iret1, fd, opt;
+	int       iret1, opt;
 	struct itimerval timer;
-	pid_t     sid, pid = 0;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
 	
@@ -28,6 +27,9 @@ int main( int argc, char *argv[]) {
 	}
 	
 	if ( configFile.daemon ) {
+		pid_t     sid, pid = 0;
+		FILE     *fer;
+		
 		pid = fork();					// http://www.thegeekstuff.com/2012/02/c-daemon-process/
 		if ( pid < 0 ) {
 			fprintf( stderr, "main: Failed to fork!\n" );
@@ -42,10 +44,12 @@ int main( int argc, char *argv[]) {
 			exit( 2 );
 		}
 		
-		fd = dup( fileno( stderr ) );	// http://stackoverflow.com/a/14543455/4405465
-		freopen( configFile.logFilename, "w+", stderr );
-		close( STDIN_FILENO );
+		fer = freopen( configFile.logFilename, "w+", stderr );
+		close( STDIN_FILENO );			// http://stackoverflow.com/a/14543455/4405465
 		close( STDOUT_FILENO );
+		
+		fprintf( fer, "Weather-reader started with process fer id: %d\n", pid );
+		fprintf( stderr, "Weather-reader started with process stderr id: %d\n", pid );
 		
 		umask( 0 );
 		chdir( "/" );
@@ -127,7 +131,8 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	char *dev = (char *) ptr;
 
-	tty = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
+// 	tty = open( dev, O_RDWR ); // | O_NOCTTY | O_NDELAY );
+	tty = open( dev, O_RDONLY ); // | O_NOCTTY | O_NDELAY );
 	if ( tty == -1 ) {
 		perror( dev );
 		exit(EXIT_FAILURE);
