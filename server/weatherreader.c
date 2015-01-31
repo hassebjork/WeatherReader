@@ -136,8 +136,13 @@ void *server_receive( void * socket_desc ) {
 	while( ( read_size = recv( sock, buffer, 512, 0 ) ) > 0 )
  		parse_input( buffer );
 		
-	if ( read_size == -1 )
+	if ( read_size == -1 ) {
 		fprintf( stderr, "ERROR in server_receive: recv failed!\n" );
+		send = "ER";
+	} else {
+		send = "OK";
+	}
+	write( sock, send, strlen( send ) );
 	
 	free( socket_desc );
 	return 0;
