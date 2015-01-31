@@ -13,7 +13,8 @@ int main( int argc, char *argv[]) {
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	sensorInit();
+	if ( !configFile.is_client )
+		sensorInit();
 #if _DEBUG > 0
 	char s[20];
 	printTime( s );
@@ -78,46 +79,96 @@ void reset_arduino( void ) {
 }
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
+int create_client( char *str ) {
+	int sock;
+	struct sockaddr_in server;
+	char server_reply[10];
+	
+	//Create socket
+	sock = socket( AF_INET, SOCK_STREAM, 0 );
+	if ( sock == -1 )
+		fprintf( stderr, "ERROR in create_client: Could not create client socket\n" );
+		
+	server.sin_addr.s_addr = inet_addr( configFile.serverAddress );
+	server.sin_family      = AF_INET;
+	server.sin_port        = htons( configFile.serverPort );
+
+	//Connect to remote server
+	if ( connect( sock, ( struct sockaddr * ) &server, sizeof( server ) ) < 0 ) {
+		fprintf( stderr, "ERROR in create_client: Connection to server failed\n" );
+		// Close socket
+		return 1;
+	}
+#if _DEBUG > 1
+	printf( "Connected\n" );
+#endif
+		
+	//Send some data
+	if ( send( sock, str, strlen( str ), 0 ) < 0 ) {
+		fprintf( stderr, "ERROR in create_client: Send failed\n" );
+		return 1;
+	}
+		
+	//Receive a reply from the server
+	if ( recv( sock, server_reply, 2000, 0 ) < 0 ) {
+		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
+		return 1;
+	}
+		
+#if _DEBUG > 1
+	printf( "Client sent: \"%s\"\nServer reply: %s\n", str, server_reply );
+#endif
+	
+	close( sock );
+	return 0;
+}
+
+// http://www.binarytides.com/server-client-example-c-sockets-linux/
 void *create_server( void *ptr ) {
 	pthread_t threadSocket;
 	int       sock_desc, sock_client, *sock_new, cs;
 	struct sockaddr_in server, client;
 	
-	//Create socket
+	// Create socket
 	sock_desc = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( sock_desc == -1 ) {
 		fprintf( stderr, "ERROR in create_server: Could not create server socket\n" );
 		return;
 	}
 	
-	//Prepare the sockaddr_in structure
+	// Prepare the sockaddr_in structure
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons( configFile.listenPort );
 	
-	//Bind
+	// Bind
 	if ( bind( sock_desc,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
 		fprintf( stderr, "ERROR in create_server: Bind failed!\n" );
 		return;
 	}
 	
-	//Listen
+	// Listen
 	listen( sock_desc, 3 );
 	
-	//Accept and incoming connection
+	// Accept incoming connection
 	cs = sizeof( struct sockaddr_in );
 	while ( ( sock_client = accept( sock_desc, (struct sockaddr *) &client, (socklen_t*) &cs ) ) ) {
 		sock_new  = malloc(1);
 		*sock_new = sock_client;
+#if _DEBUG > 1
+		puts( "Connectied" );
+#endif
 		
 		if ( pthread_create( &threadSocket, NULL,  server_receive, (void*) sock_new ) < 0 ) {
 			fprintf( stderr, "ERROR in create_server: creating threadSocket\n" );
+			free( sock_new );
 			return;
 		}
 	}
 		
 	if ( sock_client < 0 ) {
 		fprintf( stderr, "ERROR in create_server: Connection not accepted\n" );
+		free( sock_new );
 		return;
 	}
 	return NULL;
@@ -129,20 +180,29 @@ void *server_receive( void * socket_desc ) {
 	char *send, buffer[512];
 		
 	//Send ack to the client
-	send = "WR";
+	send = "WR\n";
 	write( sock, send, strlen( send ) );
 	
 	//Receive a send from client
-	while( ( read_size = recv( sock, buffer, 512, 0 ) ) > 0 )
- 		parse_input( buffer );
+	send = "OK\n";
+	while( ( read_size = recv( sock, buffer, 512, 0 ) ) > 0 ) {
+		buffer[read_size-1] = '\0';
+#if _DEBUG > 1
+		printf( "server_receive: Received \"%s\"\n", buffer );
+#endif
+//  		parse_input( buffer );
+		write( sock, send, strlen( send ) );
+	}
 		
 	if ( read_size == -1 ) {
 		fprintf( stderr, "ERROR in server_receive: recv failed!\n" );
-		send = "ER";
-	} else {
-		send = "OK";
+		send = "ER\n";
+		write( sock, send, strlen( send ) );
+	} else if ( read_size == 0 ) {
+#if _DEBUG > 1
+		fprintf( stderr, "ERROR in server_receive: Connection closed!\n" );
+#endif
 	}
-	write( sock, send, strlen( send ) );
 	
 	free( socket_desc );
 	return 0;
@@ -187,7 +247,10 @@ void *uart_receive( void *ptr ) {
 			perror( "Read" );
 		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
-			parse_input( buffer );
+			if ( configFile.is_client )
+				create_client( buffer );
+			else
+				parse_input( buffer );
 		}
 		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
 		usleep( 200 );

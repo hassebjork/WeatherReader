@@ -46,6 +46,9 @@ typedef struct {
 	
 	int   sensorAutoAdd;
 	
+	int   is_client;
+	char  serverAddress[16];
+	int   serverPort;
 	int   is_server;
 	int   listenPort;
 	

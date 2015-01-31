@@ -43,6 +43,9 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->sensorReceiveTest = 0;
 	conf->sensorAutoAdd     = 1;
 	
+	conf->is_client         = 0;
+	conf->serverAddress[0]  = 0;
+	conf->serverPort        = 9876;
 	conf->is_server         = 0;
 	conf->listenPort        = 0;
 
@@ -71,6 +74,8 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			else if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
 			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
 			else if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
+			else if ( confIntVar( rdBuf, "serverPort", &conf->serverPort ) ) {}
+			else if ( confStringVar( rdBuf, "serverAddress", conf->serverAddress ) ) {}
 			else if ( confIntVar( rdBuf, "listenPort", &conf->listenPort ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
@@ -89,6 +94,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Calculated Values */
 	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
 	conf->is_server  = ( conf->listenPort > 0 );
+	conf->is_client  = ( conf->serverAddress[0] != 0 && ! conf->is_server );
 	conf->saveTemperatureTime *= 60;
 	conf->saveHumidityTime    *= 60;
 	conf->saveRainTime        *= 60;

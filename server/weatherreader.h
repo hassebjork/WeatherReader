@@ -20,6 +20,8 @@ int main(int argc, char *argv[]);
 void signal_interrupt( int signum );
 void signal_alarm( void );
 void reset_arduino( void );
+
+int create_client( char *str );
 void *create_server( void *ptr );
 void *server_receive( void * socket_desc );
 void *uart_receive( void *ptr );
