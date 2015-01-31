@@ -9,8 +9,7 @@ static unsigned char reverse_bits_lookup[16] = {
 };
 
 int main( int argc, char *argv[]) {
-	pthread_t threadUart;
-	int       iret1;
+	pthread_t threadUart, threadServer;
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
@@ -19,7 +18,7 @@ int main( int argc, char *argv[]) {
 	char s[20];
 	printTime( s );
 	fprintf( stderr, "%s Debug mode enabled\n", s );
-	if ( configFile.serverID > 0 )
+	if ( configFile.serverID > 0 ) 
 		printf( "This servers ID is %d\n", configFile.serverID );
 	if ( configFile.sensorReceiveTest > 0 )
 		printf( "Sensor receive test is ACTIVE!\n" );
@@ -27,9 +26,13 @@ int main( int argc, char *argv[]) {
 #endif
 	
 	/* Create independent threads each of which will execute function */
-	iret1 = pthread_create( &threadUart, NULL, uart_receive, (void*) configFile.serialDevice );
-	if ( iret1 ) {
-		fprintf( stderr, "ERROR in main: pthread_create() return code: %d\n", iret1 );
+	if ( pthread_create( &threadUart, NULL, uart_receive, NULL ) < 0 ) {
+		fprintf( stderr, "ERROR in main: creating threadUart\n" );
+		exit(EXIT_FAILURE);
+	}
+	
+	if ( configFile.is_server && pthread_create( &threadServer, NULL, create_server, NULL ) < 0) {
+		fprintf( stderr, "ERROR in main: creating threadServer\n" );
 		exit(EXIT_FAILURE);
 	}
 
@@ -74,12 +77,78 @@ void reset_arduino( void ) {
 #endif
 }
 
+// http://www.binarytides.com/server-client-example-c-sockets-linux/
+void *create_server( void *ptr ) {
+	pthread_t threadSocket;
+	int       sock_desc, sock_client, *sock_new, cs;
+	struct sockaddr_in server, client;
+	
+	//Create socket
+	sock_desc = socket( AF_INET, SOCK_STREAM, 0 );
+	if ( sock_desc == -1 ) {
+		fprintf( stderr, "ERROR in create_server: Could not create server socket\n" );
+		return;
+	}
+	
+	//Prepare the sockaddr_in structure
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = INADDR_ANY;
+	server.sin_port = htons( configFile.listenPort );
+	
+	//Bind
+	if ( bind( sock_desc,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
+		fprintf( stderr, "ERROR in create_server: Bind failed!\n" );
+		return;
+	}
+	
+	//Listen
+	listen( sock_desc, 3 );
+	
+	//Accept and incoming connection
+	cs = sizeof( struct sockaddr_in );
+	while ( ( sock_client = accept( sock_desc, (struct sockaddr *) &client, (socklen_t*) &cs ) ) ) {
+		sock_new  = malloc(1);
+		*sock_new = sock_client;
+		
+		if ( pthread_create( &threadSocket, NULL,  server_receive, (void*) sock_new ) < 0 ) {
+			fprintf( stderr, "ERROR in create_server: creating threadSocket\n" );
+			return;
+		}
+	}
+		
+	if ( sock_client < 0 ) {
+		fprintf( stderr, "ERROR in create_server: Connection not accepted\n" );
+		return;
+	}
+	return NULL;
+}
+
+void *server_receive( void * socket_desc ) {
+	int sock = *(int*)socket_desc;
+	int read_size;
+	char *send, buffer[512];
+		
+	//Send ack to the client
+	send = "WR";
+	write( sock, send, strlen( send ) );
+	
+	//Receive a send from client
+	while( ( read_size = recv( sock, buffer, 512, 0 ) ) > 0 )
+ 		parse_input( buffer );
+		
+	if ( read_size == -1 )
+		fprintf( stderr, "ERROR in server_receive: recv failed!\n" );
+	
+	free( socket_desc );
+	return 0;
+}
+
 // http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
 void *uart_receive( void *ptr ) {
 	struct termios options;
 	int   rcount;
 	char  buffer[256];
-	char *dev = (char *) ptr;
+	char *dev = configFile.serialDevice;
 
 	tty = open( dev, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
 	if ( tty == -1 ) {

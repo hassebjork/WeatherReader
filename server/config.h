@@ -46,6 +46,9 @@ typedef struct {
 	
 	int   sensorAutoAdd;
 	
+	int   is_server;
+	int   listenPort;
+	
 	char  mysql;
 	char  mysqlServer[MAX_TAG_SIZE];
 	char  mysqlUser[MAX_TAG_SIZE];
