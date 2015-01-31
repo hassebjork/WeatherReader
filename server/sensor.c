@@ -57,8 +57,7 @@ char sensorInit() {
 	
 	if ( configFile.mysql )
 		sensorMysqlInit();
-	
-	if ( !configFile.mysql )
+	else
 		printf( "WARNING: No database configured! Sending raw data to stdout only!\n" );
 	
 	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,server,type "
