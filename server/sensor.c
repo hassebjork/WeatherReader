@@ -272,7 +272,7 @@ char sensorTemperature( sensor *s, float value ) {
 
 	char query[255] = "";
 	sprintf( query, "INSERT INTO wr_temperature (sensor_id, value,time) "
-					"VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, value, now );
+					"VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
@@ -304,7 +304,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 
 	char query[255] = "";
 	sprintf( query, "INSERT INTO wr_humidity (sensor_id, value, time) "
-					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, now );
+					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
@@ -334,7 +334,7 @@ char sensorRain( sensor *s, float total ) {
 
 	char query[255] = "";
 	sprintf( query, "INSERT INTO wr_rain (sensor_id, total,time) "
-					"VALUES (%d,%f,FROM_UNIXTIME(%d))", s->rowid, total, now );
+					"VALUES (%d,%f,FROM_UNIXTIME(%d))", s->rowid, total, (int) now );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
@@ -396,7 +396,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 							* configFile.sampleWindTime;
 		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples,time) "
 						"VALUES (%d,%.1f,%.1f,%d,1,FROM_UNIXTIME(%d))", 
-						s->rowid, s->wind->speed, s->wind->gust, s->wind->dir, now );
+						s->rowid, s->wind->speed, s->wind->gust, s->wind->dir, (int) now );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 			return 1;
@@ -449,7 +449,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
 					"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
 					speed, s->wind->gust_max, dir, s->wind->samples, 
-					now, s->wind->row );
+					(int) now, s->wind->row );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
