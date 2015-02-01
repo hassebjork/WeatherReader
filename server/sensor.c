@@ -55,10 +55,19 @@ char sensorInit() {
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
 	
-	if ( configFile.mysql )
-		sensorMysqlInit();
-	else
+	sensorListFree();
+	sensor_list = (sensor *) malloc( sizeof( sensor ) * mysql_num_rows( result ) );
+	if ( !sensor_list ) {
+		fprintf( stderr, "ERROR in sensorInit: Could not allocate memory for sensor_list\n" );
+		return 1;
+	}
+	
+	if ( !configFile.mysql ) {
 		printf( "WARNING: No database configured! Sending raw data to stdout only!\n" );
+		return 0;
+	}
+	
+	sensorMysqlInit();
 	
 	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,server,type "
 						 "FROM wr_sensors";
@@ -71,13 +80,6 @@ char sensorInit() {
 	result = mysql_store_result( mysql );
 	if ( result == NULL ) {
 		fprintf( stderr, "ERROR in sensorInit: Storing result!\n%s\n", mysql_error( mysql ) );
-		return 1;
-	}
-	
-	sensorListFree();
-	sensor_list = (sensor *) malloc( sizeof( sensor ) * mysql_num_rows( result ) );
-	if ( !sensor_list ) {
-		fprintf( stderr, "ERROR in sensorInit: Could not allocate memory for sensor_list\n" );
 		return 1;
 	}
 	
