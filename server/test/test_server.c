@@ -1,14 +1,15 @@
-#include<stdio.h>
-#include<string.h>    //strlen
-#include<stdlib.h>    //strlen
-#include<sys/socket.h>
+#include <time.h>
 #include<arpa/inet.h> //inet_addr
-#include<unistd.h>    //write
 #include<pthread.h> //for threading , link with lpthread
- 
-//the thread function
+#include<stdio.h>
+#include<stdlib.h>    //strlen
+#include<string.h>    //strlen
+#include<sys/socket.h>
+#include<unistd.h>    //write
+
 void *connection_handler(void *);
- 
+void printTime();
+
 int main(int argc , char *argv[]) {
 	int socket_desc , client_sock , c , *new_sock;
 	struct sockaddr_in server , client;
@@ -43,7 +44,8 @@ int main(int argc , char *argv[]) {
 	c = sizeof(struct sockaddr_in);
 	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
 	{
-		puts("Connection accepted");
+		printTime();
+		puts("\nConnection accepted");
 			
 		pthread_t sniffer_thread;
 		new_sock = malloc(1);
@@ -57,7 +59,6 @@ int main(int argc , char *argv[]) {
 			
 		//Now join the thread , so that we dont terminate before the thread
 		//pthread_join( sniffer_thread , NULL);
-		puts("Handler assigned");
 	}
 		
 	if (client_sock < 0)
@@ -106,4 +107,17 @@ void *connection_handler(void *socket_desc) {
 	free(socket_desc);
 		
 	return 0;
+}
+
+void printTime() {
+	struct tm *local;
+	time_t t = time(NULL);
+	local = localtime(&t);
+	printf( "[%i-%02i-%02i %02i:%02i:%02i]", 
+			(local->tm_year + 1900), 
+			(local->tm_mon) + 1, 
+			local->tm_mday, 
+			local->tm_hour,
+			local->tm_min, 
+			local->tm_sec );
 }

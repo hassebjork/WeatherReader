@@ -21,7 +21,7 @@ debug: weatherreader.c config.c sensor.c server.c test/test_server.c
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weatherreader.c config.c sensor.c server.c
-	gcc -o test-server -lpthread test/test_server.c
+	ulimit -c unlimited && gcc -o test-server -lpthread test/test_server.c
 	@echo
 
 clean:
