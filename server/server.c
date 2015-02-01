@@ -86,9 +86,6 @@ int create_client( char *str ) {
 	if ( recv( sockServer, buffer, BUFF_SIZE, 0 ) < 0 ) {
 		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
 		return 1;
-	} else if ( buffer[0] != 'O' || buffer[1] != 'K' ) {
-		fprintf( stderr, "ERROR in create_client: Wrong reply - \"%s\"!\n", buffer );
-		return 1;
 	}
 	
 	close( sockServer );
@@ -155,20 +152,16 @@ void *server_receive( void * socket_desc ) {
 	write( sockClient, send, strlen( send ) );
 	
 	//Receive from client
-	send = "OK\n";
 	while( ( rcount = recv( sockClient, buffer, BUFF_SIZE, 0 ) ) > 0 ) {
 		buffer[rcount-1] = '\0';
 #if _DEBUG > 1
 		printf( "server_receive: Received \"%s\"\n", buffer );
 #endif
-//  		parse_input( buffer );
-		write( sockClient, send, strlen( send ) );
+  		parse_input( buffer );
 	}
 		
 	if ( rcount == -1 ) {
 		fprintf( stderr, "ERROR in server_receive: recv failed!\n" );
-		send = "ER\n";
-		write( sockClient, send, strlen( send ) );
 	} else if ( rcount == 0 ) {
 #if _DEBUG > 1
 		fprintf( stderr, "ERROR in server_receive: Connection closed!\n" );

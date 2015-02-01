@@ -16,9 +16,9 @@ int main(int argc , char *argv[]) {
 		
 	//Create socket
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-	if (socket_desc == -1)
-	{
+	if (socket_desc == -1) {
 		printf("Could not create socket");
+		return 1;
 	}
 	puts("Socket created");
 	
@@ -28,9 +28,7 @@ int main(int argc , char *argv[]) {
 	server.sin_port = htons( 9876 );
 		
 	//Bind
-	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
-	{
-		//print the error message
+	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0) {
 		perror("bind failed. Error");
 		return 1;
 	}
@@ -42,17 +40,15 @@ int main(int argc , char *argv[]) {
 	//Accept and incoming connection
 	puts("Waiting for incoming connections...");
 	c = sizeof(struct sockaddr_in);
-	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
-	{
+	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) ) {
 		printTime();
 		puts("\nConnection accepted");
-			
+		
 		pthread_t sniffer_thread;
 		new_sock = malloc(1);
 		*new_sock = client_sock;
 			
-		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
-		{
+		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0) {
 			perror("could not create thread");
 			return 1;
 		}
@@ -61,8 +57,7 @@ int main(int argc , char *argv[]) {
 		//pthread_join( sniffer_thread , NULL);
 	}
 		
-	if (client_sock < 0)
-	{
+	if (client_sock < 0) {
 		perror("accept failed");
 		return 1;
 	}
@@ -82,24 +77,16 @@ void *connection_handler(void *socket_desc) {
 	//Send some messages to the client
 	message = "WR\0";
 	write(sock , message , strlen(message));
-	message = "OK\0";
 		
 	//Receive a message from client
-	while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
-	{
+	while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 ) {
 		printf( "Recv: \"%s\"\n", client_message );
-		//Send the message back to client
-		write(sock , message , strlen(message));
-		printf( "Sent: \"%s\"\n", message );
 	}
 		
-	if(read_size == 0)
-	{
+	if(read_size == 0) {
 		puts("Client disconnected\n");
 		fflush(stdout);
-	}
-	else if(read_size == -1)
-	{
+	} else if(read_size == -1) {
 		perror("recv failed");
 	}
 			
