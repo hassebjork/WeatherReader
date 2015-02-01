@@ -1,9 +1,9 @@
 TODO
 - Sensors: Store wind dir as NULL when speed = 0.0
-- Config file: Database prefix for tables
 - Startscripts in /etc/init.d and links to /etc/rc.X
+- Reconnect database if connection reset/lost/broken
+- Search for arduino's serial device
+- test-sever: add timestamp
 
 Wish list
 - Config file: Move some config data into database?
-- Weather-reader: Look up hostname
-- Reconnect database if connection reset

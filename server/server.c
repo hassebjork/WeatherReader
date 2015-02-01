@@ -32,23 +32,33 @@
 extern ConfigSettings configFile;
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
+// http://www.linuxhowtos.org/C_C++/socket.htm
 int create_client( char *str ) {
 	int sock;
 	struct sockaddr_in server;
+	struct hostent *serv_host;
 	char server_reply[10];
 	
 	// Create socket
 	sock = socket( AF_INET, SOCK_STREAM, 0 );
-	if ( sock == -1 )
+	if ( sock == -1 ) {
 		fprintf( stderr, "ERROR in create_client: Could not create client socket\n" );
-		
-	server.sin_addr.s_addr = inet_addr( configFile.serverAddress );
-	server.sin_family      = AF_INET;
-	server.sin_port        = htons( configFile.serverPort );
+		exit(EXIT_FAILURE);
+	}
+	
+	serv_host = gethostbyname( configFile.serverAddress );
+	if ( serv_host == NULL ) {
+		fprintf( stderr, "ERROR in create_client: Could not find hostname \"%s\"\n", configFile.serverAddress );
+		exit(EXIT_FAILURE);
+	}
+	
+	bcopy( (char *)serv_host->h_addr, (char *)&server.sin_addr.s_addr, serv_host->h_length );
+	server.sin_family = AF_INET;
+	server.sin_port   = htons( configFile.serverPort );
 
 	// Connect to remote server
 	if ( connect( sock, ( struct sockaddr * ) &server, sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in create_client: Connection to server failed\n" );
+		fprintf( stderr, "ERROR in create_client: Connection to server \"%s\" failed\n", server.sin_addr.s_addr );
 		return 1;
 	}
 		

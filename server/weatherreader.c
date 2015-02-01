@@ -13,18 +13,20 @@ int main( int argc, char *argv[]) {
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	if ( !configFile.is_client ) {
+	if ( configFile.is_server ) {
+		fprintf( stderr, "Server enabled: using port %d\n", configFile.listenPort );
+	} else if ( configFile.is_client ) {
+		fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
+	} else {
 		sensorInit();
 	}
 	
 #if _DEBUG > 0
-	char s[20];
-	printTime( s );
-	fprintf( stderr, "%s Debug mode enabled\n", s );
+	fprintf( stderr, "Debug info: enabled\n" );
 	if ( configFile.serverID > 0 ) 
 		printf( "This servers ID is %d\n", configFile.serverID );
 	if ( configFile.sensorReceiveTest > 0 )
-		printf( "Sensor receive test is ACTIVE!\n" );
+		printf( "Sensor receive test: ACTIVE!\n" );
 #endif
 	
 	/* UART thread */
