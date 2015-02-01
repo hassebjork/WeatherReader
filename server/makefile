@@ -12,14 +12,17 @@ weatherreader: weatherreader.c config.c sensor.c
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weatherreader.c config.c sensor.c
+	@echo
 		
-debug: weatherreader.c config.c sensor.c
+debug: weatherreader.c config.c sensor.c test/test_server.c
 	ulimit -c unlimited && gcc -o weather-reader \
 		-D_DEBUG=2 \
 		-lpthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weatherreader.c config.c sensor.c
+	gcc -o test-server -lpthread test/test_server.c
+	@echo
 
 clean:
 	- rm -f weather-reader core

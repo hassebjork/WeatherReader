@@ -1,4 +1,5 @@
 server/weather-reader
+server/test-server
 server/core
 arduino/build-*
 server/*.dbg

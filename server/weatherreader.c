@@ -13,8 +13,10 @@ int main( int argc, char *argv[]) {
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	if ( !configFile.is_client )
+	if ( !configFile.is_client ) {
 		sensorInit();
+	}
+	
 #if _DEBUG > 0
 	char s[20];
 	printTime( s );
@@ -23,20 +25,21 @@ int main( int argc, char *argv[]) {
 		printf( "This servers ID is %d\n", configFile.serverID );
 	if ( configFile.sensorReceiveTest > 0 )
 		printf( "Sensor receive test is ACTIVE!\n" );
-	
 #endif
 	
-	/* Create independent threads each of which will execute function */
+	/* UART thread */
 	if ( pthread_create( &threadUart, NULL, uart_receive, NULL ) < 0 ) {
 		fprintf( stderr, "ERROR in main: creating threadUart\n" );
 		exit(EXIT_FAILURE);
 	}
 	
+	/* Server thread */
 	if ( configFile.is_server && pthread_create( &threadServer, NULL, create_server, NULL ) < 0) {
 		fprintf( stderr, "ERROR in main: creating threadServer\n" );
 		exit(EXIT_FAILURE);
 	}
 
+	/* Start timer */
 	signal( SIGINT, signal_interrupt );
 	timer.it_value.tv_sec  = 3600;
 	timer.it_value.tv_usec = 0;
@@ -53,7 +56,7 @@ int main( int argc, char *argv[]) {
 void signal_interrupt( int signum ) {
 	terminate = 1;
 	if ( configFile.sensorReceiveTest > 0 ) {
-		printf( "\nSaving sensor recieve-test data!\n", signum );
+		printf( "\nSaving sensor recieve-test data!\n" );
 		sensorSaveTests();
 	}
 	printf( "Caught signal %d\nExiting!\n", signum );
@@ -84,7 +87,7 @@ int create_client( char *str ) {
 	struct sockaddr_in server;
 	char server_reply[10];
 	
-	//Create socket
+	// Create socket
 	sock = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( sock == -1 )
 		fprintf( stderr, "ERROR in create_client: Could not create client socket\n" );
@@ -93,31 +96,38 @@ int create_client( char *str ) {
 	server.sin_family      = AF_INET;
 	server.sin_port        = htons( configFile.serverPort );
 
-	//Connect to remote server
+	// Connect to remote server
 	if ( connect( sock, ( struct sockaddr * ) &server, sizeof( server ) ) < 0 ) {
 		fprintf( stderr, "ERROR in create_client: Connection to server failed\n" );
-		// Close socket
 		return 1;
 	}
-#if _DEBUG > 1
-	printf( "Connected\n" );
-#endif
 		
-	//Send some data
+	// Receive a reply
+	if ( recv( sock, server_reply, 10, 0 ) < 0 ) {
+		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
+		return 1;
+	} else if ( server_reply[0] != 'W' || server_reply[1] != 'R' ) {
+		fprintf( stderr, "ERROR in create_client: Wrong server? Reply - \"%s\"!\n", server_reply );
+		return 1;
+	}
+		
+	// Send data
 	if ( send( sock, str, strlen( str ), 0 ) < 0 ) {
 		fprintf( stderr, "ERROR in create_client: Send failed\n" );
 		return 1;
 	}
+#if _DEBUG > 1
+	printf( "Client sent: \"%s\"\n", str );
+#endif
 		
-	//Receive a reply from the server
-	if ( recv( sock, server_reply, 2000, 0 ) < 0 ) {
+	// Receive a reply
+	if ( recv( sock, server_reply, 10, 0 ) < 0 ) {
 		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
 		return 1;
+	} else if ( server_reply[0] != 'O' || server_reply[1] != 'K' ) {
+		fprintf( stderr, "ERROR in create_client: Wrong reply - \"%s\"!\n", server_reply );
+		return 1;
 	}
-		
-#if _DEBUG > 1
-	printf( "Client sent: \"%s\"\nServer reply: %s\n", str, server_reply );
-#endif
 	
 	close( sock );
 	return 0;

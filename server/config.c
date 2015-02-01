@@ -92,13 +92,21 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	}
 	fclose( infd );
 	/* Calculated Values */
-	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
-	conf->is_server  = ( conf->listenPort > 0 );
-	conf->is_client  = ( conf->serverAddress[0] != 0 && ! conf->is_server );
 	conf->saveTemperatureTime *= 60;
 	conf->saveHumidityTime    *= 60;
 	conf->saveRainTime        *= 60;
 	conf->sampleWindTime      *= 60;
+	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
+	conf->is_server  = ( conf->listenPort > 0 );
+	conf->is_client  = ( conf->serverAddress[0] != 0 && ! conf->is_server );
+	
+	if ( conf->is_client ) {
+		conf->mysql             = 0;
+		conf->is_server         = 0;
+		conf->sensorReceiveTest = 0;
+	} else if ( conf->is_server ) {
+		conf->sensorReceiveTest = 0;
+	}
 	
 	return( 0 );
 }
