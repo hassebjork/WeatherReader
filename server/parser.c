@@ -1,138 +1,40 @@
-#include "weatherreader.h"
+/*************************************************************************
+   parser.c
 
-int tty, terminate = 0;
+   This module decodes the radio codes from the Arduino.
+   
+   Configuration is done in the file weather-reader.conf
+   
+   This file is part of the Weather Station reader program WeatherReader.
+   
+   The source code can be found at GitHub 
+   https://github.com/hassebjork/WeatherReader
+   
+**************************************************************************
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
+   IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
+   TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+   PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT 
+   HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+   OF OR INABILITY TO USE THIS SOFTWARE, EVEN IF THE COPYRIGHT HOLDERS OR 
+   CONTRIBUTORS ARE AWARE OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*************************************************************************/
+
+#include "parser.h"
+
 extern ConfigSettings configFile;
 
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
 };
-
-int main( int argc, char *argv[]) {
-	pthread_t threadUart, threadServer;
-	struct itimerval timer;
-	
-	confReadFile( CONFIG_FILE_NAME, &configFile );
-	if ( configFile.is_server ) {
-		fprintf( stderr, "Server enabled: using port %d\n", configFile.listenPort );
-	} else if ( configFile.is_client ) {
-		fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
-	} else {
-		sensorInit();
-	}
-	
-#if _DEBUG > 0
-	fprintf( stderr, "Debug info: enabled\n" );
-	if ( configFile.serverID > 0 ) 
-		printf( "This servers ID is %d\n", configFile.serverID );
-	if ( configFile.sensorReceiveTest > 0 )
-		printf( "Sensor receive test: ACTIVE!\n" );
-#endif
-	
-	/* UART thread */
-	if ( pthread_create( &threadUart, NULL, uart_receive, NULL ) < 0 ) {
-		fprintf( stderr, "ERROR in main: creating threadUart\n" );
-		exit(EXIT_FAILURE);
-	}
-	
-	/* Server thread */
-	if ( configFile.is_server && pthread_create( &threadServer, NULL, create_server, NULL ) < 0) {
-		fprintf( stderr, "ERROR in main: creating threadServer\n" );
-		exit(EXIT_FAILURE);
-	}
-
-	/* Start timer */
-	signal( SIGINT, signal_interrupt );
-	timer.it_value.tv_sec  = 3600;
-	timer.it_value.tv_usec = 0;
-	timer.it_interval      = timer.it_value;
-	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
-		fprintf( stderr, "ERROR in main: Could not set timer\n" );
-
-	/* Wait till threads are complete before main continues.  */
-	pthread_join( threadUart, NULL);
-
-	exit(EXIT_SUCCESS);
-}
-
-void signal_interrupt( int signum ) {
-	terminate = 1;
-	if ( configFile.sensorReceiveTest > 0 ) {
-		printf( "\nSaving sensor recieve-test data!\n" );
-		sensorSaveTests();
-	}
-	printf( "Caught signal %d\nExiting!\n", signum );
-	exit( EXIT_SUCCESS );
-}
-
-void signal_alarm( void ) {
-	reset_arduino();
-	confReadFile( CONFIG_FILE_NAME, &configFile );
-}
-
-void reset_arduino( void ) {
-	// http://www.linuxtv.org/mailinglists/vdr/2003/02-2003/msg00543.html
-	int flag = TIOCM_DTR;
-	ioctl( tty, TIOCMBIC, &flag );
-	sleep( 1 );
-	ioctl( tty, TIOCMBIS, &flag );
-#if _DEBUG > 1
-	char s[20];
-	printTime( s );
-	fprintf( stderr, "%s Resetting Arduino\n", s );
-#endif
-}
-
-// http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
-void *uart_receive( void *ptr ) {
-	struct termios options;
-	int   rcount;
-	char  buffer[256];
-	char *dev = configFile.serialDevice;
-
-	tty = open( dev, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
-	if ( tty == -1 ) {
-		perror( dev );
-		exit(EXIT_FAILURE);
-	}
-	
-	signal( SIGALRM, (void(*)(int)) signal_alarm );
-	
-	printf( "Opening %s\n", dev );
-	
-	if ( tcgetattr( tty, &options ) < 0 ) {
-		perror( "ERROR: Getting configuration" );
-		close( tty );
-		exit(EXIT_FAILURE);
-	}
-	
-	options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 8 data bits, enable receiver, local line 
-	options.c_cflag &= ~PARENB | ~CSTOPB; // No parity, one stop bit 
-	options.c_iflag &= ~( IXON | IXOFF | IXANY ); // Disable software flow control
-	options.c_oflag = 0;
-	options.c_lflag = ICANON; // Read line
-	options.c_cc[VTIME] = 0; // No timeout clock for read
-	options.c_cc[VMIN] = 1; // Wait for one character before reading another
-	tcflush( tty, TCIFLUSH ); 
-	tcsetattr( tty, TCSANOW, &options ); // Set tty with new settings immediately
-	
-	while ( !terminate ) {
-		rcount = read( tty, buffer, sizeof( buffer ) );
-		if ( rcount < 0 ) {
-			perror( "Read" );
-		} else if ( rcount > 4 ) {
-			buffer[rcount-1] = '\0';
-			if ( configFile.is_client )
-				create_client( buffer );
-			else
-				parse_input( buffer );
-		}
-		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
-		usleep( 200 );
-	}
-	
-	close( tty );
-}
 
 // http://stackoverflow.com/questions/26839558/hex-char-to-int-conversion
 unsigned char hex2char( unsigned char c ) {

@@ -6,21 +6,21 @@ MYSQL_LIBS=$(shell mysql_config --libs)
 
 all: weatherreader
 
-weatherreader: weatherreader.c config.c sensor.c server.c
+weatherreader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	gcc -o weather-reader \
 		-lpthread \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
-		weatherreader.c config.c sensor.c server.c
+		weather-reader.c config.c parser.c sensor.c server.c uart.c
 	@echo
 		
-debug: weatherreader.c config.c sensor.c server.c test/test_server.c
+debug: weather-reader.c config.c parser.c sensor.c server.c uart.c test/test_server.c
 	ulimit -c unlimited && gcc -o weather-reader \
 		-D_DEBUG=2 \
 		-lpthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
-		weatherreader.c config.c sensor.c server.c
+		weather-reader.c config.c parser.c sensor.c server.c uart.c
 	ulimit -c unlimited && gcc -o test-server -lpthread test/test_server.c
 	@echo
 

@@ -1,7 +1,7 @@
 /*************************************************************************
-   server.h
+   uart.h
 
-   This module creates client and server for weather-reader.
+   This module communicates with the Arduino over serial USB.
    
    Configuration is done in the file weather-reader.conf
    
@@ -27,22 +27,24 @@
 
 *************************************************************************/
 
-#ifndef _SERVER_H_
-#define _SERVER_H_
+#ifndef _UART_H_
+#define _UART_H_
 
-#include <arpa/inet.h>
-#include <pthread.h>
-#include <netdb.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 #include <unistd.h>
 #include "config.h"
 #include "parser.h"
+#include "server.h"
 
-int create_client( char *str );
-void *create_server( void *ptr );
-void *server_receive( void * socket_desc );
+int tty;
+
+void *uart_receive( void *ptr );
+void signal_alarm( void );
+void reset_arduino( void );
 
 #endif

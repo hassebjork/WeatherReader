@@ -1,7 +1,7 @@
 /*************************************************************************
-   server.h
+   parser.h
 
-   This module creates client and server for weather-reader.
+   This module decodes the radio codes from the Arduino.
    
    Configuration is done in the file weather-reader.conf
    
@@ -27,22 +27,22 @@
 
 *************************************************************************/
 
-#ifndef _SERVER_H_
-#define _SERVER_H_
+#ifndef _PARSER_H_
+#define _PARSER_H_
 
-#include <arpa/inet.h>
-#include <pthread.h>
-#include <netdb.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 #include "config.h"
-#include "parser.h"
+#include "sensor.h"
 
-int create_client( char *str );
-void *create_server( void *ptr );
-void *server_receive( void * socket_desc );
+unsigned char hex2char( unsigned char c );
+unsigned char reverse_8bits( unsigned char n );
+void parse_input( char *s );
+
+void osv2_parse( char *s );
+unsigned char osv2_humidity( char *s );
+float osv2_temperature( char *s );
+void vent_parse( char *s );
+void mandolyn_parse( char *s );
+void fineoffset_parse( char *s );
 
 #endif
