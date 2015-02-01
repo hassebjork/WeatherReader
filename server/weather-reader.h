@@ -16,5 +16,6 @@
 
 int main(int argc, char *argv[]);
 void signal_interrupt( int signum );
+void signal_alarm( void );
 
 #endif

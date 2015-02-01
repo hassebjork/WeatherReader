@@ -45,6 +45,8 @@ int main( int argc, char *argv[]) {
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
 		fprintf( stderr, "ERROR in main: Could not set timer\n" );
 
+	signal( SIGALRM, (void(*)(int)) signal_alarm );
+	
 	/* Wait till threads are complete before main continues.  */
 	pthread_join( threadUart, NULL);
 
@@ -58,5 +60,10 @@ void signal_interrupt( int signum ) {
 	}
 	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
+}
+
+void signal_alarm( void ) {
+	reset_arduino();
+	confReadFile( CONFIG_FILE_NAME, &configFile );
 }
 

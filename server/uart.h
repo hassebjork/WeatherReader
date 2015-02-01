@@ -44,7 +44,6 @@
 int tty;
 
 void *uart_receive( void *ptr );
-void signal_alarm( void );
 void reset_arduino( void );
 
 #endif

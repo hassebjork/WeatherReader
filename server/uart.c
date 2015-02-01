@@ -42,8 +42,6 @@ void *uart_receive( void *ptr ) {
 		exit(EXIT_FAILURE);
 	}
 	
-	signal( SIGALRM, (void(*)(int)) signal_alarm );
-	
 	printf( "Opening %s\n", dev );
 	
 	if ( tcgetattr( tty, &options ) < 0 ) {
@@ -78,11 +76,6 @@ void *uart_receive( void *ptr ) {
 	}
 	
 	close( tty );
-}
-
-void signal_alarm( void ) {
-	reset_arduino();
-	confReadFile( CONFIG_FILE_NAME, &configFile );
 }
 
 void reset_arduino( void ) {
