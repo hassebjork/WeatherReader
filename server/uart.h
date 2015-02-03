@@ -40,6 +40,7 @@
 #include "config.h"
 #include "parser.h"
 #include "server.h"
+#include "weather-reader.h"
 
 int tty;
 

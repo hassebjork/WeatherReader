@@ -32,10 +32,24 @@
 #define BUFF_SIZE 512
 
 extern ConfigSettings configFile;
+extern int pipeDescr[2];
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 // http://www.linuxhowtos.org/C_C++/socket.htm
-int create_client( char *str ) {
+void *server_client() {
+	char buffer[BUFF_SIZE];
+	int  result;
+	
+	printf( "server_client: started\n" );
+	while ( ( result = read( pipeDescr[0], &buffer, BUFF_SIZE ) ) > 0 )
+ 		server_transmit( buffer );
+	if ( result == 0 )
+		fprintf( stderr, "ERROR in server_client: Pipe closed\n" );
+	else
+		fprintf( stderr, "ERROR in server_client: Pipe closed with result \n", result );
+}
+
+int server_transmit( char * str ) {
 	char buffer[BUFF_SIZE];
 	int  sockServer;
 	struct sockaddr_in server;
@@ -44,14 +58,14 @@ int create_client( char *str ) {
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( sockServer == -1 ) {
-		fprintf( stderr, "ERROR in create_client: Could not create client socket\n" );
-		exit(EXIT_FAILURE);
+		fprintf( stderr, "ERROR in server_transmit: Could not create client socket\n" );
+		return 1;
 	}
 	
 	serv_host = gethostbyname( configFile.serverAddress );
 	if ( serv_host == NULL ) {
-		fprintf( stderr, "ERROR in create_client: Could not find hostname \"%s\"\n", configFile.serverAddress );
-		exit(EXIT_FAILURE);
+		fprintf( stderr, "ERROR in server_transmit: Could not find hostname \"%s\"\n", configFile.serverAddress );
+		return 1;
 	}
 	
 	bcopy( (char *)serv_host->h_addr, (char *)&server.sin_addr.s_addr, serv_host->h_length );
@@ -60,40 +74,34 @@ int create_client( char *str ) {
 
 	// Connect to remote server
 	if ( connect( sockServer, ( struct sockaddr * ) &server, sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in create_client: Connection to server \"%s\" failed\n", server.sin_addr.s_addr );
+		fprintf( stderr, "ERROR in server_transmit: Connection to server \"%s\" failed\n", server.sin_addr.s_addr );
 		return 1;
 	}
 		
 	// Receive a reply
 	if ( recv( sockServer, buffer, BUFF_SIZE, 0 ) < 0 ) {
-		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
+		fprintf( stderr, "ERROR in server_transmit: recv failed!\n" );
 		return 1;
 	} else if ( buffer[0] != 'W' || buffer[1] != 'R' ) {
-		fprintf( stderr, "ERROR in create_client: Wrong server? Reply - \"%s\"!\n", buffer );
+		fprintf( stderr, "ERROR in server_transmit: Wrong server? Reply - \"%s\"!\n", buffer );
 		return 1;
 	}
 		
 	// Send data
 	if ( send( sockServer, str, strlen( str ), 0 ) < 0 ) {
-		fprintf( stderr, "ERROR in create_client: Send failed\n" );
+		fprintf( stderr, "ERROR in server_transmit: Send failed\n" );
 		return 1;
 	}
 #if _DEBUG > 1
 	printf( "Client sent: \"%s\"\n", str );
 #endif
 		
-	// Receive a reply
-	if ( recv( sockServer, buffer, BUFF_SIZE, 0 ) < 0 ) {
-		fprintf( stderr, "ERROR in create_client: recv failed!\n" );
-		return 1;
-	}
-	
 	close( sockServer );
 	return 0;
 }
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
-void *create_server( void *ptr ) {
+void *server_listen( void *ptr ) {
 	int sockListen, sockClient, *sockNew, cs;
 	pthread_t threadSocket;
 	struct sockaddr_in server, client;
@@ -101,7 +109,7 @@ void *create_server( void *ptr ) {
 	// Create socket
 	sockListen = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( sockListen == -1 ) {
-		fprintf( stderr, "ERROR in create_server: Could not create server socket\n" );
+		fprintf( stderr, "ERROR in server_listen: Could not create server socket\n" );
 		return;
 	}
 	
@@ -112,7 +120,7 @@ void *create_server( void *ptr ) {
 	
 	// Bind
 	if ( bind( sockListen,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in create_server: Bind failed!\n" );
+		fprintf( stderr, "ERROR in server_listen: Bind failed!\n" );
 		return;
 	}
 	
@@ -129,14 +137,14 @@ void *create_server( void *ptr ) {
 #endif
 		
 		if ( pthread_create( &threadSocket, NULL,  server_receive, (void*) sockNew ) < 0 ) {
-			fprintf( stderr, "ERROR in create_server: creating threadSocket\n" );
+			fprintf( stderr, "ERROR in server_listen: creating threadSocket\n" );
 			free( sockNew );
 			return;
 		}
 	}
 		
 	if ( sockClient < 0 ) {
-		fprintf( stderr, "ERROR in create_server: Client connection not accepted\n" );
+		fprintf( stderr, "ERROR in server_listen: Client connection not accepted\n" );
 		free( sockNew );
 		return;
 	}

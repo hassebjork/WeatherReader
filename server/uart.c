@@ -30,6 +30,7 @@
 #include "uart.h"
 
 extern ConfigSettings configFile;
+extern int pipeDescr[2];
 
 void *uart_receive( void *ptr ) {
 	struct termios options;
@@ -45,7 +46,7 @@ void *uart_receive( void *ptr ) {
 	printf( "Opening %s\n", dev );
 	
 	if ( tcgetattr( tty, &options ) < 0 ) {
-		perror( "ERROR: Getting configuration" );
+		fprintf( stderr, "ERROR in uart_receive: Configuring device\n" );
 		close( tty );
 		exit(EXIT_FAILURE);
 	}
@@ -63,11 +64,14 @@ void *uart_receive( void *ptr ) {
 	while ( 1 ) {
 		rcount = read( tty, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
-			perror( "Read" );
+			fprintf( stderr, "ERROR in uart_receive: Read %d bytes\n", rcount );
 		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
-			if ( configFile.is_client )
-				create_client( buffer );
+#if _DEBUG > 1
+			printf( "uart_receive: %s\n", buffer );
+#endif
+			if ( configFile.is_client && write( pipeDescr[1], &buffer, rcount ) < 1 )
+ 				fprintf( stderr, "ERROR in uart_receive: Pipe error\n" );
 			else
 				parse_input( buffer );
 		}

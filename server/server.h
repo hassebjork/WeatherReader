@@ -40,9 +40,11 @@
 #include <unistd.h>
 #include "config.h"
 #include "parser.h"
+#include "weather-reader.h"
 
-int create_client( char *str );
-void *create_server( void *ptr );
+void *server_client();
+int server_transmit( char * str );
+void *server_listen( void *ptr );
 void *server_receive( void * socket_desc );
 
 #endif

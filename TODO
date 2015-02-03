@@ -3,7 +3,25 @@ TODO
 - Startscripts in /etc/init.d and links to /etc/rc.X
 - Reconnect database if connection reset/lost/broken
 - Search for arduino's serial device
-- test-sever: add timestamp
 
 Wish list
 - Config file: Move some config data into database?
+
+
+Additional links for future use:
+
+Clib functions
+http://linux.die.net/man/3/
+
+Get MAC-address
+http://stackoverflow.com/a/6767557
+Get local IP-address
+http://stackoverflow.com/a/12131131
+
+Pointer to function
+http://stackoverflow.com/a/5488718
+
+Threads
+http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
+# Pipes
+https://linuxprograms.wordpress.com/tag/pthread/

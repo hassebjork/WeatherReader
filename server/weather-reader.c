@@ -1,7 +1,6 @@
 #include "weather-reader.h"
 
 extern ConfigSettings configFile;
-// http://linux.die.net/man/3/
 
 int main( int argc, char *argv[]) {
 	pthread_t threadUart, threadServer;
@@ -15,6 +14,10 @@ int main( int argc, char *argv[]) {
 	} else {
 		sensorInit();
 	}
+	if ( pipe( pipeDescr ) < 0 ) {
+		fprintf( stderr, "ERROR in main: creating client pipe\n" );
+		exit(EXIT_FAILURE);
+	}
 	
 #if _DEBUG > 0
 	fprintf( stderr, "Debug info: enabled\n" );
@@ -24,19 +27,25 @@ int main( int argc, char *argv[]) {
 		printf( "Sensor receive test: ACTIVE!\n" );
 #endif
 	
+	/* Server thread */
+	if ( configFile.is_server && pthread_create( &threadServer, NULL, server_listen, NULL ) < 0) {
+		fprintf( stderr, "ERROR in main: creating threadServer\n" );
+		exit(EXIT_FAILURE);
+	}
+	if ( configFile.is_client ) {
+		/* Client thread */
+		if ( pthread_create( &threadServer, NULL, server_client, NULL ) < 0) {
+			fprintf( stderr, "ERROR in main: creating threadClient\n" );
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	/* UART thread */
-	// http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
 	if ( pthread_create( &threadUart, NULL, uart_receive, NULL ) < 0 ) {
 		fprintf( stderr, "ERROR in main: creating threadUart\n" );
 		exit(EXIT_FAILURE);
 	}
 	
-	/* Server thread */
-	if ( configFile.is_server && pthread_create( &threadServer, NULL, create_server, NULL ) < 0) {
-		fprintf( stderr, "ERROR in main: creating threadServer\n" );
-		exit(EXIT_FAILURE);
-	}
-
 	/* Start timer */
 	signal( SIGINT, signal_interrupt );
 	timer.it_value.tv_sec  = 3600;
