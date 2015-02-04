@@ -49,14 +49,14 @@ void *server_client() {
 		fprintf( stderr, "ERROR in server_client: Pipe closed with result \n", result );
 }
 
-int server_transmit( char * str ) {
-	char buffer[BUFF_SIZE];
-	int  sockServer;
-	struct sockaddr_in server;
+int server_transmit( char * buffer ) {
+	int  sockServer, n;
+	unsigned int length = sizeof( struct sockaddr_in );
+	struct sockaddr_in server, from;
 	struct hostent    *serv_host;
 	
 	// Create socket
-	sockServer = socket( AF_INET, SOCK_STREAM, 0 );
+	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer == -1 ) {
 		fprintf( stderr, "ERROR in server_transmit: Could not create client socket\n" );
 		return 1;
@@ -68,32 +68,18 @@ int server_transmit( char * str ) {
 		return 1;
 	}
 	
-	bcopy( (char *)serv_host->h_addr, (char *)&server.sin_addr.s_addr, serv_host->h_length );
+	bcopy( (char *)serv_host->h_addr, (char *)&server.sin_addr, serv_host->h_length );
 	server.sin_family = AF_INET;
 	server.sin_port   = htons( configFile.serverPort );
-
-	// Connect to remote server
-	if ( connect( sockServer, ( struct sockaddr * ) &server, sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in server_transmit: Connection to server \"%s\" failed\n", server.sin_addr.s_addr );
+	
+	// Send to remote server
+	if ( sendto( sockServer, buffer, strlen( buffer ), 0, (const struct sockaddr *) &server, length ) < 0 ) {
+		fprintf( stderr, "ERROR in server_transmit: sendto to server \"%s\" failed\n", buffer );
 		return 1;
 	}
-		
-	// Receive a reply
-	if ( recv( sockServer, buffer, BUFF_SIZE, 0 ) < 0 ) {
-		fprintf( stderr, "ERROR in server_transmit: recv failed!\n" );
-		return 1;
-	} else if ( buffer[0] != 'W' || buffer[1] != 'R' ) {
-		fprintf( stderr, "ERROR in server_transmit: Wrong server? Reply - \"%s\"!\n", buffer );
-		return 1;
-	}
-		
-	// Send data
-	if ( send( sockServer, str, strlen( str ), 0 ) < 0 ) {
-		fprintf( stderr, "ERROR in server_transmit: Send failed\n" );
-		return 1;
-	}
+	
 #if _DEBUG > 1
-	printf( "Client sent: \"%s\"\n", str );
+	printf( "Client sent: \"%s\"\n", buffer );
 #endif
 		
 	close( sockServer );
@@ -101,14 +87,14 @@ int server_transmit( char * str ) {
 }
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
-void *server_listen( void *ptr ) {
-	int sockListen, sockClient, *sockNew, cs;
-	pthread_t threadSocket;
+void *server_listen() {
+	int sockServer, cs = sizeof( struct sockaddr_in );
 	struct sockaddr_in server, client;
+	char buffer[BUFF_SIZE];
 	
 	// Create socket
-	sockListen = socket( AF_INET, SOCK_STREAM, 0 );
-	if ( sockListen == -1 ) {
+	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
+	if ( sockServer < 0 ) {
 		fprintf( stderr, "ERROR in server_listen: Could not create server socket\n" );
 		return;
 	}
@@ -119,63 +105,19 @@ void *server_listen( void *ptr ) {
 	server.sin_port = htons( configFile.listenPort );
 	
 	// Bind
-	if ( bind( sockListen,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in server_listen: Bind failed!\n" );
+	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
+		fprintf( stderr, "ERROR: Bind failed!\n" );
 		return;
 	}
 	
-	// Listen
-	listen( sockListen, 3 );
-	
-	// Accept incoming connection
-	cs = sizeof( struct sockaddr_in );
-	while ( ( sockClient = accept( sockListen, (struct sockaddr *) &client, (socklen_t*) &cs ) ) ) {
-		sockNew  = malloc(1);
-		*sockNew = sockClient;
-#if _DEBUG > 1
-		puts( "Connectied" );
-#endif
-		
-		if ( pthread_create( &threadSocket, NULL,  server_receive, (void*) sockNew ) < 0 ) {
-			fprintf( stderr, "ERROR in server_listen: creating threadSocket\n" );
-			free( sockNew );
-			return;
+	while ( 1 ) {
+		if ( recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs ) < 0 ) {
+			fprintf( stderr, "ERROR: recvfrom failed!\n" );
 		}
-	}
 		
-	if ( sockClient < 0 ) {
-		fprintf( stderr, "ERROR in server_listen: Client connection not accepted\n" );
-		free( sockNew );
-		return;
-	}
-	return NULL;
-}
-
-void *server_receive( void * socket_desc ) {
-	int  rcount, sockClient = *(int*) socket_desc;
-	char buffer[BUFF_SIZE], *send;
-		
-	//Send ack to the client
-	send = "WR\n";
-	write( sockClient, send, strlen( send ) );
-	
-	//Receive from client
-	while( ( rcount = recv( sockClient, buffer, BUFF_SIZE, 0 ) ) > 0 ) {
-		buffer[rcount-1] = '\0';
 #if _DEBUG > 1
 		printf( "server_receive: Received \"%s\"\n", buffer );
 #endif
   		parse_input( buffer );
 	}
-		
-	if ( rcount == -1 ) {
-		fprintf( stderr, "ERROR in server_receive: recv failed!\n" );
-	} else if ( rcount == 0 ) {
-#if _DEBUG > 1
-		fprintf( stderr, "ERROR in server_receive: Connection closed!\n" );
-#endif
-	}
-	
-	free( socket_desc );
-	return 0;
 }

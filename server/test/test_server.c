@@ -7,100 +7,53 @@
 #include<sys/socket.h>
 #include<unistd.h>    //write
 
+#define BUFF_SIZE 512
+
 void *connection_handler(void *);
 void printTime();
 
 int main(int argc , char *argv[]) {
-	int socket_desc , client_sock , c , *new_sock;
-	struct sockaddr_in server , client;
-		
-	//Create socket
-	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-	if (socket_desc == -1) {
-		printf("Could not create socket");
-		return 1;
-	}
-	puts("Socket created");
+	int sockServer, cs = sizeof( struct sockaddr_in );
+	struct sockaddr_in server, client;
+	char buffer[BUFF_SIZE];
 	
-	//Prepare the sockaddr_in structure
+	// Create socket
+	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
+	if ( sockServer < 0 ) {
+		fprintf( stderr, "ERROR: Could not create server socket\n" );
+		return;
+	}
+	printTime();
+	puts("\nSocket created");
+		
+	// Prepare the sockaddr_in structure
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons( 9876 );
-		
-	//Bind
-	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0) {
-		perror("bind failed. Error");
-		return 1;
+	
+	// Bind
+	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
+		fprintf( stderr, "ERROR: Bind failed!\n" );
+		return;
 	}
 	puts("bind done");
-		
-	//Listen
-	listen(socket_desc , 3);
-		
-	//Accept and incoming connection
+	
 	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
-	while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) ) {
-		printTime();
-		puts("\nConnection accepted");
-		
-		pthread_t sniffer_thread;
-		new_sock = malloc(1);
-		*new_sock = client_sock;
-			
-		if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0) {
-			perror("could not create thread");
-			return 1;
+	while ( 1 ) {
+		if ( recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs ) < 0 ) {
+			fprintf( stderr, "ERROR: recvfrom failed!\n" );
 		}
-			
-		//Now join the thread , so that we dont terminate before the thread
-		//pthread_join( sniffer_thread , NULL);
-	}
 		
-	if (client_sock < 0) {
-		perror("accept failed");
-		return 1;
+		printTime();	// http://stackoverflow.com/a/23040684
+		printf( "%s Recv: \"%s\"\n", inet_ntoa(client.sin_addr), buffer );
 	}
-		
-	return 0;
 }
- 
-/*
- * This will handle connection for each client
- * */
-void *connection_handler(void *socket_desc) {
-	//Get the socket descriptor
-	int sock = *(int*)socket_desc;
-	int read_size;
-	char *message , client_message[2000];
-		
-	//Send some messages to the client
-	message = "WR\0";
-	write(sock , message , strlen(message));
-		
-	//Receive a message from client
-	while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 ) {
-		printf( "Recv: \"%s\"\n", client_message );
-	}
-		
-	if(read_size == 0) {
-		puts("Client disconnected\n");
-		fflush(stdout);
-	} else if(read_size == -1) {
-		perror("recv failed");
-	}
-			
-	//Free the socket pointer
-	free(socket_desc);
-		
-	return 0;
-}
-
+	
 void printTime() {
 	struct tm *local;
 	time_t t = time(NULL);
 	local = localtime(&t);
-	printf( "[%i-%02i-%02i %02i:%02i:%02i]", 
+	printf( "\n[%i-%02i-%02i %02i:%02i:%02i]\n", 
 			(local->tm_year + 1900), 
 			(local->tm_mon) + 1, 
 			local->tm_mday, 

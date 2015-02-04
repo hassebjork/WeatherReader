@@ -44,7 +44,6 @@
 
 void *server_client();
 int server_transmit( char * str );
-void *server_listen( void *ptr );
-void *server_receive( void * socket_desc );
+void *server_listen();
 
 #endif

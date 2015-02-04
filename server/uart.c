@@ -70,9 +70,10 @@ void *uart_receive( void *ptr ) {
 #if _DEBUG > 1
 			printf( "uart_receive: %s\n", buffer );
 #endif
-			if ( configFile.is_client && write( pipeDescr[1], &buffer, rcount ) < 1 )
- 				fprintf( stderr, "ERROR in uart_receive: Pipe error\n" );
-			else
+			if ( configFile.is_client ) {
+ 				if ( write( pipeDescr[1], &buffer, rcount ) < 1 )
+ 					fprintf( stderr, "ERROR in uart_receive: Pipe error\n" );
+			} else
 				parse_input( buffer );
 		}
 		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep

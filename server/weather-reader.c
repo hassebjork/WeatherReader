@@ -47,7 +47,6 @@ int main( int argc, char *argv[]) {
 	}
 	
 	/* Start timer */
-	signal( SIGINT, signal_interrupt );
 	timer.it_value.tv_sec  = 3600;
 	timer.it_value.tv_usec = 0;
 	timer.it_interval      = timer.it_value;
@@ -55,6 +54,8 @@ int main( int argc, char *argv[]) {
 		fprintf( stderr, "ERROR in main: Could not set timer\n" );
 
 	signal( SIGALRM, (void(*)(int)) signal_alarm );
+	signal( SIGCHLD, SIG_IGN );
+	signal( SIGINT, signal_interrupt );
 	
 	/* Wait till threads are complete before main continues.  */
 	pthread_join( threadUart, NULL);
