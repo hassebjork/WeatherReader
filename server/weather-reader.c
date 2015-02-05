@@ -3,7 +3,7 @@
 extern ConfigSettings configFile;
 
 int main( int argc, char *argv[]) {
-	pthread_t threadUart, threadServer;
+	pthread_t threadParser, threadUart, threadServer;
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
@@ -14,8 +14,10 @@ int main( int argc, char *argv[]) {
 	} else {
 		sensorInit();
 	}
-	if ( pipe( pipeServer ) < 0 ) {
-		fprintf( stderr, "ERROR in main: creating client pipe\n" );
+	
+	/* Open pipes */
+	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
+		fprintf( stderr, "ERROR in main: creating server pipe\n" );
 		exit(EXIT_FAILURE);
 	}
 	
@@ -26,6 +28,12 @@ int main( int argc, char *argv[]) {
 	if ( configFile.sensorReceiveTest > 0 )
 		printf( "Sensor receive test: ACTIVE!\n" );
 #endif
+	
+	/* Parser thread */
+	if ( pthread_create( &threadParser, NULL, parse_thread, NULL ) < 0 ) {
+		fprintf( stderr, "ERROR in main: creating threadParser\n" );
+		exit(EXIT_FAILURE);
+	}
 	
 	/* Server thread */
 	if ( configFile.is_server && pthread_create( &threadServer, NULL, server_listen, NULL ) < 0) {

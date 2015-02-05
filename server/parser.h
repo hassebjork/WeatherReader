@@ -33,7 +33,9 @@
 #include <stdio.h>
 #include "config.h"
 #include "sensor.h"
+#include "weather-reader.h"
 
+void *parse_thread();
 unsigned char hex2char( unsigned char c );
 unsigned char reverse_8bits( unsigned char n );
 void parse_input( char *s );

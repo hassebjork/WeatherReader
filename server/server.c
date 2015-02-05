@@ -33,6 +33,7 @@
 
 extern ConfigSettings configFile;
 extern int pipeServer[2];
+extern int pipeParser[2];
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 // http://www.linuxhowtos.org/C_C++/socket.htm
@@ -40,13 +41,15 @@ void *server_client() {
 	char buffer[BUFF_SIZE];
 	int  result;
 	
+#if _DEBUG > 1
 	printf( "server_client: started\n" );
+#endif
 	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 )
  		server_transmit( buffer );
 	if ( result == 0 )
 		fprintf( stderr, "ERROR in server_client: Pipe closed\n" );
 	else
-		fprintf( stderr, "ERROR in server_client: Pipe closed with result \n", result );
+		fprintf( stderr, "ERROR in server_client: Pipe error %d\n", result );
 }
 
 int server_transmit( char * buffer ) {
@@ -88,7 +91,7 @@ int server_transmit( char * buffer ) {
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 void *server_listen() {
-	int sockServer, cs = sizeof( struct sockaddr_in );
+	int sockServer, rcount, cs = sizeof( struct sockaddr_in );
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
@@ -106,18 +109,19 @@ void *server_listen() {
 	
 	// Bind
 	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR: Bind failed!\n" );
+		fprintf( stderr, "ERROR in server_listen: Bind failed!\n" );
 		return;
 	}
 	
 	while ( 1 ) {
-		if ( recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs ) < 0 ) {
-			fprintf( stderr, "ERROR: recvfrom failed!\n" );
-		}
+		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
+		if ( rcount < 0 )
+			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
 		
 #if _DEBUG > 1
 		printf( "server_receive: Received \"%s\"\n", buffer );
 #endif
-  		parse_input( buffer );
+		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
+			fprintf( stderr, "ERROR in server_listen: pipeParser error\n" );
 	}
 }

@@ -4,11 +4,11 @@ MYSQL_CFLAGS=$(shell mysql_config --cflags)
 MYSQL_LIBS=$(shell mysql_config --libs)
 
 
-all: weatherreader
+all: weather-reader
 
-weatherreader: weather-reader.c config.c parser.c sensor.c server.c uart.c
+weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	gcc -o weather-reader \
-		-lpthread \
+		-pthread \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
@@ -17,11 +17,11 @@ weatherreader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c test/test_server.c
 	ulimit -c unlimited && gcc -o weather-reader \
 		-D_DEBUG=2 \
-		-lpthread -ggdb \
+		-pthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
-	ulimit -c unlimited && gcc -o test-server -lpthread test/test_server.c
+	ulimit -c unlimited && gcc -o test-server -pthread test/test_server.c
 	@echo
 
 clean:

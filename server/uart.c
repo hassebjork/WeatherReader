@@ -31,6 +31,7 @@
 
 extern ConfigSettings configFile;
 extern int pipeServer[2];
+extern int pipeParser[2];
 
 void *uart_receive( void *ptr ) {
 	struct termios options;
@@ -72,9 +73,11 @@ void *uart_receive( void *ptr ) {
 #endif
 			if ( configFile.is_client ) {
  				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
- 					fprintf( stderr, "ERROR in uart_receive: Pipe error\n" );
-			} else
-				parse_input( buffer );
+ 					fprintf( stderr, "ERROR in uart_receive: pipeServer error\n" );
+			} else {
+ 				if ( write( pipeParser[1], &buffer, rcount ) < 1 )
+ 					fprintf( stderr, "ERROR in uart_receive: pipeParser error\n" );
+			}
 		}
 		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
 		usleep( 200 );

@@ -30,11 +30,35 @@
 #include "parser.h"
 
 extern ConfigSettings configFile;
+extern int pipeParser[2];
+extern MYSQL *mysql;
 
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
 };
+
+void *parse_thread() {
+	char buffer[254];
+	int  result;
+	mysql = mysql_init( mysql );
+
+#if _DEBUG > 1
+	printf( "parse_thread: started\n" );
+#endif
+	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 ) {
+#if _DEBUG > 1
+		printf( "parse_thread: Received \"%s\"\n", buffer );
+#endif
+ 		parse_input( buffer );
+	}
+	
+	if ( result == 0 )
+		fprintf( stderr, "ERROR in parse_thread: Pipe closed\n" );
+	else
+		fprintf( stderr, "ERROR in parse_thread: Pipe error %d\n", result );
+	exit(EXIT_FAILURE);
+}
 
 // http://stackoverflow.com/questions/26839558/hex-char-to-int-conversion
 unsigned char hex2char( unsigned char c ) {
