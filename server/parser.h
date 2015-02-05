@@ -30,6 +30,7 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
+#include <mysql.h>
 #include <stdio.h>
 #include "config.h"
 #include "sensor.h"

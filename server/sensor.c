@@ -70,6 +70,8 @@ char sensorInit() {
 
 void sensorMysqlInit() {
 	int i;
+	my_bool myb = 1;
+	
 	mysql = mysql_init( mysql );
 	if ( !mysql ) {
 		fprintf( stderr, "ERROR in sensorMysqlInit: Initiating MySQL database!\n%s\n", 
@@ -77,6 +79,7 @@ void sensorMysqlInit() {
 		exit(5);
 	}
 	
+	mysql_options( mysql, MYSQL_OPT_RECONNECT, &myb);
 	if ( mysql_real_connect( mysql, configFile.mysqlServer, configFile.mysqlUser, configFile.mysqlPass, configFile.mysqlDatabase, 0, NULL, 0 ) == NULL ) {
 		fprintf( stderr, "ERROR in sensorMysqlInit: Can not connect to MySQL database!\n%s\n", mysql_error( mysql ) );
 		mysql_close( mysql );
