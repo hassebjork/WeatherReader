@@ -14,7 +14,7 @@
 #include "server.h"
 #include "uart.h"
 
-int pipeDescr[2];
+int pipeServer[2];
 
 int main(int argc, char *argv[]);
 void signal_interrupt( int signum );

@@ -30,7 +30,7 @@
 #include "uart.h"
 
 extern ConfigSettings configFile;
-extern int pipeDescr[2];
+extern int pipeServer[2];
 
 void *uart_receive( void *ptr ) {
 	struct termios options;
@@ -71,7 +71,7 @@ void *uart_receive( void *ptr ) {
 			printf( "uart_receive: %s\n", buffer );
 #endif
 			if ( configFile.is_client ) {
- 				if ( write( pipeDescr[1], &buffer, rcount ) < 1 )
+ 				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
  					fprintf( stderr, "ERROR in uart_receive: Pipe error\n" );
 			} else
 				parse_input( buffer );

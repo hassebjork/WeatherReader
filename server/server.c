@@ -32,7 +32,7 @@
 #define BUFF_SIZE 512
 
 extern ConfigSettings configFile;
-extern int pipeDescr[2];
+extern int pipeServer[2];
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 // http://www.linuxhowtos.org/C_C++/socket.htm
@@ -41,7 +41,7 @@ void *server_client() {
 	int  result;
 	
 	printf( "server_client: started\n" );
-	while ( ( result = read( pipeDescr[0], &buffer, BUFF_SIZE ) ) > 0 )
+	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 )
  		server_transmit( buffer );
 	if ( result == 0 )
 		fprintf( stderr, "ERROR in server_client: Pipe closed\n" );

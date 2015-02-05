@@ -14,7 +14,7 @@ int main( int argc, char *argv[]) {
 	} else {
 		sensorInit();
 	}
-	if ( pipe( pipeDescr ) < 0 ) {
+	if ( pipe( pipeServer ) < 0 ) {
 		fprintf( stderr, "ERROR in main: creating client pipe\n" );
 		exit(EXIT_FAILURE);
 	}
