@@ -120,7 +120,7 @@ void osv2_parse( char *s ) {
 		return;
 	}
 	
-	sensor *sptr = sensorLookup( "OSV2", id, channel, rolling, type, batt );
+	sensor *sptr = sensorListLookup( "OSV2", id, channel, rolling, type, batt );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
@@ -202,7 +202,7 @@ void vent_parse( char *s ) {
 		return;
 	}
 	
-	sensor *sptr = sensorLookup( "VENT", id, 0, 0, type, batt );
+	sensor *sptr = sensorListLookup( "VENT", id, 0, 0, type, batt );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
@@ -238,21 +238,21 @@ void mandolyn_parse( char *s ) {
 	if ( id == 10 ) {
 		if ( channel == 2 ) {
 			type = WINDSPEED | WINDGUST;
-			sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+			sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 			sensorWind( sptr, pri, 0.0, sec );
 		} else if ( channel == 3 ) {
 			type = RAIN;
-			sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+			sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 			sensorRain( sptr, pri );
 		}
 	} else if ( sec ) {
 		type = TEMPERATURE | HUMIDITY;
-		sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+		sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 		sensorTemperature( sptr, pri );
 		sensorHumidity( sptr, sec );
 	} else {
 		type = HUMIDITY;
-		sensor *sptr = sensorLookup( "MAND", id, channel, 0, type, batt );
+		sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 		sensorTemperature( sptr, pri );
 	}
 }
@@ -286,7 +286,7 @@ void fineoffset_parse( char *s ) {
 	}
 	
 	// Temperature and humidity not tested!
-	sensor *sptr = sensorLookup( "MANDO", id, 0, rolling, type, 1 );
+	sensor *sptr = sensorListLookup( "MANDO", id, 0, rolling, type, 1 );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temp );

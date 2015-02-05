@@ -96,11 +96,16 @@ MYSQL   *mysql;
 
 char sensorInit();
 void sensorMysqlInit();
-sensor *sensorSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
+
+int sensorListInit();
+sensor *sensorListLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
+void sensorListFree();
 sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
 		unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
 		unsigned char battery, unsigned int server, SensorType type );
-sensor *sensorAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
+
+sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
+sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 char sensorMysqlInsert( sensor *s );
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
@@ -112,9 +117,6 @@ char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 
-sensor *sensorLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
-
-void sensorListFree();
 time_t sensorTimeSync();
 void sensorPrint( sensor *s );
 void printTime( char *s );
