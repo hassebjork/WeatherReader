@@ -9,6 +9,7 @@ int main( int argc, char *argv[]) {
 	confReadFile( CONFIG_FILE_NAME, &configFile );
 	if ( configFile.is_server ) {
 		fprintf( stderr, "Server enabled: using port %d\n", configFile.listenPort );
+		sensorInit();
 	} else if ( configFile.is_client ) {
 		fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
 	} else {
