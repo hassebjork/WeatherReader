@@ -115,9 +115,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
  * Must be of the form 'StringVar=str' with no spaces or special characters before the '='.  After the = whitespace is treated
  * as part of the string. */
 int confStringVar( char *buf, char *matchStr, char *destStr ) {
-	int retVal = 0;
-	int len    = strlen( matchStr );
-
+	int len = strlen( matchStr );
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		int i = len;
 		int j = 0;
@@ -130,42 +128,34 @@ int confStringVar( char *buf, char *matchStr, char *destStr ) {
 			&& ( i < READ_BUFSIZE ) && ( j < ( MAX_TAG_SIZE - 1 ) ) )
 			destStr[j++] = buf[i++];
 		destStr[j] = 0;
-		retVal     = 1;
+		return 1;
 	}
-	return( retVal );
+	return 0;
 }
 
 /* Process a config file line with a numeric var  on it
  * Must be of the form 'numericVar=n' with no spaces or special characters. */
 int confIntVar( char *buf, char *matchStr, int *valp ) {
-	int retVal = 0;
-	int len    = strlen( matchStr );
-	int varCount, temp = 0;
-
+	int varCount, temp = 0, len = strlen( matchStr );
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		varCount = sscanf( &buf[len+1], "%d", &temp );
 		if ( varCount == 1 ) 
 			*valp = temp;
-		retVal = 1;
+		return 1;
 	}
-
-	return( retVal );   
+	return 0;   
 }
 
 /* Process a config file line with a float var  on it
  * Must be of the form 'floatVar=n.n' with no spaces or special characters. */
 int confFloatVar( char *buf, char *matchStr, float *valp ) {
-	int retVal = 0;
-	int len    = strlen( matchStr );
-	int varCount;
+	int varCount, len = strlen( matchStr );
 	float temp = 0.0;
-
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		varCount = sscanf( &buf[len+1], "%f", &temp );
 		if ( varCount == 1 ) 
 			*valp = temp;
-		retVal = 1;
+		return 1;
 	}
-
-	return( retVal );   
+	return 0;   
 }
