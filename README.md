@@ -5,17 +5,19 @@ This project uses an Arduino to read radio signals from wireless
 Weather Sensors. The Arduino is powered over USB and reduces payload 
 on the Raspberry Pi. All sensors work over the 433MHz band. Data is 
 sent over the USB port to a Raspberry Pi, reading it as a serial port. 
-The raw data is displayed on stdout and stored in a MySQL database.
+The raw data is displayed to stdout and stored in a MySQL database.
 
-The MySQL database is configured in a configuration file. The file is 
-read every hour, so changes can be implemented while running. 
-The server can be set up to operate on localhost or a remote server.
+The MySQL database is setup in a configuration file and can be run
+on localhost or a remote server.
 
 Multiple Weather-Reader servers can be run simultaneously on a local 
-network. They can manually be configured to receieve only certain sensors 
-with the best reception. The servers sync their clocks against a MySQL 
-database.
+network. They can be configured to operate individually, storing what 
+they receive in their own database, the same database or to be sent to 
+one Raspberry Pi, operating as a server collecting the data and sening 
+it to a MySQL database. The latter will reduce the total number of rows 
+in the database and still catch as many sensor readings as possible.
 
+The server listens to port 9876 as default and data is sent over UDP.
 
 Directories:
 ============
@@ -95,6 +97,39 @@ As a receiver I use a 433 MHz receiver shield module called RXB6. It is sensitiv
 and cheap (US$ 3.5). Any similar receiver should do. It connects to the Arduino Nanos 
 pins +5V, GND and data to analogue pin 1 (A1). The rest of the pins are unused.
 
+
+OPERATION OF SOFTWARE:
+======================
+
+The configuration file is first read starting 2-3 threads: 
+
+a. Default: UART sends to PARSER wich stores in database
+   +--------+      +--------+               +-------+
+   |  UART  | -->  | PARSER | --[lo/net]--> | MySQL |
+   +--------+      +--------+               +-------+
+
+b. Client:  UART sends to CLIENT wich over network sends to a server
+   +--------+      +--------+                +--------+
+   |  UART  | -->  | CLIENT | --[network]--> | SERVER |
+   +--------+      +--------+                +--------+
+
+c. Server:  UART and network SERVER sends to PARSER wich stores in database
+   +--------+      +--------+     +--------+
+   |  UART  | -->  | PARSER | <-- | SERVER | <--[network]--
+   +--------+      +--------+     +--------+
+                       |  local or
+                       V  network
+                   +-------+
+                   | MySQL |
+                   +-------+
+Threads
+UART   - Receives raw signals from Arduino and sends them to a) parser or b) client thread.
+PARSER - Decodes messages, filters and store them in database
+CLIENT - Transmits signals to another Raspberry Pi server
+SERVER - Recieves raw signals from multiple clients for parsing and filtering
+
+The reason for using a separate thread for the parser, is because MySQL is 
+not thread-safe causing problems when using server + uart simultaneously.
 
 ISSUES:
 =======
