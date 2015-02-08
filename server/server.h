@@ -42,8 +42,9 @@
 #include "parser.h"
 #include "weather-reader.h"
 
-void *server_client();
-int server_transmit( char * str );
-void *server_listen();
+void *client_thread();
+int client_send( char * str );
+
+void *server_thread();
 
 #endif

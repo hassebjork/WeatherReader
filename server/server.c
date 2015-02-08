@@ -37,22 +37,22 @@ extern int pipeParser[2];
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 // http://www.linuxhowtos.org/C_C++/socket.htm
-void *server_client() {
+void *client_thread() {
 	char buffer[BUFF_SIZE];
 	int  result;
 	
 #if _DEBUG > 1
-	printf( "server_client: started\n" );
+	printf( "client_thread: started\n" );
 #endif
 	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 )
- 		server_transmit( buffer );
+ 		client_send( buffer );
 	if ( result == 0 )
-		fprintf( stderr, "ERROR in server_client: Pipe closed\n" );
+		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
 	else
-		fprintf( stderr, "ERROR in server_client: Pipe error %d\n", result );
+		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", result );
 }
 
-int server_transmit( char * buffer ) {
+int client_send( char * buffer ) {
 	int  sockServer, n;
 	unsigned int length = sizeof( struct sockaddr_in );
 	struct sockaddr_in server, from;
@@ -61,13 +61,13 @@ int server_transmit( char * buffer ) {
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer == -1 ) {
-		fprintf( stderr, "ERROR in server_transmit: Could not create client socket\n" );
+		fprintf( stderr, "ERROR in client_send: Could not create client socket\n" );
 		return 1;
 	}
 	
 	serv_host = gethostbyname( configFile.serverAddress );
 	if ( serv_host == NULL ) {
-		fprintf( stderr, "ERROR in server_transmit: Could not find hostname \"%s\"\n", configFile.serverAddress );
+		fprintf( stderr, "ERROR in client_send: Could not find hostname \"%s\"\n", configFile.serverAddress );
 		return 1;
 	}
 	
@@ -77,12 +77,12 @@ int server_transmit( char * buffer ) {
 	
 	// Send to remote server
 	if ( sendto( sockServer, buffer, strlen( buffer ), 0, (const struct sockaddr *) &server, length ) < 0 ) {
-		fprintf( stderr, "ERROR in server_transmit: sendto to server \"%s\" failed\n", buffer );
+		fprintf( stderr, "ERROR in client_send: sendto to server \"%s\" failed\n", buffer );
 		return 1;
 	}
 	
 #if _DEBUG > 1
-	printf( "server_transmit: \tSent \"%s\" %s\n", buffer, inet_ntoa(server.sin_addr) );
+	printf( "client_send: \tSent \"%s\" %s\n", buffer, inet_ntoa(server.sin_addr) );
 #endif
 		
 	close( sockServer );
@@ -90,7 +90,7 @@ int server_transmit( char * buffer ) {
 }
 
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
-void *server_listen() {
+void *server_thread() {
 	int sockServer, rcount, cs = sizeof( struct sockaddr_in );
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
@@ -98,7 +98,7 @@ void *server_listen() {
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer < 0 ) {
-		fprintf( stderr, "ERROR in server_listen: Could not create server socket\n" );
+		fprintf( stderr, "ERROR in server_thread: Could not create server socket\n" );
 		return;
 	}
 	
@@ -109,7 +109,7 @@ void *server_listen() {
 	
 	// Bind
 	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in server_listen: Bind failed!\n" );
+		fprintf( stderr, "ERROR in server_thread: Bind failed!\n" );
 		return;
 	}
 	
@@ -117,12 +117,12 @@ void *server_listen() {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
 		buffer[rcount++] = '\0';
 		if ( rcount < 0 )
-			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
+			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		printf( "server_listen: \tRecv \"%s\" %s\n", buffer, inet_ntoa(client.sin_addr) );
+		printf( "server_thread: \tRecv \"%s\" %s\n", buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
-			fprintf( stderr, "ERROR in server_listen: pipeParser error\n" );
+			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
 	}
 }

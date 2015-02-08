@@ -32,13 +32,13 @@ int main( int argc, char *argv[]) {
 	}
 	
 	/* Server thread */
-	if ( configFile.is_server && pthread_create( &threadServer, NULL, server_listen, NULL ) < 0) {
+	if ( configFile.is_server && pthread_create( &threadServer, NULL, server_thread, NULL ) < 0) {
 		fprintf( stderr, "ERROR in main: creating threadServer\n" );
 		exit(EXIT_FAILURE);
 	}
 	if ( configFile.is_client ) {
 		/* Client thread */
-		if ( pthread_create( &threadServer, NULL, server_client, NULL ) < 0) {
+		if ( pthread_create( &threadServer, NULL, client_thread, NULL ) < 0) {
 			fprintf( stderr, "ERROR in main: creating threadClient\n" );
 			exit(EXIT_FAILURE);
 		}
