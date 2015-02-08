@@ -115,7 +115,7 @@ void *server_listen() {
 	
 	while ( 1 ) {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
-		buffer[rcount-1] = '\0';
+		buffer[rcount] = '\0';
 		if ( rcount < 0 )
 			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
 
