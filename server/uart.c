@@ -69,7 +69,7 @@ void *uart_receive( void *ptr ) {
 		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
 #if _DEBUG > 1
-			printf( "uart_receive: \tRecv \"%s\"\n", buffer );
+			printf( "uart_receive: \t\tRecv \"%s\"\n", buffer );
 #endif
 			if ( configFile.is_client ) {
  				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
