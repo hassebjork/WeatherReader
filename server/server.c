@@ -117,9 +117,9 @@ void *server_listen() {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
 		if ( rcount < 0 )
 			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
-		
+
 #if _DEBUG > 1
-		printf( "server_receive: Received \"%s\"\n", buffer );
+		printf( "server_receive: Recv %s \"%s\"\n", inet_ntoa(client.sin_addr), buffer );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_listen: pipeParser error\n" );

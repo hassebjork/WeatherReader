@@ -88,8 +88,9 @@ void parse_input( char *s ) {
 		fineoffset_parse( s + 5 );
 	else
 		printf( "Not recognised: " );
-	
+#if _DEBUG > 3
 	printf( "%s\n", s );
+#endif
 }
 
 /**************************************************************************************************
