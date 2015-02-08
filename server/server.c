@@ -82,7 +82,7 @@ int server_transmit( char * buffer ) {
 	}
 	
 #if _DEBUG > 1
-	printf( "server_transmit: \tSent \"%s\"\n", buffer );
+	printf( "server_transmit: \tSent \"%s\" %s\n", buffer, inet_ntoa(server.sin_addr) );
 #endif
 		
 	close( sockServer );
@@ -115,6 +115,7 @@ void *server_listen() {
 	
 	while ( 1 ) {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
+		buffer[rcount-1] = '\0';
 		if ( rcount < 0 )
 			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
 

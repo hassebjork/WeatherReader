@@ -36,10 +36,10 @@ unsigned int sensor_list_no = 0;
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 1
 // 	"DROP TABLE IF EXISTS wr_sensors ",
-	"DROP TABLE IF EXISTS wr_rain ",
-	"DROP TABLE IF EXISTS wr_temperature",
-	"DROP TABLE IF EXISTS wr_humidity",
-	"DROP TABLE IF EXISTS wr_wind",
+// 	"DROP TABLE IF EXISTS wr_rain ",
+// 	"DROP TABLE IF EXISTS wr_temperature",
+// 	"DROP TABLE IF EXISTS wr_humidity",
+// 	"DROP TABLE IF EXISTS wr_wind",
 	"DROP TABLE IF EXISTS wr_test",
 #endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, server INT, team SMALLINT, color INT UNSIGNED, type SMALLINT, PRIMARY KEY (id) )",
