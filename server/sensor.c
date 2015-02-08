@@ -308,7 +308,7 @@ char sensorReceiveTest( sensor *s ) {
 }
 
 char sensorTemperature( sensor *s, float value ) {
-#if _DEBUG > 1
+#if _DEBUG > 3
 	printf( "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
@@ -339,7 +339,7 @@ char sensorTemperature( sensor *s, float value ) {
 }
 
 char sensorHumidity( sensor *s, unsigned char value ) {
-#if _DEBUG > 1
+#if _DEBUG > 3
 	printf( "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
@@ -372,7 +372,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 }
 
 char sensorRain( sensor *s, float total ) {
-#if _DEBUG > 1
+#if _DEBUG > 3
 	printf( "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
