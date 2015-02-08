@@ -16,12 +16,14 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 		
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c test/test_server.c
 	ulimit -c unlimited && gcc -o weather-reader \
-		-D_DEBUG=2 \
+		-D_DEBUG=2 -g \
 		-pthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
-	ulimit -c unlimited && gcc -o test-server -pthread test/test_server.c
+	ulimit -c unlimited && gcc -o test-server \
+		-pthread -g \
+		test/test_server.c
 	@echo
 
 clean:

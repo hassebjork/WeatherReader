@@ -308,6 +308,9 @@ char sensorReceiveTest( sensor *s ) {
 }
 
 char sensorTemperature( sensor *s, float value ) {
+#if _DEBUG > 1
+	printf( "sensorTemperature: %s [%d] (%s:%d) = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
 	time_t now = sensorTimeSync();
@@ -338,6 +341,9 @@ char sensorTemperature( sensor *s, float value ) {
 }
 
 char sensorHumidity( sensor *s, unsigned char value ) {
+#if _DEBUG > 1
+	printf( "sensorHumidity: %s [%d] (%s:%d) = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
 	time_t now = sensorTimeSync();
@@ -370,6 +376,9 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 }
 
 char sensorRain( sensor *s, float total ) {
+#if _DEBUG > 1
+	printf( "sensorRain: %s [%d] (%s:%d) = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
+#endif
 	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
 		return 0;
 	time_t now = sensorTimeSync();
