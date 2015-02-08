@@ -48,7 +48,7 @@ void *parse_thread() {
 	
 	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 ) {
 #if _DEBUG > 1
-		printf( "parse_thread: Received \"%s\"\n", buffer );
+		printf( "parse_thread: \tReceived \"%s\"\n", buffer );
 #endif
  		parse_input( buffer );
 	}

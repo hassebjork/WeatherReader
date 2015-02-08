@@ -82,7 +82,7 @@ int server_transmit( char * buffer ) {
 	}
 	
 #if _DEBUG > 1
-	printf( "Client sent: \"%s\"\n", buffer );
+	printf( "Client sent: \t\"%s\"\n", buffer );
 #endif
 		
 	close( sockServer );
@@ -119,7 +119,7 @@ void *server_listen() {
 			fprintf( stderr, "ERROR in server_listen: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		printf( "server_receive: Recv %s \"%s\"\n", inet_ntoa(client.sin_addr), buffer );
+		printf( "server_receive: \tRecv %s \"%s\"\n", inet_ntoa(client.sin_addr), buffer );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_listen: pipeParser error\n" );
