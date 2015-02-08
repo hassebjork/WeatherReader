@@ -52,7 +52,6 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 };
 
 char sensorInit() {
-	mysql = NULL;
 	sensorListFree();
 	sensor_list = (sensor *) malloc( sizeof( sensor ) );
 	if ( !sensor_list ) {

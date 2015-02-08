@@ -31,7 +31,6 @@
 
 extern ConfigSettings configFile;
 extern int pipeParser[2];
-extern MYSQL *mysql;
 
 static unsigned char reverse_bits_lookup[16] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
@@ -41,11 +40,12 @@ static unsigned char reverse_bits_lookup[16] = {
 void *parse_thread() {
 	char buffer[254];
 	int  result;
-	mysql = mysql_init( mysql );
 
 #if _DEBUG > 1
 	printf( "parse_thread: started\n" );
 #endif
+	sensorInit();
+	
 	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 ) {
 #if _DEBUG > 1
 		printf( "parse_thread: Received \"%s\"\n", buffer );
