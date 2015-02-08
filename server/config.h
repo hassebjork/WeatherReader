@@ -42,7 +42,6 @@
 typedef struct {
 	char  serialDevice[32];
 	int   sensorReceiveTest;
-	int   serverID;
 	
 	int   sensorAutoAdd;
 	

@@ -21,8 +21,6 @@ int main( int argc, char *argv[]) {
 	
 #if _DEBUG > 0
 	fprintf( stderr, "Debug info: enabled\n" );
-	if ( configFile.serverID > 0 ) 
-		printf( "This servers ID is %d\n", configFile.serverID );
 	if ( configFile.sensorReceiveTest > 0 )
 		printf( "Sensor receive test: ACTIVE!\n" );
 #endif

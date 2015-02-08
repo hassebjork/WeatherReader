@@ -140,8 +140,8 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 			if ( sensor_list[i].type^type )
 				sensorUpdateType( &sensor_list[i], type );
 			
-			if ( configFile.sensorReceiveTest > 0 )
-				sensorReceiveTest( &sensor_list[i] );
+// 			if ( configFile.sensorReceiveTest > 0 )
+// 				sensorReceiveTest( &sensor_list[i] );
 
 			return &sensor_list[i];
 		}
@@ -284,10 +284,10 @@ void sensorSaveTests() {
 	MYSQL_ROW    row;
 
 	for ( i = 0; i < sensor_list_no; i++ ) {
-		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,%d,%d)", 
-				sensor_list[i].rowid, configFile.serverID, sensor_list[i].receiveCount );
+		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,0,%d)", 
+				sensor_list[i].rowid, sensor_list[i].receiveCount );
 		if ( sensor_list[i].receiveCount > 0 && mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorReceiveTest: Inserting\n%s\n%s\n", 
+			fprintf( stderr, "ERROR in sensorSaveTests: Inserting\n%s\n%s\n", 
 						mysql_error( mysql ), query );
 		}
 		sensor_list[i].receiveCount = 0;
@@ -311,8 +311,6 @@ char sensorTemperature( sensor *s, float value ) {
 #if _DEBUG > 1
 	printf( "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
-		return 0;
 	time_t now = sensorTimeSync();
 	if ( s->temperature == NULL ) {
 		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
@@ -344,8 +342,6 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 #if _DEBUG > 1
 	printf( "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
-		return 0;
 	time_t now = sensorTimeSync();
 	
 	if ( s->humidity == NULL ) {
@@ -379,8 +375,6 @@ char sensorRain( sensor *s, float total ) {
 #if _DEBUG > 1
 	printf( "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
-	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
-		return 0;
 	time_t now = sensorTimeSync();
 	if ( s->rain == NULL ) {
 		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
@@ -409,8 +403,6 @@ char sensorRain( sensor *s, float total ) {
 }
 
 char sensorWind( sensor *s, float speed, float gust, int dir ) {
-	if ( configFile.serverID > 0 && !( s->server & configFile.serverID ) )
-		return 0;
 	time_t now = sensorTimeSync();
 	
 	// Initialize
