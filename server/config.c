@@ -38,6 +38,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	char rdBuf[READ_BUFSIZE];
 	
 	/* Default Values */
+	conf->run               = 1;
 	conf->serialDevice[0]   = 0;
 	conf->sensorReceiveTest = 0;
 	conf->sensorAutoAdd     = 1;

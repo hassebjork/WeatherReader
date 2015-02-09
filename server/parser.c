@@ -46,8 +46,8 @@ void *parse_thread() {
 #endif
 	sensorInit();
 	
-	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 ) {
-#if _DEBUG > 1
+	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
+#if _DEBUG > 3
 		printf( "parse_thread: \tRecv \"%s\"\n", buffer );
 #endif
  		parse_input( buffer );

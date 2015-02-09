@@ -41,10 +41,9 @@ void *client_thread() {
 	char buffer[BUFF_SIZE];
 	int  result;
 	
-#if _DEBUG > 1
-	printf( "client_thread: started\n" );
-#endif
-	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 )
+	fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
+	
+	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
  		client_send( buffer );
 	if ( result == 0 )
 		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
@@ -95,6 +94,8 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
+	fprintf( stderr, "Server enabled: Listeing on port %d\n", configFile.listenPort );
+		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer < 0 ) {
@@ -113,7 +114,7 @@ void *server_thread() {
 		return;
 	}
 	
-	while ( 1 ) {
+	while ( configFile.run ) {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
 		buffer[rcount++] = '\0';
 		if ( rcount < 0 )

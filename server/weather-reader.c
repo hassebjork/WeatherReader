@@ -7,11 +7,6 @@ int main( int argc, char *argv[]) {
 	struct itimerval timer;
 	
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	if ( configFile.is_server ) {
-		fprintf( stderr, "Server enabled: using port %d\n", configFile.listenPort );
-	} else if ( configFile.is_client ) {
-		fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
-	}
 	
 	/* Open pipes */
 	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
@@ -22,25 +17,27 @@ int main( int argc, char *argv[]) {
 #if _DEBUG > 0
 	fprintf( stderr, "Debug info: enabled\n" );
 	if ( configFile.sensorReceiveTest > 0 )
-		printf( "Sensor receive test: ACTIVE!\n" );
+		fprintf( stderr, "Sensor receive test: ACTIVE!\n" );
 #endif
 	
-	/* Parser thread */
-	if ( pthread_create( &threadParser, NULL, parse_thread, NULL ) < 0 ) {
-		fprintf( stderr, "ERROR in main: creating threadParser\n" );
-		exit(EXIT_FAILURE);
-	}
-	
-	/* Server thread */
-	if ( configFile.is_server && pthread_create( &threadServer, NULL, server_thread, NULL ) < 0) {
-		fprintf( stderr, "ERROR in main: creating threadServer\n" );
-		exit(EXIT_FAILURE);
-	}
+	/* Client thread */
 	if ( configFile.is_client ) {
-		/* Client thread */
 		if ( pthread_create( &threadServer, NULL, client_thread, NULL ) < 0) {
 			fprintf( stderr, "ERROR in main: creating threadClient\n" );
 			exit(EXIT_FAILURE);
+		}
+	} else {
+		/* Parser thread */
+		if ( pthread_create( &threadParser, NULL, parse_thread, NULL ) < 0 ) {
+			fprintf( stderr, "ERROR in main: creating threadParser\n" );
+			exit(EXIT_FAILURE);
+		}
+		/* Server thread */
+		if ( configFile.is_server ) {
+			if ( pthread_create( &threadServer, NULL, server_thread, NULL ) < 0) {
+				fprintf( stderr, "ERROR in main: creating threadServer\n" );
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
 
@@ -63,11 +60,18 @@ int main( int argc, char *argv[]) {
 	
 	/* Wait till threads are complete before main continues.  */
 	pthread_join( threadUart, NULL);
+	if ( configFile.is_client ) {
+		pthread_join( threadServer, NULL);
+	} else if ( configFile.is_server ) {
+		pthread_join( threadServer, NULL);
+		pthread_join( threadParser, NULL);
+	}
 
 	exit(EXIT_SUCCESS);
 }
 
 void signal_interrupt( int signum ) {
+	configFile.run = 0;
 	if ( configFile.sensorReceiveTest > 0 ) {
 		printf( "\nSaving sensor recieve-test data!\n" );
 		sensorSaveTests();

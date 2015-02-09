@@ -62,7 +62,7 @@ void *uart_receive( void *ptr ) {
 	tcflush( tty, TCIFLUSH ); 
 	tcsetattr( tty, TCSANOW, &options ); // Set tty with new settings immediately
 	
-	while ( 1 ) {
+	while ( configFile.run ) {
 		rcount = read( tty, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
 			fprintf( stderr, "ERROR in uart_receive: Read %d bytes\n", rcount );

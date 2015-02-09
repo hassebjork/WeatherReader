@@ -40,6 +40,7 @@
 #define MAX_TAG_SIZE 200
 
 typedef struct {
+	int   run;
 	char  serialDevice[32];
 	int   sensorReceiveTest;
 	
