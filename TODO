@@ -3,7 +3,6 @@ TODO
 - Startscripts in /etc/init.d and links to /etc/rc.X
 - Search for arduino's serial device
 - Store CURRENT avg temp/humidity
-- sensorReceiveTest based on IP/MAC
 - Check if sensor receives multiple valuse from uart/server within 10 sec time interval
 
 Wish list

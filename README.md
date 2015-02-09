@@ -136,9 +136,7 @@ ISSUES:
 - These cheap Arduino Nano boards, seem to have a ceramic ocillator. The clock speed 
   varies between different boards and reception of different protocols might not work 
   100% on every board.
-  
+
 - The Arduino sketch fails to decode some protocols after a few hours. Different protocols 
   drop out on different boards. A temporary workaround is implemented, to restart the 
   Arduino board every hour.
-  
-  

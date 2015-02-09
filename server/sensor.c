@@ -140,9 +140,6 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 			if ( sensor_list[i].type^type )
 				sensorUpdateType( &sensor_list[i], type );
 			
-// 			if ( configFile.sensorReceiveTest > 0 )
-// 				sensorReceiveTest( &sensor_list[i] );
-
 			return &sensor_list[i];
 		}
 	}
@@ -194,8 +191,6 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
 	sensor_list[sensor_list_no].server      = server;
-	sensor_list[sensor_list_no].receiveRow  = 0;
-	sensor_list[sensor_list_no].receiveCount= 0;
 	sensor_list[sensor_list_no].temperature = NULL;
 	sensor_list[sensor_list_no].humidity    = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
@@ -274,36 +269,6 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 		return 1;
 	}
 	s->type |= type;
-	return 0;
-}
-
-void sensorSaveTests() {
-	char query[255] = "";
-	int i;
-	MYSQL_RES   *result ;
-	MYSQL_ROW    row;
-
-	for ( i = 0; i < sensor_list_no; i++ ) {
-		sprintf( query, "INSERT INTO wr_test (sensor_id,server,count) VALUES (%d,0,%d)", 
-				sensor_list[i].rowid, sensor_list[i].receiveCount );
-		if ( sensor_list[i].receiveCount > 0 && mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorSaveTests: Inserting\n%s\n%s\n", 
-						mysql_error( mysql ), query );
-		}
-		sensor_list[i].receiveCount = 0;
-	}
-}
-
-char sensorReceiveTest( sensor *s ) {
-	static time_t next = 0;
-	time_t now = sensorTimeSync();
-	
-	if ( now > next ) {
-		if ( next > 0 )
-			sensorSaveTests();
-		next = (time_t) ( now / 3600 + 1 ) * 3600;
-	}
-	++(s->receiveCount);
 	return 0;
 }
 

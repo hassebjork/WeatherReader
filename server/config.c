@@ -40,7 +40,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Default Values */
 	conf->run               = 1;
 	conf->serialDevice[0]   = 0;
-	conf->sensorReceiveTest = 0;
 	conf->sensorAutoAdd     = 1;
 	
 	conf->is_client         = 0;
@@ -71,7 +70,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
 			if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
-			else if ( confIntVar( rdBuf, "sensorReceiveTest", &conf->sensorReceiveTest ) ) {}
 			else if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
 			else if ( confIntVar( rdBuf, "serverPort", &conf->serverPort ) ) {}
 			else if ( confStringVar( rdBuf, "serverAddress", conf->serverAddress ) ) {}
@@ -102,9 +100,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	if ( conf->is_client ) {
 		conf->mysql             = 0;
 		conf->is_server         = 0;
-		conf->sensorReceiveTest = 0;
-	} else if ( conf->is_server ) {
-		conf->sensorReceiveTest = 0;
 	}
 	
 	return( 0 );

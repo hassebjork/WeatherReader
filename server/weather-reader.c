@@ -16,8 +16,6 @@ int main( int argc, char *argv[]) {
 	
 #if _DEBUG > 0
 	fprintf( stderr, "Debug info: enabled\n" );
-	if ( configFile.sensorReceiveTest > 0 )
-		fprintf( stderr, "Sensor receive test: ACTIVE!\n" );
 #endif
 	
 	/* Client thread */
@@ -72,10 +70,6 @@ int main( int argc, char *argv[]) {
 
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	if ( configFile.sensorReceiveTest > 0 ) {
-		printf( "\nSaving sensor recieve-test data!\n" );
-		sensorSaveTests();
-	}
 	printf( "Caught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
 }
