@@ -50,39 +50,38 @@ typedef enum {
 } SensorType;
 
 typedef struct {
-	float  value;
-	time_t time;
+	float  value;				// Float data
+	time_t t_save;				// Next save time
 } DataFloat;
 
 typedef struct {
-	int    value;
-	time_t time;
+	int    value;				// Integer data
+	time_t t_save;				// Next save time
 } DataInt;
 
 typedef struct {
-	float			 speed;
-	float			 gust;
-	short			 dir;
-	char			 saved;
-	time_t			 time;
-	float			 gust_max;
-	float			*s_speed;
-	short			*s_dir;
-	time_t			 s_time;
-	unsigned int 	 samples;
-	unsigned int 	 row;
+	float			 speed;		// Current wind speed
+	float			 gust;		// Current gust speed
+	short			 dir;		// Current wind direction
+	char			 saved;		// Data saved to database
+	float			 gust_max;	// Max gust within this save time
+	float			*s_speed;	// Array of Wind speed data
+	short			*s_dir;		// Array of Wind direction
+	unsigned int 	 samples;	// No. of samples in s_dir and s_speed
+	time_t			 s_time;	// Next save time
+	time_t			 t_trans;	// Time to new transmission
+	unsigned int 	 rowid;		// Database row
 } DataWind;
 
 typedef struct {
-	unsigned int     rowid;
-	char            *name;
-	unsigned int     sensor_id;
-	char    		 protocol[5];
-	unsigned char    channel;
-	unsigned char    rolling;
-	unsigned char    battery;
-	unsigned int     server;
-	SensorType       type;
+	unsigned int     rowid;		// Database row
+	char            *name;		// Name of sensor
+	unsigned int     sensor_id;	// Sensors own id
+	char    		 protocol[5];	// Protocol
+	unsigned char    channel;	// Sensor channel
+	unsigned char    rolling;	// Random code
+	unsigned char    battery;	// Sensor battery status Full = 1
+	SensorType       type;		// Type of sensor
 	DataFloat		*temperature;
 	DataInt			*humidity;
 	DataFloat		*rain;
@@ -100,7 +99,7 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id, unsigned
 void sensorListFree();
 sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
 		unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
-		unsigned char battery, unsigned int server, SensorType type );
+		unsigned char battery, SensorType type );
 
 sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
 sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
