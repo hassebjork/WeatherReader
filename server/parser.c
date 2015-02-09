@@ -151,7 +151,7 @@ void osv2_parse( char *s ) {
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY)
 			sensorHumidity( sptr, humidity );
-		if ( type & RAIN)
+		if ( type & RAINTOTAL)
 			sensorRain( sptr, rain );
 	}
 }
@@ -218,7 +218,7 @@ void vent_parse( char *s ) {
 	
 	// Rain guage
 	} else if ( ( temp & 0xF ) == 0xC ) {
-		type = RAIN;
+		type = RAINTOTAL;
 		rain = ( reverse_8bits( hex2char( s[4] ) << 4 | hex2char( s[5] ) )
 			| reverse_8bits( hex2char( s[6] ) << 4 | hex2char( s[7] ) ) << 8 ) * .25;
 	
@@ -233,7 +233,7 @@ void vent_parse( char *s ) {
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY)
 			sensorHumidity( sptr, humidity );
-		if ( type & RAIN)
+		if ( type & RAINTOTAL)
 			sensorRain( sptr, rain );
 		if ( type & WINDSPEED)
 			sensorWind( sptr, wind, -1.0, -1 );
@@ -266,7 +266,7 @@ void mandolyn_parse( char *s ) {
 			sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 			sensorWind( sptr, pri, 0.0, sec );
 		} else if ( channel == 3 ) {
-			type = RAIN;
+			type = RAINTOTAL;
 			sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 			sensorRain( sptr, pri );
 		}
@@ -301,7 +301,7 @@ void fineoffset_parse( char *s ) {
 	humidity = hex2char( s[6] ) * 10 + hex2char( s[7] );
 	
 	if ( id = 3 ) {
-		type = RAIN;
+		type = RAINTOTAL;
 		rain = (float) ( hex2char( s[6] ) * 100 + hex2char( s[7] ) * 10 + hex2char( s[9] ) ) * 0.03;
 	} else {
 		if ( humidity )
@@ -317,7 +317,7 @@ void fineoffset_parse( char *s ) {
 			sensorTemperature( sptr, temp );
 		if ( type & HUMIDITY)
 			sensorHumidity( sptr, humidity );
-		if ( type & RAIN)
+		if ( type & RAINTOTAL)
 			sensorRain( sptr, rain );
 	}
 }
