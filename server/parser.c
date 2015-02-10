@@ -159,7 +159,7 @@ void osv2_parse( char *s ) {
 float osv2_temperature( char *s ) {
 	float temp =  hex2char( s[10] ) * 10 
 				+ hex2char( s[11] ) 
-				+ hex2char( s[8] ) / 10;
+				+ hex2char( s[8] ) / 10.0;
 	if ( hex2char( s[13] ) & 0x8 )
 		return -temp;
 	return temp;
