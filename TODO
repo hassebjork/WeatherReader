@@ -3,6 +3,7 @@ TODO
 - Startscripts in /etc/init.d and links to /etc/rc.X
 - Search for arduino's serial device
 - Store CURRENT avg temp/humidity
+- Install databases and apache
 
 Wish list
 - Config file: Move some config data into database?
