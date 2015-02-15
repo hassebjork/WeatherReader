@@ -1,6 +1,3 @@
-server/weather-reader
-server/test-server
-server/core
+bin/*
 arduino/build-*
-server/*.dbg
 .kateproject
