@@ -50,15 +50,15 @@ class Groups {
 				
 				foreach( $team as $id=>$sensor ) {
 					if ( $sensor->type & TEMPERATURE && $sensor->has_data() && count( $sensor->data ) > 8 ) {
-						echo "\t\t\t" . '<div id="temp' . $id . '" class="temp">' . "\n\t\t\t\t" 
-							. '<div class="t_name" style="color: #' . dechex( $sensor->color ) . '" title="' . $sensor->protocol . ':' . count( $sensor->data ) . '">' . $sensor->name . '</div>' . "\n\t\t\t\t"
+						echo "\t\t\t" . '<div id="temp' . $id . '" class="sens">' . "\n\t\t\t\t" 
+							. '<div class="s_name" style="color: #' . dechex( $sensor->color ) . '" title="' . $sensor->protocol . ':' . count( $sensor->data ) . '">' . $sensor->name . '</div>' . "\n\t\t\t\t"
 							. '<div class="t_cur" title="No. ' . count( $sensor->data ) . '">' . @$sensor->cur->temp . '&deg;C</div> ' . "\n\t\t\t\t"
-							. '<div class="t_cen">' 
-							. ( $sensor->battery == 0 ? '<div class="batt0">&nbsp;</div>' :
-							( isset( $sensor->min->humid ) ? '<div class="humid">' 
+							. '<div class="s_cen">' 
+							. ( $sensor->battery == 0 ? '<div class="batt0">&nbsp;</div>' : '' )
+							. ( isset( $sensor->min->humid ) ? '<div class="humid">' 
 									. '<div class="h_max">' . $sensor->max->humid . '%</div>' 
 									. '<div class="h_cur">' . $sensor->cur->humid . '%</div>' 
-									. '<div class="h_min">' . $sensor->min->humid . '%</div></div>' : '' ) )
+									. '<div class="h_min">' . $sensor->min->humid . '%</div></div>' : '' )
 							. '</div> ' . "\n\t\t\t\t"
 							. '<div class="t_max">' . @$sensor->max->temp . '&deg;C</div> ' . "\n\t\t\t\t"
 							. '<div class="t_min">' . @$sensor->min->temp . '&deg;C</div> ' . "\n\t\t\t"
@@ -70,13 +70,14 @@ class Groups {
 			}
 		}
 	
-		echo "\n\t" . '<script>' . "\n\t\t"
+		echo "\n\t" 
+			. '<script>' . "\n\t\t"
 			. 'var lineOpts = {' . "\n\t\t\t"
 			. 'bezierCurve : false,' . "\n\t\t\t"
 			. 'pointDot : false,' . "\n\t\t\t"
 			. 'animation : false,' . "\n\t\t\t"
 			. 'scaleFontSize: 9' . "\n\t\t"
-			. '}' . "\n\n";
+			. '};' . "\n\n";
 		
 		$date   = date( 'H', ( time() - $this->days * 24 * 3600 ) );
 		$labels = array();
@@ -240,16 +241,14 @@ class Sensor {
 		$row = 0;
 		$this->data = array();
 		$sql   = 'SELECT '
-			. ( ( $this->type & TEMPERATURE ) == 0 ? '' : 'ROUND( AVG( value ), 1 ) AS temp, ' )
+			. 'ROUND( AVG( value ), 1 ) AS temp, '
 			. 'HOUR( time ) AS hour, '
 			. 'DATE( time ) AS day '
 			. 'FROM  `wr_temperature` '
 			. 'WHERE time > SUBDATE( NOW(), ' . $days . ' ) '
 			. 'AND sensor_id = ' . $this->id . ' '
 			. 'GROUP BY day, hour '
-			. 'ORDER BY time ASC; '
-			. '# Config: ' . $this->type 
-			. ':' . ( $this->type & TEMPERATURE );
+			. 'ORDER BY time ASC; ';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
 		
 		$this->has_data = ( $res->num_rows > 0 );
@@ -338,30 +337,31 @@ class Sensor {
 
 	<style type="text/css" media="all">
 		body	{ font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
-		td 		{ vertical-align: top; padding: 2px; }
-		th 		{ vertical-align: top; padding: 2px; }
 		.r		{ text-align: right }
-		.even	{ background-color: #ffffff }
-		.odd	{ background-color: #e0e0e0 }
+		
 		div.graph  { display: inline-block; vertical-align: top; }
-		div.temp   { display: inline-block; }
-		div.t_name { font-size: 24px; text-align: center; }
-		div.t_cur  { width: 48%; font-size: 24px; color: #666; float: left; display: block; text-align: right; }
-		div.t_min  { color: #6060ff; display: block; text-align: right; float:right; }
-		div.t_max  { color: #ff6060; display: block; text-align: right; float:right; }
-		div.t_cen  { height: 28px; display: inline-block; float: left; }
+		div.sens   { display: inline-block; }
+		div.s_name { font-size: 24px; text-align: center; }
+		div.s_cen  { height: 28px; display: inline-block; float: left; }
+		
+		div.t_cur  { width: 48%; font-size: 24px; color: #666; float: left; display: block; text-align: right; padding-right: 10px}
+		div.t_min, div.t_max { display: block; text-align: right; float:right; }
+		div.t_min  { color: #6060ff; }
+		div.t_max  { color: #ff6060; }
+		
 		div.humid  { font-size: 8px; text-align: center; background-color: #c6dcf3; }
 		div.h_min  { color: #6060ff; }
 		div.h_max  { color: #ff6060; }
 		div.h_cur  { color: #666; font-weight: bold; }
-		#temp td {text-align: right; padding: 0px; }
-		.batt3 { background-position:   0px 0px; background-image: url("bs16.png"); background-repeat: no-repeat; width: 16px; height: 16px; display: block; }
-		.batt2 { background-position: -16px 0px; background-image: url("bs16.png"); background-repeat: no-repeat; width: 16px; height: 16px; display: block; }
-		.batt1 { background-position: -32px 0px; background-image: url("bs16.png"); background-repeat: no-repeat; width: 16px; height: 16px; display: block; }
-		.batt0 { background-position: -48px 0px; background-image: url("bs16.png"); background-repeat: no-repeat; width: 16px; height: 16px; display: block; }
+
+		div.batt0, div.batt1, div.batt2, div.batt3 { background-image: url("bs16.png"); background-repeat: no-repeat; width: 16px; height: 16px; display: block;  }
+		div.batt3 { background-position:   0px 0px; }
+		div.batt2 { background-position: -16px 0px; }
+		div.batt1 { background-position: -32px 0px; }
+		div.batt0 { background-position: -48px 0px; }
 
 	</style>
-	<script src="Chart.min.js"></script>
+	<script src="Chart.min.js"></script><!--http://www.chartjs.org/ ver 0.2-->
 </head>
 
 <body>
