@@ -1,3 +1,4 @@
 bin/*
-arduino/build-*
+arduino/WeatherReader/build-*
+arduino/WireSensor/build-*
 .kateproject

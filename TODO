@@ -11,19 +11,23 @@ Wish list
 
 Additional links for future use:
 
-Clib functions
+# Clib functions
 http://linux.die.net/man/3/
 
-Get MAC-address
+# Get MAC-address
 http://stackoverflow.com/a/6767557
 http://stackoverflow.com/a/1779758
-Get local IP-address
+# Get local IP-address
 http://stackoverflow.com/a/12131131
 
-Pointer to function
+# Pointer to function
 http://stackoverflow.com/a/5488718
 
-Threads
+# Threads
 http://www.yolinux.com/TUTORIALS/LinuxTutorialPosixThreads.html
+
 # Pipes
 https://linuxprograms.wordpress.com/tag/pthread/
+
+# Doxygen
+http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html
