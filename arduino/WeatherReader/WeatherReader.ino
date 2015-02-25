@@ -6,6 +6,8 @@
 // 2010-04-11 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
 // $Id: ookDecoder.pde 5331 2010-04-17 10:45:17Z jcw $
 
+#define PORT 2
+
 const byte reverse_bits_lookup[] = {
 	0x0, 0x8, 0x4, 0xC, 0x2, 0xA, 0x6, 0xE,
 	0x1, 0x9, 0x5, 0xD, 0x3, 0xB, 0x7, 0xF
@@ -348,7 +350,6 @@ OregonDecoderV2   orscV2;
 VentusDecoder     ventus;
 FineOffsetDecoder fineOffset;
 MandolynDecoder   mandolyn;
-#define PORT 2
 
 volatile word pulse;
 
@@ -375,7 +376,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 		Serial.print(data[i] & 0x0F, HEX);
 	}
 // 	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
-	Serial.println();
+	Serial.print( "\n" );
 
 	decoder.resetDecoder();
 }
@@ -383,7 +384,7 @@ void reportSerial (const char* s, class DecodeOOK& decoder) {
 
 void setup () {
 	Serial.begin(115200);
-// 	Serial.println("\n[WeatherReader]\n");
+ 	Serial.print("[WR]\n");
 
 #if !defined(__AVR_ATmega1280__)
 	pinMode(13 + PORT, INPUT);  // use the AIO pin
