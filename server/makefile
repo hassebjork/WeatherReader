@@ -7,7 +7,7 @@ MYSQL_LIBS=$(shell mysql_config --libs)
 all: weather-reader
 
 weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
-	gcc -o weather-reader \
+	gcc -o ../bin/weather-reader \
 		-pthread \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
@@ -15,13 +15,13 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	@echo
 		
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c test/test_server.c
-	ulimit -c unlimited && gcc -o weather-reader \
+	ulimit -c unlimited && gcc -o ../bin/weather-reader \
 		-D_DEBUG=2 -g \
 		-pthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
-	ulimit -c unlimited && gcc -o test-server \
+	ulimit -c unlimited && gcc -o ../bin/test-server \
 		-pthread -g \
 		test/test_server.c
 	@echo
@@ -30,9 +30,10 @@ clean:
 	- rm -f weather-reader core
 
 install: weather-reader
-	install -m 0755 weather-reader $(PREFIX)/bin
+	install -m 0755 ../bin/weather-reader $(PREFIX)/bin
+	install -m 0755 -d ../weather-reader $(PREFIX)/share/weather-reader
 	install -m 0755 weather-reader.sh /etc/init.d
-	install -b -m 0644 weather-reader.conf /etc
+	install -b -m 0644 ../weather-reader/weather-reader.conf /etc
 
 uninstall:
 	-rm -f $(PREFIX)/bin/weather-reader
