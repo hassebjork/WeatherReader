@@ -39,7 +39,6 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	
 	/* Default Values */
 	conf->run               = 1;
-	conf->serialDevice[0]   = 0;
 	conf->sensorAutoAdd     = 1;
 	
 	conf->is_client         = 0;
@@ -69,8 +68,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
-			if ( confStringVar( rdBuf, "serialDevice", conf->serialDevice ) ) {}
-			else if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
+			if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
 			else if ( confIntVar( rdBuf, "serverPort", &conf->serverPort ) ) {}
 			else if ( confStringVar( rdBuf, "serverAddress", conf->serverAddress ) ) {}
 			else if ( confIntVar( rdBuf, "listenPort", &conf->listenPort ) ) {}

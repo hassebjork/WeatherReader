@@ -30,6 +30,7 @@
 #ifndef _UART_H_
 #define _UART_H_
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -42,9 +43,21 @@
 #include "server.h"
 #include "weather-reader.h"
 
-int tty;
+#define UNDEFINED      0
+#define WEATHER_READER 1
+#define WIRE_SENSOR    2
+
+static const char * SERIAL_TYPES[] =  { "Undefined", "Weather-reader", "Wire-sensor" };
+
+typedef struct {
+	int   tty;
+	int   no;
+	int   active;
+	int   type;
+	char *name;
+} SerialDevice;
 
 void *uart_receive( void *ptr );
-void reset_arduino( void );
-
+void reset_arduino( SerialDevice *sDev );
+char **uart_get_serial( void );
 #endif

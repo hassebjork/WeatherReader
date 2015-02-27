@@ -41,7 +41,6 @@
 
 typedef struct {
 	int   run;
-	char  serialDevice[32];
 	int   sensorAutoAdd;
 	
 	int   is_client;

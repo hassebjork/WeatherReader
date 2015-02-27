@@ -1,78 +1,63 @@
 Weather-Reader
 ==============
 
-This project uses an Arduino to read radio signals from wireless 
-Weather Sensors. The Arduino is powered over USB and reduces payload 
-on the Raspberry Pi. All sensors work over the 433MHz band. Data is 
-sent over the USB port to a Raspberry Pi, reading it as a serial port. 
-The raw data is displayed to stdout and stored in a MySQL database.
+This project uses a Raspberry Pi to receive data from ordinary 
+weather sensors, such as temperature, humidity, wind and rain. The 
+data is stored in a MySQL-database, on a local or remote server.
 
-The MySQL database is setup in a configuration file and can be run
-on localhost or a remote server.
+An Arduino (Nano) connected to the Raspberry Pi via USB, is used to 
+recieve radio signals from the sensors. The Arduino is powerd through 
+the USB socket and uses the built in USB-to-serial connection to 
+communicate with the Raspberry Pi. It will reduce the payload of the 
+Raspberry Pi significantly.
 
-Multiple Weather-Reader servers can be run simultaneously on a local 
-network. They can be configured to operate individually, storing what 
-they receive in their own database, the same database or to be sent to 
-one Raspberry Pi, operating as a server collecting the data and sening 
-it to a MySQL database. The latter will reduce the total number of rows 
-in the database and still catch as many sensor readings as possible.
+Multiple Arduinos can be connected to one Raspberry Pi, or muliple 
+Raspberry Pis with an Arduino each can be used to increase the 
+reception range. Each Raspberry can be configured to send data to the 
+same database or one Raspberry Pi can be run in server mode, 
+receiving data from the other Raspberry Pis. This will reduce the 
+amount of data stored in the database. The server listens to port 
+9876 as default and data is sent over UDP.
 
-The server listens to port 9876 as default and data is sent over UDP.
+To further reduce data storage, data is only stored when it has 
+changed. If it remains constant, data will be stored every hour 
+(can be configured), to make it easier to graph on an hourly basis.
+
+Supported sensors are Oregon Scientific (protocol 2.1 tested sensors 
+THGR122N, THGN132N & THGR328N), mandolyn protocol (tested UMP and 
+ESIC) and Weather Station Ventus WS155 (same as Auriol H13726, Hama 
+EWS 1500 and Meteoscan W155/W160). It has also been tested with 
+rain guage using the FineOffset protocol (labeld Prolouge or Viking). 
+Temperature and humidity sensors using FineOffset protocol should 
+work. Same goes for mandolyn protocol weather stations.
 
 Directories:
 ============
 
-arduino - Sketchbook for the arduino packet demodulizer & decoder. 
-          Compile and upload with Arduino IDE. Set serial baudrate to 
-          115200 view the raw data. The finished HEX file can also be 
-          uploaded using avrdude:
+arduino - Sketches for Arduinos, source code and compiled hex files
+        * WeatherReader is used for reading radio data
+        * WireSensor is (in progress) used for reading manually wired 
+        sensors, like DS18B20, DHT22 or digital signals
+        
+        Uploading pre compiled HEX files to an Arduino throug the
+        USB-serial cable is done with avrdude:
           $ avrdude -C/etc/avrdude.conf -v -patmega328p -carduino \
-                    -P/dev/ttyUSB0 -b57600 -D -Uflash:w:WeatherReader.cpp.hex:i
+              -P/dev/ttyUSB0 -b57600 -D -Uflash:w:WeatherReader.hex:i
 
-server  - Server program reading the arduino. It will be run on a Raspberry 
-          Pi with Raspian linux. Configuration is done in the file
-          /etc/weather-reader.conf
-          
-          Build the source files like this:
+server - Source code for the server program communicating with the 
+        Arduinos. It will be run on a Raspberry Pi with Raspian linux. 
+        Configuration is done in the file /etc/weather-reader.conf
+        Build the source files like this:
           $ sudo apt-get install libmysqlclient-dev
           $ make
           $ sudo make install
           $ weather-reader
 
-
-Supported sensors:
-==================
-
-These sensors sholud work, but they have not all been tested. Sensors 
-with the same protocol have been tested.
-
-Oregon Scientific sensors (version 2.1) with temperature / humidity
-  - THGR228N, THGN122N, THGN123N, THGR122NX, THGR238, THGR268
-  - THGR328N (not time)
-  - TRGR328N*
-  - THGR810*
-  - THGR918*, THGRN228NX*, THGN500*
-Not working yet: THGN132N
-
-Weather Stations with aneometer, pluviometer, temperature & humidity
-  - Ventus WS155
-  - Auriol H13726*
-  - Hama EWS 1500*
-  - Meteoscan W155/W160*
-
- Fine Offset protocol before 2012 (labled Viking, Prolouge)
-  - Temperature & humidity*
-  - Rain guage
-
- Mandolyn protocol (labled UPM or ESIC)
-  - Temperature
-  - Humidity
-  - Wind*
-  - Raind*
-
-   * Not tested
-
-
+weather-reader - Various files used by the server, for installation, 
+        configuration and setting up Apache2 or Lighthttpd servers.
+        There is also a basic PHP file for displaying weather 
+        readings for the last 24 hours.
+          
 HARDWARE:
 =========
 
@@ -101,19 +86,26 @@ pins +5V, GND and data to analogue pin 1 (A1). The rest of the pins are unused.
 OPERATION OF SOFTWARE:
 ======================
 
-The configuration file is first read starting 2-3 threads: 
+The configuration file is first read starting some threads: 
+   UART   - Receives raw signals from Arduino and sends them to a) 
+            parser or b) client thread. A UART-thread is started for
+            every ttyUSBx device seen in the directory /dev.
+   PARSER - Decodes messages, filters and store them in database
+   CLIENT - Transmits signals to another Raspberry Pi server
+   SERVER - Recieves raw signals from multiple clients for parsing 
+            and filtering
 
 a. Default: UART sends to PARSER wich stores in database
    +--------+      +--------+               +-------+
    |  UART  | -->  | PARSER | --[lo/net]--> | MySQL |
    +--------+      +--------+               +-------+
 
-b. Client:  UART sends to CLIENT wich over network sends to a server
+b. Client-mode: UART sends to CLIENT wich over network sends to a server
    +--------+      +--------+                +--------+
    |  UART  | -->  | CLIENT | --[network]--> | SERVER |
    +--------+      +--------+                +--------+
 
-c. Server:  UART and network SERVER sends to PARSER wich stores in database
+c. Server-mode: UART and network SERVER sends to PARSER wich stores in database
    +--------+      +--------+     +--------+
    |  UART  | -->  | PARSER | <-- | SERVER | <--[network]--
    +--------+      +--------+     +--------+
@@ -122,11 +114,6 @@ c. Server:  UART and network SERVER sends to PARSER wich stores in database
                    +-------+
                    | MySQL |
                    +-------+
-Threads
-UART   - Receives raw signals from Arduino and sends them to a) parser or b) client thread.
-PARSER - Decodes messages, filters and store them in database
-CLIENT - Transmits signals to another Raspberry Pi server
-SERVER - Recieves raw signals from multiple clients for parsing and filtering
 
 The reason for using a separate thread for the parser, is because MySQL is 
 not thread-safe causing problems when using server + uart simultaneously.
