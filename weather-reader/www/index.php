@@ -2,7 +2,6 @@
 include_once( 'db.php' );
 
 ini_set('display_errors', 1);
-header( 'Content-Type: text/html; charset=UTF-8' );
 
 define( 'MIN_GRAPH_DATA', 6 );
 define( 'TEMPERATURE', 1 );
@@ -314,16 +313,62 @@ class Sensor {
 		}
 		
 		return "\n\t\t\t\t" . '{ // ' . $this->name . " (" . count( $temp ) . ")\n\t\t\t\t\t"
-			. 'fillColor: "rgba(' . ( ( $this->color&0xFF0000 ) >> 16 ) . ',' . ( ( $this->color&0xFF00 ) >> 8 ) . ',' . ( $this->color&0xFF ) . ',0.1)",' . "\n\t\t\t\t\t"
-			. 'strokeColor: "rgba(' . ( ( $this->color&0xFF0000 ) >> 16 ) . ',' . ( ( $this->color&0xFF00 ) >> 8 ) . ',' . ( $this->color&0xFF ) . ',1)",' . "\n\t\t\t\t\t"
+			. 'fillColor: "rgba(' . ( ( $this->color&0xFF0000 ) >> 16 ) . ',' . ( ( $this->color&0xFF00 ) >> 8 ) . ',' . ( $this->color&0xFF ) . ',.1)",' . "\n\t\t\t\t\t"
+			. 'strokeColor: "rgba(' . ( ( $this->color&0xFF0000 ) >> 16 ) . ',' . ( ( $this->color&0xFF00 ) >> 8 ) . ',' . ( $this->color&0xFF ) . ',.5)",' . "\n\t\t\t\t\t"
 			. 'data : [' . implode( $temp, ',' ) . ']'. "\n\t\t\t\t"
 			. '},';
 	}
 }
 
+class Wind {
+	public $current;
+	
+	function __construct() {
+		$this->current = Wind::fetch_current();
+	}
+	
+	static function fetch_current() {
+		$sql   = 'SELECT `id`, `speed`, `gust`, `dir`, `samples`, `time`, '
+			.'UNIX_TIMESTAMP(`time`) AS `date` '
+			.'FROM `wr_wind` ORDER BY `time` DESC LIMIT 1';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( $sql );
+		return $res->fetch_object();
+	}
+	
+	static function dir_to_text( $dir ) {
+		if ( 337.5 >= $dir && $dir < 22.5 )
+			return 'N';
+		else if ( 22.5 >= $dir && $dir < 67.5 )
+			return 'NE';
+		else if ( 67.5 >= $dir && $dir < 112.5 )
+			return 'E';
+		else if ( 112.5 >= $dir && $dir < 157.5 )
+			return 'SE';
+		else if ( 157.5 >= $dir && $dir < 202.5 )
+			return 'S';
+		else if ( 202.5 >= $dir && $dir < 247.5 )
+			return 'SW';
+		else if ( 247.5 >= $dir && $dir < 292.5 )
+			return 'W';
+		return 'NW';
+	}
+}
+
+if ( isset( $_REQUEST ) ) {
+	if ( isset( $_REQUEST['wind'] ) ) {
+		header( 'Content-Type: application/json' );
+		$wind = new Wind();
+		echo '{"wind":' . json_encode( $wind->fetch_current() ) . '}';
+	// 	echo '{"wind":{"id":"500","speed":"1.0","gust":"1.0","dir":"180","samples":"5","time":"2015-03-01 09:03:04","date":"1425196984"}}';
+		exit;
+	}
+}
+$isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
+
+header( 'Content-Type: text/html; charset=UTF-8' );
+
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html>
 <head>
@@ -360,17 +405,72 @@ class Sensor {
 		div.batt1 { background-position: -32px 0px; }
 		div.batt0 { background-position: -48px 0px; }
 
+		#wind { font-size: 24px; color: #2e8abb; text-align: center; width: 350px; height: 150px; }
 	</style>
 	<script src="Chart.min.js"></script><!--http://www.chartjs.org/ ver 0.2-->
+	<script>
+		function getHttpRequest() {
+			try {
+				var req = new XMLHttpRequest();
+			} catch (e) {	// IE
+				try {
+					req = new ActiveXObject("Msxml2.XMLHTTP");
+				} catch (e) {
+					req = new ActiveXObject("Microsoft.XMLHTTP");
+				}
+			}
+			return req;
+		}
+		function updateWind( wind ) {
+			document.getElementById("svg_wind_speed").textContent = wind.speed + " m/s";
+			document.getElementById("svg_wind_dir").textContent   = wind.dir + "°";
+			document.getElementById("svg_wind_arrow").transform.baseVal.getItem(0).setRotate(wind.dir,25,65);
+		}
+		function loadWind() {
+			var req = getHttpRequest();
+			req.onreadystatechange = function() {
+				if ( req.readyState == 4 ) {
+					var obj = JSON.parse( req.responseText );
+					if ( obj.wind != 'undefined' )
+						updateWind( obj.wind );
+				}
+			}
+			req.open( "GET", "/weather/?wind=0", true );
+			req.send();
+		}
+		window.onload = function() {
+<?php if ( !$isMobile ) { ?>
+			var tim = setInterval( function() {
+				loadWind();
+			}, 60000 );
+<?php } ?>
+		}
+	</script>
 </head>
 
 <body>
 <?php
 	
-// $sensors = Sensor::fetch_all();
 $groups  = new Groups( 1 );
 $groups->draw_graph();
 
+$wind = new Wind();
+if ( isset( $wind->current->speed ) ) {
+	$color_bg = '80a2e0'; $color_text = '2e8abb'; $color_arrow = '2e8abb';
 ?>
+	<div id="wind">
+		<div id="wind_title">Wind</div>
+		<svg id="windSVG" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+			<defs>
+				<linearGradient id="windGradArrow" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#<?= $color_arrow ?>; stop-opacity: 1" /><stop offset="100%" style="stop-color:#fff; stop-opacity: 1" /></linearGradient>
+				<linearGradient id="windGradBg" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" style="stop-color:#<?= $color_bg ?>; stop-opacity: 1" /><stop offset="100%" style="stop-color:#fff; stop-opacity: 1" /></linearGradient>
+			</defs>
+			<rect id="svg_wind_bg" width="350" height="150" style="fill:url(#windGradBg);" />
+			<g transform="translate(150,10)"><polygon id="svg_wind_arrow" points="25,0 0,50 20,45 5,130 25,125 45,130 30,45 50,50 25,0" style="fill: url(#windGradArrow); stroke: #<?= $color_arrow ?>; stroke-width; 5px; " transform="rotate(<?= $wind->current->dir ?> 25,65)" /></g>
+			<text id="svg_wind_speed" x="175" y="24" text-anchor="middle" style="fill:#<?= $color_text ?>"><?= $wind->current->speed ?> m/s</text>
+			<text  id="svg_wind_dir"x="175" y="48" text-anchor="middle" style="fill:#<?= $color_text ?>"><?= $wind->current->dir ?>&deg;</text>
+		</svg>
+	</div>
+<?php } ?>
 </body>
 </html>
