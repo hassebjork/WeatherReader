@@ -25,7 +25,6 @@ class Groups {
 	function __construct( $days = 1 ) {
 		$this->days = $days;
 		foreach( Sensor::fetch_all( $days ) as $v ) {
-//  			var_dump( $v );
 			$this->id_to_group[ $v->id] = $v->team;
 			$this->team[ $v->team ][$v->id] = $v; 
 		}
@@ -276,14 +275,15 @@ class Sensor {
 	}
 
 	function svg_head( $tabs ) {
-// 	function svg_head( $tabs, $width, $height ) {
 		return $tabs
  			. '<svg id="svg_sensor' . $this->id .'" class="c_head" width="150px" height="56px" '
-// 			. '<svg id="tempSVG' . $this->id .'" class="c_head" width="' . $width .'" height="' . $height .'" '
 			. 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-			. '<use xlink:href="#svg_head_bg" />' . "\n\t" . $tabs
-			. '<use  x="1%"  y="18" xlink:href="#svg_battery" style="opacity: .5; visibility: '. ( $this->battery == 0 ? 'visible' : 'hidden' ) . '" />' . "\n\t" . $tabs
+			. '<use xlink:href="#svgHead" />' . "\n\t" . $tabs
 			. '<text x="49%" y="24" class="s_title" style="fill:#' . dechex( $this->color ) . '">' . $this->name .'</text>' . "\n\t" . $tabs
+			. '<g class="graph">' . "\n\t\t" . $tabs
+			. '<polygon class="t_graph" points="0,28 150,28 150,56 0,56 0,28" style="fill:#' . dechex( $this->color ) . ';opacity:.25">' . "\n\t" . $tabs
+			. '</g>' . "\n\t" . $tabs
+			. '<use  x="1%"  y="18" class="svg_battery" xlink:href="#svg_battery" style="opacity: .5; visibility: '. ( $this->battery == 0 ? 'visible' : 'hidden' ) . '" />' . "\n\t" . $tabs
 			. '<g class="temp">' . "\n\t\t" . $tabs
 			. '<text x="49%" y="48" class="t_cur">' . $this->cur->temp .'&deg;C</text>' . "\n\t\t" . $tabs
 			. '<text x="98%" y="38" class="t_max">' . $this->max->temp .'&deg;C</text>' . "\n\t\t" . $tabs
@@ -397,7 +397,7 @@ if ( isset( $_REQUEST ) ) {
 		header( 'Content-Type: application/json' );
 		echo '{"sensor":';
 		echo json_encode( Sensor::fetch_all() );
-		echo '}';
+		echo ',"wind":' . json_encode( Wind::fetch_current() ) . '}';
 		exit;
 	}
 }
@@ -495,22 +495,48 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 				head = document.getElementById("svg_sensor" + sens);
 				if ( head == null )
 					continue;
-				head.childNodes[3].style.visibility = ( sensor[sens].battery == 0 ? "visible" : "hidden" );
-				head.childNodes[5].textContent = sensor[sens].name;
-				if ( sensor[sens].type & <?= TEMPERATURE ?> ) {
-					head.childNodes[7].childNodes[1].textContent = sensor[sens].cur.temp + "°C";
-					head.childNodes[7].childNodes[3].textContent = sensor[sens].max.temp + "°C";
-					head.childNodes[7].childNodes[5].textContent = sensor[sens].min.temp + "°C";
-				}
-				if ( sensor[sens].type & <?= HUMIDITY ?> ) {
-					head.childNodes[9].childNodes[1].textContent = sensor[sens].max.humid + " %";
-					head.childNodes[9].childNodes[3].textContent = sensor[sens].cur.humid + " %";
-					head.childNodes[9].childNodes[5].textContent = sensor[sens].min.humid + " %";
-				}
+				head.getElementsByClassName("svg_battery")[0].style.visibility = ( sensor[sens].battery == 0 ? "visible" : "hidden" );
+				head.getElementsByClassName("s_title")[0].textContent = sensor[sens].name;
+				if ( sensor[sens].type & <?= TEMPERATURE ?> )
+					drawTemp( sensor[sens], head );
+				if ( sensor[sens].type & <?= HUMIDITY ?> )
+					drawHumidity( sensor[sens], head );
 			}
+		}
+		function drawTemp( sensor, node ) {
+			node.getElementsByClassName("t_min")[0].textContent = sensor.min.temp + "°C";
+			node.getElementsByClassName("t_max")[0].textContent = sensor.max.temp + "°C";
+			node.getElementsByClassName("t_cur")[0].textContent = sensor.cur.temp + "°C";
+			var i, t, d, dx, dy, f = [], path = "";
+			var width  = node.clientWidth;
+			var height = node.clientHeight;
+			var max    = Number.MIN_VALUE;
+			var min    = Number.MAX_VALUE;
+			for ( i = 0; i < sensor.data.length; i++ ) {
+				f[i] = parseFloat( sensor.data[i].temp );
+				if ( f[i] > max ) max = f[i];
+				if ( f[i] < min ) min = f[i];
+			}
+			dx = width / sensor.data.length;
+			d  = height / ( max - min ) * 0.8;
+ 			dy = height * .9;
+			for ( i = 0; i < sensor.data.length; i++ ) {
+				t = parseInt( dy - ( f[i] - min ) * d );
+				path += parseInt(i*dx) + "," + t + " ";
+			}
+			path += width + "," + height + " "
+				+ "0," + height + " " 
+				+ "0," + height * f[0] / max;
+			node.getElementsByClassName("t_graph")[0].setAttribute("points", path);
+		}
+		function drawHumidity( sensor, node ) {
+			node.getElementsByClassName("h_min")[0].textContent = sensor.max.humid + " %";
+			node.getElementsByClassName("h_min")[0].textContent = sensor.cur.humid + " %";
+			node.getElementsByClassName("h_min")[0].textContent = sensor.min.humid + " %";
 		}
 		
 		window.onload = function() {
+			loadSensor( "/weather/?temp" );
 <?php if ( !$isMobile ) { ?>
 			var tim1 = setInterval( function() {
 				loadSensor( "/weather/?wind" );
@@ -534,9 +560,12 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 					<!--animate attributeType="CSS" attributeName="visibility" from="visible" to="hidden" dur="1s" repeatCount="indefinite" /-->
 				</polygon>
 			</g>
-			<g id="svg_head_bg">
-				<rect id="svg_wind_bg" x="0" y="0" width="100%" height="100%" rx="15" ry="15" style="fill:url(#gradBg); stroke: #2e8abb" />
+			<g id="svgHead">
+				<rect x="0" y="0" width="100%" height="100%" rx="15" ry="15" style="fill:url(#gradBg); stroke: #2e8abb" />
 			</g>
+			<mask id="maskHead" width="100%" height="100%">
+				<rect x="0" y="0" width="100%" height="100%" rx="15" ry="15" style="fill:#666666;stroke:none" />
+			</mask>
 		</defs>
 	</svg>
 <?php
@@ -550,7 +579,7 @@ if ( isset( $wind->current->speed ) ) {
 	<div id="wind" class="sens">
 		<div id="wind_title" class="s_title">Wind</div>
 		<svg id="windSVG" class="chart" width="350px" height="150px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-			<use xlink:href="#svg_head_bg" />
+			<use xlink:href="#svgHead" />
 			<g transform="translate(150,10)"><polygon id="svg_wind_arrow" points="25,0 0,50 20,45 5,130 25,125 45,130 30,45 50,50 25,0" style="fill: url(#windGradArrow); stroke: #<?= SVG_COLOR_WIND_ARROW ?>; stroke-width; 5px; " transform="rotate(<?= $wind->current->dir ?> 25,65)" /></g>
 			<text id="svg_wind_speed" x="50%" y="24" class="svg_wind"><?= $wind->current->speed ?> m/s</text>
 			<text id="svg_wind_dir"   x="50%" y="48" class="svg_wind"><?= $wind->current->dir  ?>&deg;</text>
