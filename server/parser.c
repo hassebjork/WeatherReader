@@ -276,7 +276,7 @@ void mandolyn_parse( char *s ) {
 		sensorTemperature( sptr, pri );
 		sensorHumidity( sptr, sec );
 	} else {
-		type = HUMIDITY;
+		type = TEMPERATURE;
 		sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 		sensorTemperature( sptr, pri );
 	}
@@ -311,7 +311,7 @@ void fineoffset_parse( char *s ) {
 	}
 	
 	// Temperature and humidity not tested!
-	sensor *sptr = sensorListLookup( "MANDO", id, 0, rolling, type, 1 );
+	sensor *sptr = sensorListLookup( "FINE", id, 0, rolling, type, 1 );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temp );
