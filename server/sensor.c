@@ -205,8 +205,8 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 	char query[256] = "";
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
 	
-	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,"
-				    "battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d,%d)", 
+	sprintf( query, "INSERT INTO `wr_sensors`(`name`,`protocol`,`sensor_id`,`channel`,`rolling`,"
+				    "`battery`,`type`) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
 			 	    s->name, s->protocol, s->sensor_id, s->channel, s->rolling, 
 				    s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
