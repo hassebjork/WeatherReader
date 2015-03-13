@@ -50,7 +50,6 @@ function drawTemp( sensor ) {
 	dh = node.clientHeight * .9;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = ( t == 0 ? 1 : node.clientHeight / t * .8 );
- 	console.log( sensor.id + ": " + "[min: " + sensor.min.t + " max: " + sensor.max.t + " t: " + t + " dh:" + dh + " dx:" + dx + " dy:" + dy + "] " );
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
 			t = Math.round( dh - ( sensor.data[i].t - sensor.min.t ) * dy );
@@ -80,6 +79,7 @@ function drawHumidity( sensor, node ) {
 function drawWind( sensor ) {
 	var i, wind, node, a;
 	node = $i("sWind" + sensor.id);
+	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].w !== "undefined" ) {
 			a = $c(node,"windArr");
@@ -90,8 +90,6 @@ function drawWind( sensor ) {
 			break;
 		}
 	}
-// 	debugger;
-// 	head.getElementsByClassName("batt")[0].style.visibility = ( sensor[sens].battery == 0 ? "visible" : "hidden" );
 }
 function drawRain( sensor ) {
 //  	debugger;
@@ -105,7 +103,7 @@ function drawRain( sensor ) {
 		return;
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-	dy = node.clientHeight / ( sensor.max.r > 0 ? sensor.max.r * .8 : 1 );
+	dy = ( sensor.max.r > 0 ? node.clientHeight / sensor.max.r * .8 : 1 );
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		if ( typeof sensor.data[i].r !== "undefined" ) {
 			x1 = Math.round( i*dx );
