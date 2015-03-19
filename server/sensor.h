@@ -46,7 +46,8 @@ typedef enum {
 	WINDSPEED   = 4,
 	WINDGUST    = 8,
 	WINDDIR  	= 16,
-	RAINTOTAL   = 32
+	RAINTOTAL   = 32,
+	SWITCH      = 64
 } SensorType;
 
 typedef struct {
@@ -83,7 +84,7 @@ typedef struct {
 	unsigned char    battery;	// Sensor battery status Full = 1
 	SensorType       type;		// Type of sensor
 	DataFloat		*temperature;
-	DataInt			*humidity;
+	DataInt			*dataInt;
 	DataFloat		*rain;
 	DataWind		*wind;
 } sensor;
@@ -111,6 +112,7 @@ char sensorTemperature( sensor *s, float value );
 char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
+char sensorSwitch( sensor *s, char value );
 
 time_t sensorTimeSync();
 void sensorPrint( sensor *s );
