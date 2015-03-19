@@ -2,12 +2,19 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 
-#define SENSOR_1 10
-#define SENSOR_2 11
-#define SENSOR_3 12
-#define SENSOR_ENABLE 13
+// Sleep intervall counted in aprox 8 sec
+#define INTERVALL 1
 
-volatile int f_wdt=1;
+#define SENSOR_1  7
+#define SENSOR_2  8
+#define SENSOR_3  9
+#define SENSOR_ENABLE 6
+#define UL_ECHO   5
+#define UL_TRIG   4
+#define SWITCH    3
+#define LED      13
+
+volatile unsigned int f_wdt = 0;
 
 /***************************************************
  *  Description: Watchdog Interrupt Service. This
@@ -18,11 +25,24 @@ ISR( WDT_vect ) {
 }
 
 
+void pin3Interrupt( void ) {
+	detachInterrupt( 1 );
+	static unsigned long debounce = 0;
+	unsigned long time = millis();
+	if ( time - debounce > 100 ) {
+		digitalWrite( LED, 1 );
+		sendSwitch( 4, 1 );
+		sendSwitch( 4, 0 );
+		debounce = time;
+	}
+}
 /***************************************************
  *  Description: Enters the arduino into sleep mode.
  ***************************************************/
 void enterSleep( void ) {
-	set_sleep_mode( SLEEP_MODE_PWR_SAVE );   /* EDIT: could also use SLEEP_MODE_PWR_DOWN for lowest power consumption. */
+	attachInterrupt( 1, pin3Interrupt, RISING );
+	delay( 100 );
+	set_sleep_mode( SLEEP_MODE_PWR_DOWN );   /* Lowest: SLEEP_MODE_PWR_DOWN or higher: SLEEP_MODE_PWR_SAVE */
 	sleep_enable();
 	sleep_mode();			// Enter sleep mode
 
@@ -40,7 +60,10 @@ void setup() {
  	Serial.print("[WS]\n");
 	delay( 100 );
 
-	pinMode( SENSOR_ENABLE,OUTPUT );
+	pinMode( SWITCH, INPUT );
+	pinMode( SENSOR_ENABLE, OUTPUT );
+	pinMode( LED, OUTPUT );
+//	pinMode( UL_TRIG, OUTPUT );
 
 	/*** Setup the WDT ***/
 	MCUSR &= ~( 1<<WDRF );	// Clear the reset flag.
@@ -53,22 +76,47 @@ void setup() {
 	WDTCSR |= _BV( WDIE );
 }
 
+void sendSwitch( char id, char value ) {
+	Serial.print( "WIRE\tS" );
+	if ( id < 16 )
+		Serial.print( '0' );
+	Serial.print( id, HEX );
+	if ( value < 16 )
+		Serial.print( '0' );
+	Serial.println( value, HEX );
+}
+
 /***************************************************
  *  Description: Main application loop.
  ***************************************************/
 void loop() {
 	int read;
+//	long duration, distance;
 	if( f_wdt < 1 ) {
 		digitalWrite( SENSOR_ENABLE, 1 ); //!digitalRead( SENSOR_ENABLE ) );	//Toggle the LED
-		delay( 500 );
-		read = 0;
-		read = digitalRead( SENSOR_1 ) + digitalRead( SENSOR_2 ) * 2 + digitalRead( SENSOR_3 ) * 4;
+/*		
+		digitalWrite( UL_TRIG, LOW );
+		delayMicroseconds( 2 );
+		digitalWrite( UL_TRIG, HIGH );
+		delayMicroseconds( 10 );
+		digitalWrite( UL_TRIG, LOW );
+		duration = pulseIn( UL_ECHO, HIGH );
+		distance = (duration/2) / 29.1;
 		Serial.print( "WSPS\t" );
-		Serial.print( read, HEX );
-		Serial.print( "\n" );
-		digitalWrite( SENSOR_ENABLE, 0 );
+		if ( distance < 2 || distance > 400 ) {
+    			Serial.println( "DIST:NULL" );
+    		} else {
+			Serial.print( "DIST:" );
+    			Serial.println( distance );
+		}
+*/		
+		delay( 500 );
+		sendSwitch( 1, digitalRead( SENSOR_1 ) );
+		sendSwitch( 2, digitalRead( SENSOR_2 ) );
+		sendSwitch( 3, digitalRead( SENSOR_3 ) );
 		delay( 100 );
-		f_wdt = 6;
+		digitalWrite( SENSOR_ENABLE, 0 );
+		f_wdt = INTERVALL;
 	}
 	enterSleep();
 }
