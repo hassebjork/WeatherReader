@@ -86,6 +86,8 @@ void parse_input( char *s ) {
 		mandolyn_parse( s + 5 );
 	else if ( strncmp( s, "FINE", 4 ) == 0 )
 		fineoffset_parse( s + 5 );
+	else if ( strncmp( s, "WIRE", 4 ) == 0 )
+		wired_parse( s + 5 );
 	else
 		printf( "Not recognised: " );
 #if _DEBUG > 3
@@ -276,7 +278,7 @@ void mandolyn_parse( char *s ) {
 		sensorTemperature( sptr, pri );
 		sensorHumidity( sptr, sec );
 	} else {
-		type = HUMIDITY;
+		type = TEMPERATURE;
 		sensor *sptr = sensorListLookup( "MAND", id, channel, 0, type, batt );
 		sensorTemperature( sptr, pri );
 	}
@@ -311,7 +313,7 @@ void fineoffset_parse( char *s ) {
 	}
 	
 	// Temperature and humidity not tested!
-	sensor *sptr = sensorListLookup( "MANDO", id, 0, rolling, type, 1 );
+	sensor *sptr = sensorListLookup( "FINE", id, 0, rolling, type, 1 );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temp );
@@ -319,6 +321,32 @@ void fineoffset_parse( char *s ) {
 			sensorHumidity( sptr, humidity );
 		if ( type & RAINTOTAL)
 			sensorRain( sptr, rain );
+	}
+}
+
+/**************************************************************************************************
+ * WIRE
+ * A custom library for sensors connected by wire to an arduino
+ **************************************************************************************************/
+
+void wired_parse( char *s ) {
+	unsigned char id, value;
+	SensorType    type;
+	
+	switch ( s[0] ) {
+		case 'S':
+			type  = SWITCH;
+			id    = ( hex2char( s[1] ) << 4 ) | hex2char( s[2] );
+			value = ( hex2char( s[3] ) << 4 ) | hex2char( s[4] );
+			break;
+		default:
+			type = UNDEFINED;
+	}
+	
+	sensor *sptr = sensorListLookup( "WIRE", id, 0, 0, type, 1 );
+	if ( sptr ) {
+		if ( type & SWITCH )
+			sensorSwitch( sptr, value );
 	}
 }
 

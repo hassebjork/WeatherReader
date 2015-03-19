@@ -36,17 +36,19 @@ unsigned int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
 #if _DEBUG > 1
-// 	"DROP TABLE IF EXISTS wr_sensors ",
-// 	"DROP TABLE IF EXISTS wr_rain ",
+// 	"DROP TABLE IF EXISTS wr_sensors",
+// 	"DROP TABLE IF EXISTS wr_rain",
 // 	"DROP TABLE IF EXISTS wr_temperature",
 // 	"DROP TABLE IF EXISTS wr_humidity",
 // 	"DROP TABLE IF EXISTS wr_wind",
+// 	"DROP TABLE IF EXISTS wr_switch",
 #endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, team SMALLINT, color INT UNSIGNED, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
+	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) );",
 	0
 };
 
@@ -155,8 +157,8 @@ void sensorListFree() {
 			free( sensor_list[i].name );
 		if ( sensor_list[i].temperature != NULL )
 			free( sensor_list[i].temperature );
-		if ( sensor_list[i].humidity != NULL )
-			free( sensor_list[i].humidity );
+		if ( sensor_list[i].dataInt != NULL )
+			free( sensor_list[i].dataInt );
 		if ( sensor_list[i].rain != NULL )
 			free( sensor_list[i].rain );
 		if ( sensor_list[i].wind != NULL ) {
@@ -190,7 +192,7 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
 	sensor_list[sensor_list_no].temperature = NULL;
-	sensor_list[sensor_list_no].humidity    = NULL;
+	sensor_list[sensor_list_no].dataInt     = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
 	sensor_list[sensor_list_no].wind        = NULL;
 	sensor_list_no++;
@@ -205,8 +207,8 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 	char query[256] = "";
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
 	
-	sprintf( query, "INSERT INTO wr_sensors(name,protocol,sensor_id,channel,rolling,"
-				    "battery,type) VALUES ('%s','%s',%d,%d,%d,%d,%d,%d)", 
+	sprintf( query, "INSERT INTO `wr_sensors`(`name`,`protocol`,`sensor_id`,`channel`,`rolling`,"
+				    "`battery`,`type`) VALUES ('%s','%s',%d,%d,%d,%d,%d)", 
 			 	    s->name, s->protocol, s->sensor_id, s->channel, s->rolling, 
 				    s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
@@ -306,18 +308,18 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->humidity == NULL ) {
-		s->humidity = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->humidity ) {
+	if ( s->dataInt == NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
 			fprintf( stderr, "ERROR in sensorHumidity: Could not allocate memory for humidity\n" );
 			return 1;
 		}
-		s->humidity->value  = -1;
-		s->humidity->t_save = 0;
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
 	}
 	
-	if ( s->humidity->value == value 
-			&& ( configFile.saveHumidityTime > 0 && now < s->humidity->t_save ) )
+	if ( s->dataInt->value == value 
+			&& ( configFile.saveHumidityTime > 0 && now < s->dataInt->t_save ) )
 		return 0;
 
 	char query[255] = "";
@@ -327,8 +329,8 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
-	s->humidity->value  = value;
-	s->humidity->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
+	s->dataInt->value  = value;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
 						* configFile.saveHumidityTime;
 	return 0;
 }
@@ -471,6 +473,38 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
+	return 0;
+}
+
+char sensorSwitch( sensor *s, char value ) {
+#if _DEBUG > 3
+	printf( "sensorSwitch: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	time_t now = sensorTimeSync();
+	
+	if ( s->dataInt== NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
+			fprintf( stderr, "ERROR in sensorSwitch: Could not allocate memory for value\n" );
+			return 1;
+		}
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
+	}
+	
+	if ( s->dataInt->value == value )
+		return 0;
+
+	char query[255] = "";
+	sprintf( query, "INSERT INTO wr_switch (sensor_id, value, time) "
+					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorSwitch: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->dataInt->value  = value;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
+						* configFile.saveHumidityTime;
 	return 0;
 }
 
