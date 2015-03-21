@@ -34,6 +34,12 @@ function drawTemp( sensor ) {
 	node = $i("sTemp" + sensor.id);
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
+	if ( sensor.data.length < 4 ) {
+		$c(node,"t_cur").textContent = "---°C";
+		$c(node,"t_min").textContent = "---°C";
+		$c(node,"t_max").textContent = "---°C";
+		return;
+	}
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
 			$c(node,"t_cur").textContent = sensor.data[i].t + "°C";
@@ -47,9 +53,9 @@ function drawTemp( sensor ) {
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
 	t  = sensor.max.t - sensor.min.t;
-	dh = node.clientHeight * .9;
+	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-	dy = ( t == 0 ? 1 : node.clientHeight / t * .8 );
+	dy = ( t == 0 ? 1 : node.clientHeight / t * .9 );
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
 			t = Math.round( dh - ( sensor.data[i].t - sensor.min.t ) * dy );
@@ -65,6 +71,12 @@ function drawHumidity( sensor, node ) {
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"humi").style.visibility = "visible";
+	if ( sensor.data.length < 4 ) {
+		$c(node,"h_cur").textContent = "---%";
+		$c(node,"h_min").textContent = "---%";
+		$c(node,"h_max").textContent = "---%";
+		return;
+	}
 	if ( typeof sensor.max.h !== "undefined" )
 		$c(node,"h_max").textContent = sensor.max.h + " %";
 	if ( typeof sensor.min.h !== "undefined" )
