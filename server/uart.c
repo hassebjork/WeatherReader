@@ -66,6 +66,7 @@ void *uart_receive( void *ptr ) {
 	// http://www.unixwiz.net/techtips/termios-vmin-vtime.html
 	// http://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
 	// http://www.tldp.org/HOWTO/Serial-Programming-HOWTO/x115.html
+	sleep( 1 );
 	rcount = read( sDev->tty, buffer, sizeof( buffer ) );
 	if ( rcount >= 0 ) {
 		if ( strncmp( buffer, "[WR]", 4 ) == 0 ) {			// Weather-Reader
