@@ -60,18 +60,22 @@ typedef struct {
 	time_t t_save;				// Next save time
 } DataInt;
 
+struct DataSample {
+	float              speed;	// Wind speed
+	float              gust;	// Wind gust
+	short              dir;		// Wind direction
+	time_t             time;	// Sample time
+	struct DataSample        *link;	// Next sample
+};
+
 typedef struct {
-	float			 speed;		// Current wind speed
-	float			 gust;		// Current gust speed
-	short			 dir;		// Current wind direction
-	char			 saved;		// Data saved to database
-	float			 gust_max;	// Max gust within this save time
-	float			*s_speed;	// Array of Wind speed data
-	short			*s_dir;		// Array of Wind direction
-	unsigned int 	 samples;	// No. of samples in s_dir and s_speed
-	time_t			 s_time;	// Next save time
-	time_t			 t_trans;	// Time to new transmission
-	unsigned int 	 rowid;		// Database row
+	float              x;			// Wind vector X
+	float              y;			// Wind vector Y
+	time_t             save_time;	// Next save time
+	time_t             next_tx;		// Time to new transmission
+	unsigned int       rowid;		// Database row
+	struct DataSample *head;		// Fisrst stored value
+	struct DataSample *tail;		// Last stored value
 } DataWind;
 
 typedef struct {
@@ -113,6 +117,8 @@ char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
+DataWind *sensorWindInit();
+void sensorWindDataInit( sensor *s );
 
 time_t sensorTimeSync();
 void sensorPrint( sensor *s );

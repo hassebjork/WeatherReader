@@ -29,6 +29,7 @@
 
 #include "sensor.h"
 #define M_PI          3.14159265358979323846  /* pi */
+#define M_RAD         0.0174532925199
 #define NEXT_TRANSMIT 15
 
 extern ConfigSettings configFile;
@@ -163,8 +164,11 @@ void sensorListFree() {
 		if ( sensor_list[i].rain != NULL )
 			free( sensor_list[i].rain );
 		if ( sensor_list[i].wind != NULL ) {
-			free( sensor_list[i].wind->s_speed );
-			free( sensor_list[i].wind->s_dir   );
+			struct DataSample *data;
+			for( data = sensor_list[i].wind->head; data != NULL; data = data->link ) {
+				free( sensor_list[i].wind->head );
+				sensor_list[i].wind->head = data->link;
+			}
 			free( sensor_list[i].wind );
 		}
 	}
@@ -367,118 +371,151 @@ char sensorRain( sensor *s, float total ) {
 	return 0;
 }
 
-char sensorWind( sensor *s, float speed, float gust, int dir ) {
-	time_t now = sensorTimeSync();
+DataWind *sensorWindInit() {
+	DataWind *wind = (DataWind *) malloc( sizeof( DataWind ) );
+	if ( !wind ) {
+		fprintf( stderr, "ERROR in sensorWind: Could not allocate memory for wind\n" );
+		return NULL;
+	}
+	wind->save_time = 0;
+	wind->next_tx   = 0;
+	wind->x         = 0.0;
+	wind->y         = 0.0;
+	wind->rowid     = 0;
+	wind->head      = NULL;
+	wind->tail      = NULL;
+	return wind;
+}
+
+void sensorWindDataInit( sensor *s ) {
+	struct DataSample *data;
+	// Reuse incomplete DataSample
+	if ( s->wind->tail != NULL && s->wind->tail->time == 0 ) {
+		data = s->wind->tail;
 	
-	// Initialize
-	if ( s->wind == NULL ) {
-		s->wind = (DataWind *) malloc( sizeof( DataWind ) );
-		if ( !s->wind ) {
-			fprintf( stderr, "ERROR in sensorWind: Could not allocate memory for wind\n" );
-			return 1;
+	// Create and queue DataSample
+	} else {
+		data = (struct DataSample *) malloc( sizeof( struct DataSample ) );
+		if ( s->wind->tail == NULL ) {			// Create queue
+			s->wind->tail = s->wind->head = data;
+		} else {								// Add to queue if not added
+			s->wind->tail->link = data;
+			s->wind->tail = data;
 		}
-		s->wind->t_trans  = 0;
-		s->wind->samples  = 0;
-		s->wind->gust_max = 0.0;
-		s->wind->s_time   = 0;
-		s->wind->rowid    = 0;
-		s->wind->s_speed  = (float *) malloc( sizeof( float ) );
-		s->wind->s_dir    = (short *) malloc( sizeof( short ) );
 	}
 	
-	// New data sent
-	if ( now > s->wind->t_trans ) {
-		s->wind->speed  = -1.0;
-		s->wind->gust   = -1.0;
-		s->wind->dir    = -1;
-		s->wind->saved  = 0;
-		s->wind->t_trans = now + NEXT_TRANSMIT;
+	// Reset DataSample
+	data->speed = -1.0;
+	data->gust  = -1.0;
+	data->dir   = -1;
+	data->time  = 0;
+	data->link  = NULL;
+}
+
+char sensorWind( sensor *s, float speed, float gust, int dir ) {
+	time_t now = sensorTimeSync();
+	struct DataSample *data;
+	
+#if _DEBUG > 3
+	fprintf( stderr, "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
+#endif
+	// Initialize wind
+	if ( s->wind == NULL )
+		s->wind = sensorWindInit();
+	
+	// New data set
+	if ( now > s->wind->next_tx ) {
+		s->wind->next_tx = now + NEXT_TRANSMIT;
+		sensorWindDataInit( s );
 	}
 	
 	// Store values
-	if ( speed >= 0.0 )
-		s->wind->speed = speed;
-	if ( gust >= 0.0 )
-		s->wind->gust  = gust;
-	if ( dir  >= 0 )
-		s->wind->dir   = dir;
+	data        = s->wind->tail;
+	data->speed = ( speed >= 0.0 ? speed : data->speed );
+	data->gust  = ( gust  >= 0.0 ? gust  : data->gust  );
+	data->dir   = ( dir   >= 0   ? dir   : data->dir   );
 	
-	// Values incomplete
-	if ( s->wind->saved || s->wind->speed < 0.0 || s->wind->gust < 0.0 || s->wind->dir < 0 )
+	// Values stored or incomplete
+	if ( data->time > 0 || data->speed < 0.0 || data->gust < 0.0 || data->dir < 0 )
 		return 0;
 	
+	// Calculate
+	float radians;
+	int   samples = 0;
+	data->time    = now;
+	speed         = 0.0;
+	if ( data->speed > 0.0 ) {
+		radians     = M_RAD * data->dir;
+		s->wind->x -= data->speed * sin( radians );
+		s->wind->y -= data->speed * cos( radians );
+	}
+	
+	// Remove old values
+	for( data = s->wind->head; data != NULL && data->time < ( now - configFile.sampleWindTime ); data = data->link ) {
+#if _DEBUG > 1
+		fprintf( stderr, "\tdelete:\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", data, data->speed, data->gust, data->dir, data->link );
+#endif
+		if ( data->speed > 0.0 ) {
+			radians     = M_RAD * data->dir;
+			s->wind->x += data->speed * sin( radians );
+			s->wind->y += data->speed * cos( radians );
+		}
+		free( s->wind->head );
+		s->wind->head = data->link;
+	}
+	
+	// Get wind gust within current time frame and samples No.
+	gust = -1.0;
+	samples = 0;
+	for( data = s->wind->head; data != NULL; data = data->link ) {
+		samples++;
+		speed += data->speed;
+		if ( data->gust > gust )
+			gust = data->gust;
+#if _DEBUG > 1
+		fprintf( stderr, "\t%*d.\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", 5, samples, data, data->speed, data->gust, data->dir, data->link );
+#endif
+	}
+	
+	// Current avg wind speed
+	speed = speed / samples;
+	
+	// Current wind direction
+	if ( s->wind->x == 0 )
+		dir = 0;
+	else if ( s->wind->x > 0 )
+		dir = (short)( 270 - 180 / M_PI * atan( s->wind->y / s->wind->x ) ) % 360;
+	else
+		dir = (short)(  90 - 180 / M_PI * atan( s->wind->y / s->wind->x ) ) % 360;
+	
+#if _DEBUG > 1
+		fprintf( stderr, "\tstore:\tsamples:%d\tspeed:%0.1f\tgust:%0.1f\tdir:%d\ttime:%d\n", samples, speed, gust, dir, (s->wind->tail->time - s->wind->head->time) );
+#endif
 	// Store new data
 	char query[255] = "";
-	if ( now > s->wind->s_time ) {
-		s->wind->gust_max = 0;
-		s->wind->samples  = 0;
-		s->wind->s_time   = (time_t) ( now / configFile.sampleWindTime + 1 ) 
-							* configFile.sampleWindTime;
+	if ( now > s->wind->save_time ) {
 		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples,time) "
 						"VALUES (%d,%.1f,%.1f,%d,1,FROM_UNIXTIME(%d))", 
-						s->rowid, s->wind->speed, s->wind->gust, s->wind->dir, (int) now );
-		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-			return 1;
-		}
-		s->wind->rowid = mysql_insert_id( mysql );
-	}
-	
-	// Allocate memory
-	s->wind->s_speed = (float *) realloc( s->wind->s_speed, 
-									( s->wind->samples + 1 ) * sizeof( float ) );
-	s->wind->s_dir   = (short *) realloc( s->wind->s_dir,   
-									( s->wind->samples + 1 ) * sizeof( short ) );
-	if ( !s->wind->s_speed || !s->wind->s_dir ) {
-		fprintf( stderr, "ERROR in sensorWind: Out of memory allocating sample\n" );
-		return 1;
-	}
-	
-	// Save sample
-	s->wind->s_speed[s->wind->samples] = s->wind->speed;
-	s->wind->s_dir[s->wind->samples]   = s->wind->dir;
-	if ( s->wind->gust > s->wind->gust_max )
-		s->wind->gust_max = s->wind->gust;
-	s->wind->samples++;
-	s->wind->saved = 1;
-	
-	if ( s->wind->samples == 1 )
-		return 0;
-	
-	// Calculate average
-	int i;
-	float x = 0.0, y = 0.0, rad;
-	for ( i = s->wind->samples-1; i >= 0; i-- ) {
-		rad = M_PI / 180 * s->wind->s_dir[i];
-		x  += -s->wind->s_speed[i] * sin( rad );
-		y  += -s->wind->s_speed[i] * cos( rad );
-		speed += s->wind->s_speed[i];
-	}
-	speed = speed / s->wind->samples;
-	x = x / s->wind->samples;
-	y = y / s->wind->samples;
-	if ( x == 0 )
-		dir = 0;
-	else if ( x > 0 )
-		dir = 270 - 180 / M_PI * atan( y/x );
-	else
-		dir = 90  - 180 / M_PI * atan( y/x );
-	dir = dir % 360;
-	
+						s->rowid, speed, gust, dir, (int) now );
+		
 	// Update latest data to database
-	if ( speed > 0.1 )
+	} else if ( speed < 0.1 ) {
+		sprintf( query, "UPDATE wr_wind SET speed=0,gust=%.1f,dir=NULL,"
+						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
+						gust, samples, (int) now, s->wind->rowid );
+	} else {
 		sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
 						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-						speed, s->wind->gust_max, dir, s->wind->samples, 
-						(int) now, s->wind->rowid );
-	else
-		sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=NULL,"
-						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-						speed, s->wind->gust_max, s->wind->samples, 
-						(int) now, s->wind->rowid );
+						speed, gust, dir, samples, (int) now, s->wind->rowid );
+	}
+	
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in sensorWind: %s\n%s\n", mysql_error( mysql ), query );
 		return 1;
+	} else if ( now > s->wind->save_time ) {
+		s->wind->rowid = mysql_insert_id( mysql );
+		s->wind->save_time = (time_t) ( now / configFile.sampleWindTime + 1 ) 
+							* configFile.sampleWindTime;
 	}
 	return 0;
 }
