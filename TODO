@@ -1,12 +1,9 @@
 TODO
-- Sensors: Store wind dir as NULL when speed = 0.0
-- Startscripts in /etc/init.d and links to /etc/rc.X
-- Search for arduino's serial device
-- Store CURRENT avg temp/humidity
-- Install databases and apache
+- Installation
+	- Startscripts in /etc/init.d and links to /etc/rc.X
+	- Install databases and apache configuration
 
 Wish list
-- Config file: Move some config data into database?
 
 
 Additional links for future use:

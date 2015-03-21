@@ -466,10 +466,16 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	dir = dir % 360;
 	
 	// Update latest data to database
-	sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
-					"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-					speed, s->wind->gust_max, dir, s->wind->samples, 
-					(int) now, s->wind->rowid );
+	if ( speed > 0.1 )
+		sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
+						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
+						speed, s->wind->gust_max, dir, s->wind->samples, 
+						(int) now, s->wind->rowid );
+	else
+		sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=NULL,"
+						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
+						speed, s->wind->gust_max, s->wind->samples, 
+						(int) now, s->wind->rowid );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
