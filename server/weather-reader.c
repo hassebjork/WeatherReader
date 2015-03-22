@@ -23,7 +23,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info:%*sEnabled\n", 19, "" );
+	fprintf( stderr, "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
 #endif
 	
 	// Start client to send data to remote server
@@ -86,9 +86,7 @@ int main( int argc, char *argv[]) {
 		pthread_join( threadParser, NULL);
 	}
 
-#if _DEBUG > 0
-	fprintf( stderr, "Program terminated successfully!\n" );
-#endif
+	printf( "Program terminated successfully!\n" );
 	exit(EXIT_SUCCESS);
 }
 
@@ -98,7 +96,9 @@ int main( int argc, char *argv[]) {
  */
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	printf( "\x1B[1GCaught signal %d\nProgram terminated by user!\n", signum );
+	printf( "\nCaught signal %d\n", signum );
+	if ( signum == 2 )
+		printf( "Program terminated by user!\n" );
 	exit( EXIT_SUCCESS );
 }
 

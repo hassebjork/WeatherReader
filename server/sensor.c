@@ -36,7 +36,7 @@ extern ConfigSettings configFile;
 unsigned int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
-#if _DEBUG > 1
+#if _DEBUG > 4
 // 	"DROP TABLE IF EXISTS wr_sensors",
 // 	"DROP TABLE IF EXISTS wr_rain",
 // 	"DROP TABLE IF EXISTS wr_temperature",
@@ -277,7 +277,7 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 }
 
 char sensorTemperature( sensor *s, float value ) {
-#if _DEBUG > 3
+#if _DEBUG > 2
 	printf( "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
@@ -308,7 +308,7 @@ char sensorTemperature( sensor *s, float value ) {
 }
 
 char sensorHumidity( sensor *s, unsigned char value ) {
-#if _DEBUG > 3
+#if _DEBUG > 2
 	printf( "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
@@ -341,7 +341,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 }
 
 char sensorRain( sensor *s, float total ) {
-#if _DEBUG > 3
+#if _DEBUG > 2
 	printf( "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
@@ -416,8 +416,8 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	time_t now = sensorTimeSync();
 	struct DataSample *data;
 	
-#if _DEBUG > 3
-	fprintf( stderr, "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
+#if _DEBUG > 2
+	printf( "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
 #endif
 	// Initialize wind
 	if ( s->wind == NULL )
@@ -452,7 +452,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	
 	// Remove old values
 	for( data = s->wind->head; data != NULL && data->time < ( now - configFile.sampleWindTime ); data = data->link ) {
-#if _DEBUG > 4
+#if _DEBUG > 3
 		fprintf( stderr, "\tdelete:\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", data, data->speed, data->gust, data->dir, data->link );
 #endif
 		if ( data->speed > 0.0 ) {
@@ -472,7 +472,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		speed += data->speed;
 		if ( data->gust > gust )
 			gust = data->gust;
-#if _DEBUG > 4
+#if _DEBUG > 3
 		fprintf( stderr, "\t%*d.\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", 5, samples, data, data->speed, data->gust, data->dir, data->link );
 #endif
 	}
@@ -488,7 +488,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	else
 		dir = (short)(  90 - 180 / M_PI * atan( s->wind->y / s->wind->x ) ) % 360;
 	
-#if _DEBUG > 4
+#if _DEBUG > 3
 		fprintf( stderr, "\tstore:\tsamples:%d\tspeed:%0.1f\tgust:%0.1f\tdir:%d\ttime:%d\n", samples, speed, gust, dir, (s->wind->tail->time - s->wind->head->time) );
 #endif
 	// Store new data
@@ -520,7 +520,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 }
 
 char sensorSwitch( sensor *s, char value ) {
-#if _DEBUG > 3
+#if _DEBUG > 2
 	printf( "sensorSwitch: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
@@ -581,7 +581,7 @@ time_t sensorTimeSync() {
 		syncTime = syncTime / diff;
 	syncTime += 10;
 	update = (time_t) ( now + syncTime - correction );
-#if _DEBUG > -1
+#if _DEBUG > 0
 	struct tm *local = localtime( &now );
 	struct tm *upd   = localtime( &update );
 	fprintf( stderr, "[%02i:%02i:%02i] SyncTime:%*sCorrection: %+d sec\tNext update: %02i:%02i:%02i\n", 

@@ -41,14 +41,14 @@ void *parse_thread() {
 	char buffer[254];
 	int  result;
 
-#if _DEBUG > 1
-	fprintf( stderr, "Parser thread:%16sEnabled\n", "" );
+#if _DEBUG > 0
+	fprintf( stderr, "Parser thread:%16sRunning\n", "" );
 #endif
 	sensorInit();
 	
 	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
-#if _DEBUG > 2
-		printf( "parse_thread:%17s\"%s\"\n", "", buffer );
+#if _DEBUG > 1
+		fprintf( stderr, "parse_thread:%7s\"%s\" recv %d bytes\n", "", buffer, result );
 #endif
  		parse_input( buffer );
 	}
@@ -88,10 +88,9 @@ void parse_input( char *s ) {
 		fineoffset_parse( s + 5 );
 	else if ( strncmp( s, "WIRE", 4 ) == 0 )
 		wired_parse( s + 5 );
+#if _DEBUG > 2
 	else
-		printf( "Not recognised: " );
-#if _DEBUG > 3
-	printf( "%s\n", s );
+		fprintf( stderr, "Not recognised: %s", s );
 #endif
 }
 

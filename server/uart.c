@@ -43,8 +43,8 @@ void *uart_receive( void *ptr ) {
 	int   rcount;
 	char  buffer[256];
 	
-#if _DEBUG > 1
-	fprintf( stderr, "Uart thread #%d %s:%*sEnabled\n", sDev->no, sDev->name, ( 14 - strlen( sDev->name ) ), "" );
+#if _DEBUG > 0
+	fprintf( stderr, "Uart thread #%d:%*sConnecting to %s\n", sDev->no, 15, "", sDev->name );
 #endif
 	
 	// Open device
@@ -79,7 +79,7 @@ void *uart_receive( void *ptr ) {
 		uart_init( sDev );
 	}
 	
-	printf( "Opened #%d %s%*s\"%s\" found\n", sDev->no, sDev->name, ( 20 - strlen( sDev->name ) ), "", SERIAL_TYPES[sDev->type] );
+	printf( "Uart thread #%d:%*s\"%s\" found on %s\n", sDev->no, 15, "", SERIAL_TYPES[sDev->type], sDev->name );
 	
 	// Read serial port loop
 	while ( configFile.run && sDev->active ) {
@@ -112,7 +112,7 @@ void *uart_receive( void *ptr ) {
 	
 	close( sDev->tty );
 	free( sDev );
-#if _DEBUG > 1
+#if _DEBUG > 0
 	fprintf( stderr, "Uart thread #%d %s:%*sClosing\n", sDev->no, sDev->name, 14 - strlen( sDev->name ), "" );
 #endif
 }
@@ -148,8 +148,8 @@ void reset_arduino( SerialDevice *sDev ) {
 	ioctl( sDev->tty, TIOCMBIC, &flag );
 	sleep( 1 );
 	ioctl( sDev->tty, TIOCMBIS, &flag );
-#if _DEBUG > 1
-	fprintf( stderr, "reset_arduino #%d %s%*sResetting Arduino\n", sDev->no, sDev->name, 13 - strlen( sDev->name ), "" );
+#if _DEBUG > 0
+	fprintf( stderr, "reset_arduino #%d:%*sResetting Arduino on %s\n", sDev->no, 13, "", sDev->name );
 #endif
 }
 

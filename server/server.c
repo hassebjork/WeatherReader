@@ -50,7 +50,7 @@ void *client_thread() {
 	else
 		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", result );
 	
-#if _DEBUG > 1
+#if _DEBUG > 0
 	fprintf( stderr, "Client thread:%*sClosing\n", 16, "" );
 #endif
 }
@@ -84,8 +84,8 @@ int client_send( char * buffer ) {
 		return 1;
 	}
 	
-#if _DEBUG > 2
-	printf( "client_send:%*s\"%s\" %s\n", 18, "", buffer, inet_ntoa(server.sin_addr) );
+#if _DEBUG > 1
+	fprintf( stderr, "client_send:%*s\"%s\" %s\n", 18, "", buffer, inet_ntoa(server.sin_addr) );
 #endif
 	
 	close( sockServer );
@@ -98,7 +98,7 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
-	fprintf( stderr, "Server enabled:%*sListening on port %d\n", 15, "", configFile.port );
+	fprintf( stderr, "Server thread:%*sStarted on port %d\n", 16, "", configFile.port );
 		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -124,13 +124,13 @@ void *server_thread() {
 		if ( rcount < 0 )
 			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
-#if _DEBUG > 2
-		printf( "server_thread:%*s\"%s\" %s\n", 16, "", buffer, inet_ntoa(client.sin_addr) );
+#if _DEBUG > 1
+		fprintf( stderr, "server_thread:%*s\"%s\" %s\n", 16, "", buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
 	}
-#if _DEBUG > 1
+#if _DEBUG > 0
 	fprintf( stderr, "Server thread:%*sClosing\n", 16, "" );
 #endif
 }
