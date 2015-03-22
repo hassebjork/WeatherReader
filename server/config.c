@@ -56,7 +56,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveTemperatureTime = 60;
 	conf->saveHumidityTime    = 60;
 	conf->saveRainTime        = 60;
-	conf->sampleWindTime      = 60;
+	conf->sampleWindTime      = 10;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
