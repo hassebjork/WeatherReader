@@ -42,13 +42,13 @@ void *parse_thread() {
 	int  result;
 
 #if _DEBUG > 1
-	fprintf( stderr, "Parser thread:\x1B[30GEnabled\n" );
+	fprintf( stderr, "Parser thread:%16sEnabled\n", "" );
 #endif
 	sensorInit();
 	
 	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
-#if _DEBUG > 3
-		printf( "parse_thread:\x1B[30G\"%s\"\n", buffer );
+#if _DEBUG > 2
+		printf( "parse_thread:%17s\"%s\"\n", "", buffer );
 #endif
  		parse_input( buffer );
 	}

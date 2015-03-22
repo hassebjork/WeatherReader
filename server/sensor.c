@@ -86,7 +86,7 @@ void sensorMysqlInit() {
 		mysql_close( mysql );
 		configFile.mysql = !configFile.mysql;
 	} else {
-		printf( "Using MySQL database:\x1B[30G\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
+		printf( "Using MySQL database:%*smysql://%s/%s\n", 9, "", configFile.mysqlServer, configFile.mysqlDatabase );
 		
 		/* Create database tables, if not exits */
 		for ( i=0; CREATE_TABLE_MYSQL[i] != 0; i++ ) {
@@ -580,13 +580,12 @@ time_t sensorTimeSync() {
 	if ( diff != 0 && update != 0 )
 		syncTime = syncTime / diff;
 	syncTime += 10;
-	update = (time_t) now + syncTime - correction;
-#if _DEBUG > 1
+	update = (time_t) ( now + syncTime - correction );
+#if _DEBUG > -1
 	struct tm *local = localtime( &now );
 	struct tm *upd   = localtime( &update );
-	fprintf( stderr, "[%i-%02i-%02i %02i:%02i:%02i] SyncTime:\x1B[30GCorrection:%d Next: %02i:%02i:%02i\n", 
-			(local->tm_year + 1900), (local->tm_mon) + 1, local->tm_mday, 
-			local->tm_hour, local->tm_min, local->tm_sec, syncTime, correction,
+	fprintf( stderr, "[%02i:%02i:%02i] SyncTime:%*sCorrection: %+d sec\tNext update: %02i:%02i:%02i\n", 
+			local->tm_hour, local->tm_min, local->tm_sec, 10, "", -correction,
 			upd->tm_hour, upd->tm_min, upd->tm_sec );
 #endif
 	return (time_t) now - correction;

@@ -33,10 +33,9 @@ extern ConfigSettings configFile;
 extern int pipeServer[2];
 extern int pipeParser[2];
 
-	// Timeout: http://stackoverflow.com/a/2918709/4405465
-	// http://www.unixwiz.net/techtips/termios-vmin-vtime.html
-	// http://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
-	// http://www.tldp.org/HOWTO/Serial-Programming-HOWTO/x115.html
+/**
+ * UART-thread for receiving data from arduino connected by USB-serial cable
+ */
 void *uart_receive( void *ptr ) {
 	SerialDevice *sDev = (SerialDevice *) ptr;
 	
@@ -45,21 +44,24 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	
 #if _DEBUG > 1
-	fprintf( stderr, "Uart thread #%d %s:\x1B[30GEnabled\n", sDev->no, sDev->name );
+	fprintf( stderr, "Uart thread #%d %s:%*sEnabled\n", sDev->no, sDev->name, ( 14 - strlen( sDev->name ) ), "" );
 #endif
 	
+	// Open device
 	sDev->tty = open( sDev->name, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
 	if ( sDev->tty == -1 ) {
 		perror( sDev->name );
 		return;
 	}
 	
+	// Get communication flags
 	if ( tcgetattr( sDev->tty, &options ) < 0 ) {
 		fprintf( stderr, "ERROR in uart_receive #%d: Configuring device\n",  sDev->no );
 		close( sDev->tty );
 		return;
 	}
 	
+	// Set communication flags
 	options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 8 data bits, enable receiver, local line 
 	options.c_cflag &= ~PARENB | ~CSTOPB; // No parity, one stop bit 
 	options.c_iflag &= ~( IXON | IXOFF | IXANY ); // Disable software flow control
@@ -70,15 +72,16 @@ void *uart_receive( void *ptr ) {
 	tcflush( sDev->tty, TCIFLUSH ); 
 	tcsetattr( sDev->tty, TCSANOW, &options ); // Set tty with new settings immediately
 	
+	// Fetch id string from arduino. Reset and retry on fail.
 	uart_init( sDev );
-	// Retry initiating arduino
 	if ( sDev->type == UNDEFINED ) {
 		reset_arduino( sDev );
 		uart_init( sDev );
 	}
 	
-	printf( "Opened #%d %s\x1B[30G\"%s\" found\n", sDev->no, sDev->name, SERIAL_TYPES[sDev->type] );
+	printf( "Opened #%d %s%*s\"%s\" found\n", sDev->no, sDev->name, ( 20 - strlen( sDev->name ) ), "", SERIAL_TYPES[sDev->type] );
 	
+	// Read serial port loop
 	while ( configFile.run && sDev->active ) {
 		rcount = read( sDev->tty, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
@@ -87,27 +90,33 @@ void *uart_receive( void *ptr ) {
 			fprintf( stderr, "ERROR in uart_receive #%d: Timeout\n", sDev->no, rcount );
 		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
-#if _DEBUG > 1
-			printf( "uart_receive #%d:\x1B[30G\"%s\"\n", sDev->no, buffer );
+			
+			// Send data through client thread to remote server
+			if ( configFile.is_client )
+				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
+					fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
+			
+			// Send data to parser thread and database
+			else if ( write( pipeParser[1], &buffer, rcount ) < 1 )
+				fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
+#if _DEBUG > 2
+			printf( "uart_receive #%d:%*s\"%s\" sent to %s\n", sDev->no, 14, "", buffer, ( configFile.is_client ? "client" : "parser" ) );
 #endif
-			if ( configFile.is_client ) {
- 				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
- 					fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
-			} else {
- 				if ( write( pipeParser[1], &buffer, rcount ) < 1 )
- 					fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
-			}
 		}
 	}
 	
-#if _DEBUG > 1
-	fprintf( stderr, "Uart thread #%d %s:\x1B[30GClosing\n", sDev->no, sDev->name );
-#endif
 	close( sDev->tty );
+	free( sDev );
+#if _DEBUG > 1
+	fprintf( stderr, "Uart thread #%d %s:%*sClosing\n", sDev->no, sDev->name, 14 - strlen( sDev->name ), "" );
+#endif
 }
 
+/**
+ * Read first identifier string from arduino and select type
+ */
 void uart_init( SerialDevice *sDev ) {
-	sleep( 1 );
+	sleep( 1 );			// Wait for arduino to boot
 	char  buffer[256];
 	int   rcount = read( sDev->tty, buffer, sizeof( buffer ) );
 	if ( rcount >= 0 ) {
@@ -117,7 +126,7 @@ void uart_init( SerialDevice *sDev ) {
 		} else if ( strncmp( buffer, "[WS]", 4 ) == 0 ) {	// Wired-Sensor
 			sDev->active = 1;
 			sDev->type   = WIRE_SENSOR;
-		} else {
+		} else {											// Undefined - quit thread
 			sDev->active = 0;
 			sDev->type   = UNDEFINED;
 		}
@@ -135,7 +144,7 @@ void reset_arduino( SerialDevice *sDev ) {
 	sleep( 1 );
 	ioctl( sDev->tty, TIOCMBIS, &flag );
 #if _DEBUG > 1
-	fprintf( stderr, "reset_arduino #%d %s\x1B[30GResetting Arduino\n", sDev->no, sDev->name );
+	fprintf( stderr, "reset_arduino #%d %s%*sResetting Arduino\n", sDev->no, sDev->name, 13 - strlen( sDev->name ), "" );
 #endif
 }
 
@@ -149,6 +158,7 @@ char ** uart_get_serial( void ) {
 	char **temp, **array;
 	char   str[25], *dir_dev = "/dev/";
 	
+	// Allocate memory for string array
 	array    = malloc( sizeof( char *) );
 	if ( array ) {
 		array[0] = NULL;
@@ -157,6 +167,7 @@ char ** uart_get_serial( void ) {
 		return NULL;
 	}
 	
+	// Scan directory /dev
 	d = opendir( dir_dev );
 	if ( d && array ) {
 		while ( ( dir = readdir(d) ) != NULL ) {

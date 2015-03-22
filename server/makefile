@@ -8,22 +8,20 @@ all: weather-reader
 
 weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	gcc -o ../bin/weather-reader \
+		-D_DEBUG=0 -g \
 		-pthread \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
 	@echo
 		
-debug: weather-reader.c config.c parser.c sensor.c server.c uart.c test/test_server.c
+debug: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	ulimit -c unlimited && gcc -o ../bin/weather-reader \
 		-D_DEBUG=2 -g \
 		-pthread -ggdb \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
 		weather-reader.c config.c parser.c sensor.c server.c uart.c
-	ulimit -c unlimited && gcc -o ../bin/test-server \
-		-pthread -g \
-		test/test_server.c
 	@echo
 
 clean:
