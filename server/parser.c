@@ -42,7 +42,7 @@ void *parse_thread() {
 	int  result;
 
 #if _DEBUG > 1
-	printf( "parse_thread: started\n" );
+	fprintf( stderr, "Parser thread:\x1B[30GEnabled\n" );
 #endif
 	sensorInit();
 	

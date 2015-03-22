@@ -86,7 +86,7 @@ void sensorMysqlInit() {
 		mysql_close( mysql );
 		configFile.mysql = !configFile.mysql;
 	} else {
-		printf( "Using MySQL database:\t\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
+		printf( "Using MySQL database:\x1B[30G\"mysql://%s/%s\"\n", configFile.mysqlServer, configFile.mysqlDatabase );
 		
 		/* Create database tables, if not exits */
 		for ( i=0; CREATE_TABLE_MYSQL[i] != 0; i++ ) {

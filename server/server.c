@@ -41,7 +41,7 @@ void *client_thread() {
 	char buffer[BUFF_SIZE];
 	int  result;
 	
-	fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.server, configFile.port );
+	fprintf( stderr, "Client enabled:\x1B[30GUsing server %s:%d\n", configFile.server, configFile.port );
 	
 	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
  		client_send( buffer );
@@ -49,6 +49,10 @@ void *client_thread() {
 		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
 	else
 		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", result );
+	
+#if _DEBUG > 1
+	fprintf( stderr, "Client thread:\x1B[30GClosing\n" );
+#endif
 }
 
 int client_send( char * buffer ) {
@@ -94,7 +98,7 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
-	fprintf( stderr, "Server enabled: Listeing on port %d\n", configFile.port );
+	fprintf( stderr, "Server enabled:\x1B[30GListening on port %d\n", configFile.port );
 		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -126,4 +130,7 @@ void *server_thread() {
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
 	}
+#if _DEBUG > 1
+	fprintf( stderr, "Server thread:\x1B[30GClosing\n" );
+#endif
 }

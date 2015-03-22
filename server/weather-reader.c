@@ -23,7 +23,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info: enabled\n" );
+	fprintf( stderr, "Debug info:\x1B[30GEnabled\n" );
 #endif
 	
 	// Start client to send data to remote server
@@ -85,6 +85,9 @@ int main( int argc, char *argv[]) {
 		pthread_join( threadParser, NULL);
 	}
 
+#if _DEBUG > 0
+	fprintf( stderr, "Program terminated successfully!\n" );
+#endif
 	exit(EXIT_SUCCESS);
 }
 
@@ -94,7 +97,7 @@ int main( int argc, char *argv[]) {
  */
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	printf( "Caught signal %d\nExiting!\n", signum );
+	printf( "\nCaught signal %d\nExiting!\n", signum );
 	exit( EXIT_SUCCESS );
 }
 
