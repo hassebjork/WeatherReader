@@ -58,6 +58,7 @@ typedef struct {
 } SerialDevice;
 
 void *uart_receive( void *ptr );
+void uart_init( SerialDevice *sDev );
 void reset_arduino( SerialDevice *sDev );
 char **uart_get_serial( void );
 #endif

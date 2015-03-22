@@ -33,12 +33,20 @@ extern ConfigSettings configFile;
 extern int pipeServer[2];
 extern int pipeParser[2];
 
+	// Timeout: http://stackoverflow.com/a/2918709/4405465
+	// http://www.unixwiz.net/techtips/termios-vmin-vtime.html
+	// http://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
+	// http://www.tldp.org/HOWTO/Serial-Programming-HOWTO/x115.html
 void *uart_receive( void *ptr ) {
 	SerialDevice *sDev = (SerialDevice *) ptr;
 	
 	struct termios options;
 	int   rcount;
 	char  buffer[256];
+	
+#if _DEBUG > 1
+	fprintf( stderr, "Uart thread %s:\x1B[30GEnabled\n", sDev->name );
+#endif
 	
 	sDev->tty = open( sDev->name, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
 	if ( sDev->tty == -1 ) {
@@ -62,26 +70,14 @@ void *uart_receive( void *ptr ) {
 	tcflush( sDev->tty, TCIFLUSH ); 
 	tcsetattr( sDev->tty, TCSANOW, &options ); // Set tty with new settings immediately
 	
-	// Timeout: http://stackoverflow.com/a/2918709/4405465
-	// http://www.unixwiz.net/techtips/termios-vmin-vtime.html
-	// http://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
-	// http://www.tldp.org/HOWTO/Serial-Programming-HOWTO/x115.html
-	sleep( 1 );
-	rcount = read( sDev->tty, buffer, sizeof( buffer ) );
-	if ( rcount >= 0 ) {
-		if ( strncmp( buffer, "[WR]", 4 ) == 0 ) {			// Weather-Reader
-			sDev->active = 1;
-			sDev->type   = WEATHER_READER;
-		} else if ( strncmp( buffer, "[WS]", 4 ) == 0 ) {	// Wired-Sensor
-			sDev->active = 1;
-			sDev->type   = WIRE_SENSOR;
-		} else {
-			sDev->active = 0;
-			sDev->type   = UNDEFINED;
-		}
+	uart_init( sDev );
+	// Retry initiating arduino
+	if ( sDev->type == UNDEFINED ) {
+		reset_arduino( sDev );
+		uart_init( sDev );
 	}
 	
-	printf( "#%d. Opened %s as \"%s\"\n", sDev->no, sDev->name, SERIAL_TYPES[sDev->type] );
+	printf( "#%d. Opened %s\x1B[30G\"%s\" found\n", sDev->no, sDev->name, SERIAL_TYPES[sDev->type] );
 	
 	while ( configFile.run && sDev->active ) {
 		rcount = read( sDev->tty, buffer, sizeof( buffer ) );
@@ -106,8 +102,28 @@ void *uart_receive( void *ptr ) {
 		usleep( 200 );
 	}
 	
-	printf( "#%d. Closing %s\n", sDev->no, sDev->name );
+#if _DEBUG > 1
+	fprintf( stderr, "Uart thread %s:\x1B[30GClosing\n", sDev->name );
+#endif
 	close( sDev->tty );
+}
+
+void uart_init( SerialDevice *sDev ) {
+	sleep( 1 );
+	char  buffer[256];
+	int   rcount = read( sDev->tty, buffer, sizeof( buffer ) );
+	if ( rcount >= 0 ) {
+		if ( strncmp( buffer, "[WR]", 4 ) == 0 ) {			// Weather-Reader
+			sDev->active = 1;
+			sDev->type   = WEATHER_READER;
+		} else if ( strncmp( buffer, "[WS]", 4 ) == 0 ) {	// Wired-Sensor
+			sDev->active = 1;
+			sDev->type   = WIRE_SENSOR;
+		} else {
+			sDev->active = 0;
+			sDev->type   = UNDEFINED;
+		}
+	}
 }
 
 /**
