@@ -92,16 +92,21 @@ void *uart_receive( void *ptr ) {
 			buffer[rcount-1] = '\0';
 			
 			// Send data through client thread to remote server
-			if ( configFile.is_client )
+			if ( configFile.is_client ) {
 				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
 					fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
+#if _DEBUG > 1
+				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to parser\n", sDev->no, 14, "", buffer, rcount );
+#endif
 			
 			// Send data to parser thread and database
-			else if ( write( pipeParser[1], &buffer, rcount ) < 1 )
-				fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
-#if _DEBUG > 2
-			printf( "uart_receive #%d:%*s\"%s\" sent to %s\n", sDev->no, 14, "", buffer, ( configFile.is_client ? "client" : "parser" ) );
+			} else {
+				if ( write( pipeParser[1], &buffer, rcount ) < 1 )
+					fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
+#if _DEBUG > 1
+				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to client\n", sDev->no, 4, "", buffer, rcount );
 #endif
+			}
 		}
 	}
 	
