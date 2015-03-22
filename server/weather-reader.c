@@ -97,7 +97,7 @@ int main( int argc, char *argv[]) {
  */
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	printf( "\nCaught signal %d\nExiting!\n", signum );
+	printf( "\x1B[1GCaught signal %d\nProgram terminated by user!\n", signum );
 	exit( EXIT_SUCCESS );
 }
 
