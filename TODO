@@ -1,7 +1,9 @@
 TODO
+- At startup, read current sensor data from database
 - Installation
-	- Startscripts in /etc/init.d and links to /etc/rc.X
-	- Install databases and apache configuration
+	- Create start scripts in /etc/init.d and links to /etc/rc.X
+	- Install database user
+	- Install apache/lighttpd configuration
 
 Wish list
 
