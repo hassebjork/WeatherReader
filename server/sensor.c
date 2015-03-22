@@ -293,17 +293,17 @@ char sensorTemperature( sensor *s, float value ) {
 	
 	if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->t_save ) )
 		return 0;
-
+	
+	// Save temperature
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_temperature (sensor_id, value,time) "
-					"VALUES(%d,%f,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
+	sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
+					"VALUES(%d,%f)", s->rowid, value );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->temperature->value  = value;
-	s->temperature->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) 
-							* configFile.saveTemperatureTime;
+	s->temperature->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
 	return 0;
 }
 
@@ -326,17 +326,17 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 	if ( s->dataInt->value == value 
 			&& ( configFile.saveHumidityTime > 0 && now < s->dataInt->t_save ) )
 		return 0;
-
+	
+	// Save humidity
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_humidity (sensor_id, value, time) "
-					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
+	sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
+					"VALUES(%d,%d)", s->rowid, value );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
-						* configFile.saveHumidityTime;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -357,17 +357,17 @@ char sensorRain( sensor *s, float total ) {
 	
 	if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->t_save ) )
 		return 0;
-
+	
+	// Save rain
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_rain (sensor_id, total,time) "
-					"VALUES (%d,%f,FROM_UNIXTIME(%d))", s->rowid, total, (int) now );
+	sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
+					"VALUES (%d,%f)", s->rowid, total );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->rain->value  = total;
-	s->rain->t_save = (time_t) ( now / configFile.saveRainTime + 1 ) 
-					 * configFile.saveRainTime;
+	s->rain->t_save = (time_t) ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
 	return 0;
 }
 
@@ -435,7 +435,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	data->gust  = ( gust  >= 0.0 ? gust  : data->gust  );
 	data->dir   = ( dir   >= 0   ? dir   : data->dir   );
 	
-	// Values stored or incomplete
+	// Values incomplete or allready stored
 	if ( data->time > 0 || data->speed < 0.0 || data->gust < 0.0 || data->dir < 0 )
 		return 0;
 	
@@ -464,7 +464,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		s->wind->head = data->link;
 	}
 	
-	// Get wind gust within current time frame and samples No.
+	// Current wind gust
 	gust = -1.0;
 	samples = 0;
 	for( data = s->wind->head; data != NULL; data = data->link ) {
@@ -494,19 +494,19 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	// Store new data
 	char query[255] = "";
 	if ( now > s->wind->save_time ) {
-		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples,time) "
-						"VALUES (%d,%.1f,%.1f,%d,1,FROM_UNIXTIME(%d))", 
-						s->rowid, speed, gust, dir, (int) now );
+		sprintf( query, "INSERT INTO wr_wind (sensor_id,speed,gust,dir,samples) "
+						"VALUES (%d,%.1f,%.1f,%d,1)", 
+						s->rowid, speed, gust, dir);
 		
 	// Update latest data to database
 	} else if ( speed < 0.1 ) {
 		sprintf( query, "UPDATE wr_wind SET speed=0,gust=%.1f,dir=NULL,"
-						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-						gust, samples, (int) now, s->wind->rowid );
+						"samples=%d, time=NOW() WHERE id=%d", 
+						gust, samples, s->wind->rowid );
 	} else {
 		sprintf( query, "UPDATE wr_wind SET speed=%.1f,gust=%.1f,dir=%d,"
-						"samples=%d, time=FROM_UNIXTIME(%d) WHERE id=%d", 
-						speed, gust, dir, samples, (int) now, s->wind->rowid );
+						"samples=%d, time=NOW() WHERE id=%d", 
+						speed, gust, dir, samples, s->wind->rowid );
 	}
 	
 	if ( mysql_query( mysql, query ) ) {
@@ -514,8 +514,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		return 1;
 	} else if ( now > s->wind->save_time ) {
 		s->wind->rowid = mysql_insert_id( mysql );
-		s->wind->save_time = (time_t) ( now / configFile.sampleWindTime + 1 ) 
-							* configFile.sampleWindTime;
+		s->wind->save_time = (time_t) ( now / configFile.sampleWindTime + 1 ) * configFile.sampleWindTime;
 	}
 	return 0;
 }
@@ -540,15 +539,14 @@ char sensorSwitch( sensor *s, char value ) {
 		return 0;
 
 	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_switch (sensor_id, value, time) "
-					"VALUES(%d,%d,FROM_UNIXTIME(%d))", s->rowid, value, (int) now );
+	sprintf( query, "INSERT INTO wr_switch (sensor_id, value) "
+					"VALUES(%d,%d)", s->rowid, value );
 	if ( mysql_query( mysql, query ) ) {
 		fprintf( stderr, "ERROR in sensorSwitch: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
 		return 1;
 	}
 	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) 
-						* configFile.saveHumidityTime;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -557,35 +555,37 @@ time_t sensorTimeSync() {
 	static int    correction = 0, syncTime = 3600;
 	time_t        now = time( NULL );
 	
-	if ( now > update ) {
-		char query[255] = "";
-		int  diff = correction;
-		MYSQL_RES   *result ;
-		MYSQL_ROW    row;
-		
-		// Fetch database time and calculate correction
-		sprintf( query, "SELECT UNIX_TIMESTAMP()" );
-		mysql_query( mysql, query );
-		result = mysql_store_result( mysql );
-		if( result && ( row = mysql_fetch_row( result ) ) ) 
-			correction = now - atoi( row[0] );
-		else
-			correction = 0;
-		
-		// Adjust sync time and add 1 sec so it will not become static
-		diff = correction - diff;
-		if ( diff < 0 )
-			diff = -diff;
-		if ( diff != 0 && update != 0 )
-			syncTime = syncTime / diff;
-		syncTime += 10;
+	if ( now < update )
+		return (time_t) now - correction;
+	
+	// Sync time with database
+	char query[255] = "";
+	int  diff = correction;
+	MYSQL_RES   *result ;
+	MYSQL_ROW    row;
+	
+	// Fetch database time and calculate correction
+	sprintf( query, "SELECT UNIX_TIMESTAMP()" );
+	mysql_query( mysql, query );
+	result = mysql_store_result( mysql );
+	if( result && ( row = mysql_fetch_row( result ) ) ) 
+		correction = now - atoi( row[0] );
+	else
+		correction = 0;
+	
+	// Adjust sync time and add 10 sec so it will not become static
+	diff = correction - diff;
+	if ( diff < 0 )
+		diff = -diff;
+	if ( diff != 0 && update != 0 )
+		syncTime = syncTime / diff;
+	syncTime += 10;
 #if _DEBUG > 1
-		char s[20];
-		printTime( s );
-		fprintf( stderr, "%s SyncTime: %d\tCorr: %d\tDiff: %d\n", s, syncTime, correction, diff );
+	char s[20];
+	printTime( s );
+	fprintf( stderr, "%s SyncTime: %d\tCorr: %d\tDiff: %d\n", s, syncTime, correction, diff );
 #endif
-		update = (time_t) now + syncTime - correction;
-	}
+	update = (time_t) now + syncTime - correction;
 	return (time_t) now - correction;
 }
 
