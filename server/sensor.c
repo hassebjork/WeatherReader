@@ -580,35 +580,14 @@ time_t sensorTimeSync() {
 	if ( diff != 0 && update != 0 )
 		syncTime = syncTime / diff;
 	syncTime += 10;
-#if _DEBUG > 1
-	char s[20];
-	printTime( s );
-	fprintf( stderr, "%s SyncTime: %d\tCorr: %d\tDiff: %d\n", s, syncTime, correction, diff );
-#endif
 	update = (time_t) now + syncTime - correction;
+#if _DEBUG > 1
+	struct tm *local = localtime( &now );
+	struct tm *upd   = localtime( &update );
+	fprintf( stderr, "[%i-%02i-%02i %02i:%02i:%02i] SyncTime:\x1B[30GCorrection:%d Next: %02i:%02i:%02i\n", 
+			(local->tm_year + 1900), (local->tm_mon) + 1, local->tm_mday, 
+			local->tm_hour, local->tm_min, local->tm_sec, syncTime, correction,
+			upd->tm_hour, upd->tm_min, upd->tm_sec );
+#endif
 	return (time_t) now - correction;
-}
-
-void sensorPrint( sensor *s ) {
-	if ( !s ) return;
-	printf( "id:%i Name:%s\tSensor:%X Protocol:%s Channel:%d "
-			"Rolling:%X Battery:%d Type:%d\n", 
-			s->rowid, s->name, s->sensor_id, s->protocol, s->channel, 
-			s->rolling, s->battery, s->type );
-}
-
-/**
- * printTime returns a formatted string of current time in s (min 20 characters)
- */
-void printTime( char *s ) {
-	struct tm *local;
-	time_t t = time(NULL);
-	local = localtime(&t);
-	sprintf(s, "[%i-%02i-%02i %02i:%02i:%02i]", 
-			(local->tm_year + 1900), 
-			(local->tm_mon) + 1, 
-			local->tm_mday, 
-			local->tm_hour,
-			local->tm_min, 
-			local->tm_sec );
 }

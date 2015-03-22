@@ -48,7 +48,7 @@ void *parse_thread() {
 	
 	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
 #if _DEBUG > 3
-		printf( "parse_thread: \tRecv \"%s\"\n", buffer );
+		printf( "parse_thread:\x1B[30G\"%s\"\n", buffer );
 #endif
  		parse_input( buffer );
 	}

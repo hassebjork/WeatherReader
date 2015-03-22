@@ -85,9 +85,9 @@ int client_send( char * buffer ) {
 	}
 	
 #if _DEBUG > 1
-	printf( "client_send: \tSent \"%s\" %s\n", buffer, inet_ntoa(server.sin_addr) );
+	printf( "client_send:\x1B[30G\"%s\" %s\n", buffer, inet_ntoa(server.sin_addr) );
 #endif
-		
+	
 	close( sockServer );
 	return 0;
 }
@@ -125,7 +125,7 @@ void *server_thread() {
 			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		printf( "server_thread: \tRecv \"%s\" %s\n", buffer, inet_ntoa(client.sin_addr) );
+		printf( "server_thread:\x1B[30G\"%s\" %s\n", buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );

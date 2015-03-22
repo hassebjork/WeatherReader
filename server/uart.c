@@ -45,7 +45,7 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	
 #if _DEBUG > 1
-	fprintf( stderr, "Uart thread %s:\x1B[30GEnabled\n", sDev->name );
+	fprintf( stderr, "Uart thread #%d %s:\x1B[30GEnabled\n", sDev->no, sDev->name );
 #endif
 	
 	sDev->tty = open( sDev->name, O_RDONLY ); // O_RDWR | O_NOCTTY | O_NDELAY );
@@ -77,7 +77,7 @@ void *uart_receive( void *ptr ) {
 		uart_init( sDev );
 	}
 	
-	printf( "#%d. Opened %s\x1B[30G\"%s\" found\n", sDev->no, sDev->name, SERIAL_TYPES[sDev->type] );
+	printf( "Opened #%d %s\x1B[30G\"%s\" found\n", sDev->no, sDev->name, SERIAL_TYPES[sDev->type] );
 	
 	while ( configFile.run && sDev->active ) {
 		rcount = read( sDev->tty, buffer, sizeof( buffer ) );
@@ -88,7 +88,7 @@ void *uart_receive( void *ptr ) {
 		} else if ( rcount > 4 ) {
 			buffer[rcount-1] = '\0';
 #if _DEBUG > 1
-			printf( "uart_receive (#%d):   \"%s\"\n", sDev->no, buffer );
+			printf( "uart_receive #%d:\x1B[30G\"%s\"\n", sDev->no, buffer );
 #endif
 			if ( configFile.is_client ) {
  				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
@@ -98,12 +98,10 @@ void *uart_receive( void *ptr ) {
  					fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
 			}
 		}
-		// http://stackoverflow.com/questions/12777254/time-delay-in-c-usleep
-		usleep( 200 );
 	}
 	
 #if _DEBUG > 1
-	fprintf( stderr, "Uart thread %s:\x1B[30GClosing\n", sDev->name );
+	fprintf( stderr, "Uart thread #%d %s:\x1B[30GClosing\n", sDev->no, sDev->name );
 #endif
 	close( sDev->tty );
 }
@@ -137,9 +135,7 @@ void reset_arduino( SerialDevice *sDev ) {
 	sleep( 1 );
 	ioctl( sDev->tty, TIOCMBIS, &flag );
 #if _DEBUG > 1
-	char s[20];
-	printTime( s );
-	fprintf( stderr, "%s Resetting Arduino\n", s );
+	fprintf( stderr, "reset_arduino #%d %s\x1B[30GResetting Arduino\n", sDev->no, sDev->name );
 #endif
 }
 
