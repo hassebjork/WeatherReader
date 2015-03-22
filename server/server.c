@@ -41,7 +41,7 @@ void *client_thread() {
 	char buffer[BUFF_SIZE];
 	int  result;
 	
-	fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.serverAddress, configFile.serverPort );
+	fprintf( stderr, "Client enabled: using server %s:%d\n", configFile.server, configFile.port );
 	
 	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
  		client_send( buffer );
@@ -64,15 +64,15 @@ int client_send( char * buffer ) {
 		return 1;
 	}
 	
-	serv_host = gethostbyname( configFile.serverAddress );
+	serv_host = gethostbyname( configFile.server );
 	if ( serv_host == NULL ) {
-		fprintf( stderr, "ERROR in client_send: Could not find hostname \"%s\"\n", configFile.serverAddress );
+		fprintf( stderr, "ERROR in client_send: Could not find hostname \"%s\"\n", configFile.server );
 		return 1;
 	}
 	
 	bcopy( (char *)serv_host->h_addr, (char *)&server.sin_addr, serv_host->h_length );
 	server.sin_family = AF_INET;
-	server.sin_port   = htons( configFile.serverPort );
+	server.sin_port   = htons( configFile.port );
 	
 	// Send to remote server
 	if ( sendto( sockServer, buffer, strlen( buffer ), 0, (const struct sockaddr *) &server, length ) < 0 ) {
@@ -94,7 +94,7 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
-	fprintf( stderr, "Server enabled: Listeing on port %d\n", configFile.listenPort );
+	fprintf( stderr, "Server enabled: Listeing on port %d\n", configFile.port );
 		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -106,7 +106,7 @@ void *server_thread() {
 	// Prepare the sockaddr_in structure
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons( configFile.listenPort );
+	server.sin_port = htons( configFile.port );
 	
 	// Bind
 	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
