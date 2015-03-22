@@ -119,9 +119,6 @@ char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );
-
 time_t sensorTimeSync();
-void sensorPrint( sensor *s );
-void printTime( char *s );
 
 #endif

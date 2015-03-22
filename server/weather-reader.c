@@ -23,7 +23,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info:\x1B[30GEnabled\n" );
+	fprintf( stderr, "Debug info:%*sEnabled\n", 19, "" );
 #endif
 	
 	// Start client to send data to remote server
@@ -47,11 +47,13 @@ int main( int argc, char *argv[]) {
 		}
 	}
 	
+	// Scan for USB-serial devices
 	serName = uart_get_serial();
 	for ( SerDevNum = 0; serName[SerDevNum]; SerDevNum++ );
 	
+	// Start a thread for each USB-serial device
 	sDev = malloc( sizeof( SerialDevice ) * SerDevNum );
-	pthread_t    threadUart[SerDevNum];
+	pthread_t threadUart[SerDevNum];
 	for ( i = 0; serName[i]; i++ ) {
 		sDev[i].name   = strdup( serName[i] );
 		sDev[i].active = 0;
@@ -77,7 +79,6 @@ int main( int argc, char *argv[]) {
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
 	// Wait for threads to complete
-// 	pthread_join( threadUart, NULL);
 	if ( configFile.is_client ) {
 		pthread_join( threadServer, NULL);
 	} else if ( configFile.is_server ) {
