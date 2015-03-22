@@ -452,7 +452,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	
 	// Remove old values
 	for( data = s->wind->head; data != NULL && data->time < ( now - configFile.sampleWindTime ); data = data->link ) {
-#if _DEBUG > 1
+#if _DEBUG > 4
 		fprintf( stderr, "\tdelete:\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", data, data->speed, data->gust, data->dir, data->link );
 #endif
 		if ( data->speed > 0.0 ) {
@@ -472,7 +472,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 		speed += data->speed;
 		if ( data->gust > gust )
 			gust = data->gust;
-#if _DEBUG > 1
+#if _DEBUG > 4
 		fprintf( stderr, "\t%*d.\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", 5, samples, data, data->speed, data->gust, data->dir, data->link );
 #endif
 	}
@@ -488,7 +488,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	else
 		dir = (short)(  90 - 180 / M_PI * atan( s->wind->y / s->wind->x ) ) % 360;
 	
-#if _DEBUG > 1
+#if _DEBUG > 4
 		fprintf( stderr, "\tstore:\tsamples:%d\tspeed:%0.1f\tgust:%0.1f\tdir:%d\ttime:%d\n", samples, speed, gust, dir, (s->wind->tail->time - s->wind->head->time) );
 #endif
 	// Store new data
