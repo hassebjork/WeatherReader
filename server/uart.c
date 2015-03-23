@@ -40,7 +40,7 @@ void *uart_receive( void *ptr ) {
 	SerialDevice *sDev = (SerialDevice *) ptr;
 	
 	struct termios options;
-	int   rcount;
+	int   rcount, i;
 	char  buffer[256];
 	
 #if _DEBUG > 0
@@ -89,14 +89,17 @@ void *uart_receive( void *ptr ) {
 		} else if ( rcount == 0 ) {
 			fprintf( stderr, "ERROR in uart_receive #%d: Timeout\n", sDev->no, rcount );
 		} else if ( rcount > 4 ) {
-			buffer[rcount-1] = '\0';
+			for ( i = 0; i < rcount; i++ ) {
+				buffer[i] = ( buffer[i] == 0xA ? 0x0 : buffer[i] );
+			}
 			
 			// Send data through client thread to remote server
 			if ( configFile.is_client ) {
 				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
 					fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
 #if _DEBUG > 1
-				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to parser\n", sDev->no, 14, "", buffer, rcount );
+				buffer[rcount-1] = '\0';
+				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to client\n", sDev->no, 14, "", buffer, rcount - 1 );
 #endif
 			
 			// Send data to parser thread and database
@@ -104,7 +107,8 @@ void *uart_receive( void *ptr ) {
 				if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 					fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
 #if _DEBUG > 1
-				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to client\n", sDev->no, 4, "", buffer, rcount );
+				buffer[rcount-1] = '\0';
+				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to parser\n", sDev->no, 4, "", buffer, rcount - 1 );
 #endif
 			}
 		}

@@ -38,17 +38,22 @@ extern int pipeParser[2];
 // http://www.binarytides.com/server-client-example-c-sockets-linux/
 // http://www.linuxhowtos.org/C_C++/socket.htm
 void *client_thread() {
-	char buffer[BUFF_SIZE];
-	int  result;
+	char buffer[BUFF_SIZE], *s;
+	int  rcount;
 	
 	fprintf( stderr, "Client enabled:%*sUsing server %s:%d\n", 15, "", configFile.server, configFile.port );
 	
-	while ( ( result = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
- 		client_send( buffer );
-	if ( result == 0 )
+	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
+		// Split multiple inputs
+		s = buffer;
+		while( s < buffer + rcount ) {
+			client_send( s );
+			s = strchr( s, 0x0 ) + 1;
+		}
+	if ( rcount == 0 )
 		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
 	else
-		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", result );
+		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", rcount );
 	
 #if _DEBUG > 0
 	fprintf( stderr, "Client thread:%*sClosing\n", 16, "" );
@@ -85,7 +90,7 @@ int client_send( char * buffer ) {
 	}
 	
 #if _DEBUG > 1
-	fprintf( stderr, "client_send:%*s\"%s\" %s\n", 18, "", buffer, inet_ntoa(server.sin_addr) );
+	fprintf( stderr, "client_send:%*s\"%s\" sent %d bytes to %s\n", 8, "", buffer, strlen( buffer ), inet_ntoa(server.sin_addr) );
 #endif
 	
 	close( sockServer );
@@ -125,7 +130,7 @@ void *server_thread() {
 			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		fprintf( stderr, "server_thread:%*s\"%s\" %s\n", 16, "", buffer, inet_ntoa(client.sin_addr) );
+		fprintf( stderr, "server_thread:%*s\"%s\" recv %d from %s\n", 6, "", buffer, rcount - 1, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );

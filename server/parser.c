@@ -38,25 +38,28 @@ static unsigned char reverse_bits_lookup[16] = {
 };
 
 void *parse_thread() {
-	char buffer[254];
-	int  result;
+	char buffer[254], *s;
+	int  rcount;
 
 #if _DEBUG > 0
 	fprintf( stderr, "Parser thread:%16sRunning\n", "" );
 #endif
 	sensorInit();
 	
-	while ( ( result = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
-#if _DEBUG > 1
-		fprintf( stderr, "parse_thread:%7s\"%s\" recv %d bytes\n", "", buffer, result );
-#endif
- 		parse_input( buffer );
+	while ( ( rcount = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
+		buffer[rcount-1] = '\0';
+		// Split multiple inputs
+		s = buffer;
+		while( s < buffer + rcount ) {
+			parse_input( s );
+			s = strchr( s, 0x0 ) + 1;
+		}
 	}
 	
-	if ( result == 0 )
+	if ( rcount == 0 )
 		fprintf( stderr, "ERROR in parse_thread: Pipe closed\n" );
 	else
-		fprintf( stderr, "ERROR in parse_thread: Pipe error %d\n", result );
+		fprintf( stderr, "ERROR in parse_thread: Pipe error %d\n", rcount );
 	exit(EXIT_FAILURE);
 }
 
@@ -77,7 +80,11 @@ unsigned char reverse_8bits( unsigned char n ) {
 }
 
 void parse_input( char *s ) {
-	if ( strncmp( s, "[", 1 ) == 0 );
+#if _DEBUG > 1
+	fprintf( stderr, "parse_input:%8s\"%s\" scan %d bytes\n", "", s, strlen( s ) );
+#endif
+	if ( strncmp( s, "[", 1 ) == 0 )
+		return;
 	else if ( strncmp( s, "OSV2", 4 ) == 0 )
 		osv2_parse( s + 5 );
 	else if ( strncmp( s, "VENT", 4 ) == 0 )
