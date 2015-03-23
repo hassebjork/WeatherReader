@@ -40,7 +40,7 @@ void *uart_receive( void *ptr ) {
 	SerialDevice *sDev = (SerialDevice *) ptr;
 	
 	struct termios options;
-	int   rcount, i;
+	int   rcount;
 	char  buffer[256];
 	
 #if _DEBUG > 0
@@ -89,36 +89,93 @@ void *uart_receive( void *ptr ) {
 		} else if ( rcount == 0 ) {
 			fprintf( stderr, "ERROR in uart_receive #%d: Timeout\n", sDev->no, rcount );
 		} else if ( rcount > 4 ) {
-			for ( i = 0; i < rcount; i++ ) {
-				buffer[i] = ( buffer[i] == 0xA ? 0x0 : buffer[i] );
-			}
-			
-			// Send data through client thread to remote server
-			if ( configFile.is_client ) {
-				if ( write( pipeServer[1], &buffer, rcount ) < 1 )
-					fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
-#if _DEBUG > 1
-				buffer[rcount-1] = '\0';
-				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to client\n", sDev->no, 14, "", buffer, rcount - 1 );
-#endif
-			
-			// Send data to parser thread and database
-			} else {
-				if ( write( pipeParser[1], &buffer, rcount ) < 1 )
-					fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
-#if _DEBUG > 1
-				buffer[rcount-1] = '\0';
-				fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to parser\n", sDev->no, 4, "", buffer, rcount - 1 );
-#endif
-			}
+			uart_handleData( sDev, buffer, rcount );
 		}
 	}
 	
 	close( sDev->tty );
+	
+	struct UARTQueueNode *data;
+	for( data = sDev->head; data != NULL; data = data->link ) {
+		free( sDev->head->s );
+		free( sDev->head );
+		sDev->head = data->link;
+	}
 	free( sDev );
 #if _DEBUG > 0
 	fprintf( stderr, "Uart thread #%d %s:%*sClosing\n", sDev->no, sDev->name, 14 - strlen( sDev->name ), "" );
 #endif
+}
+
+char uart_checkQueue( SerialDevice *sDev, char *s ) {
+	struct UARTQueueNode *data;
+	time_t now = time( NULL );
+#if _DEBUG > 2
+	fprintf( stderr, "uart_checkQueue:\t\"%s\"\tT[%d] H[%d]\n", s, sDev->tail, sDev->head  );
+#endif
+	
+	// Remove old data
+	for ( data = sDev->head; data != NULL && data->time < now; data = data->link ) {
+#if _DEBUG > 4
+		fprintf( stderr, "\tRemoving  %s [%d]\n", data->s, data );
+#endif
+		free( sDev->head->s );
+		free( sDev->head );
+		sDev->head = data->link;
+		if ( sDev->head == NULL )
+			sDev->tail = NULL;
+	}
+	
+	// Check data
+	for( data = sDev->head; data != NULL; data = data->link ) {
+		if ( strcmp( s, data->s ) == 0 ) {
+			return 1;
+		}
+	}
+	
+	// Store data
+	data       = (struct UARTQueueNode *) malloc( sizeof( struct UARTQueueNode ) );
+	data->s    = strdup( s );
+	data->time = (time_t) now + QUEUE_TIME;
+	data->link = NULL;
+	
+	// Queue node
+	if ( sDev->tail == NULL ) {
+		sDev->tail = sDev->head = data;
+	} else {
+		sDev->tail->link = data;
+		sDev->tail = data;
+	}
+#if _DEBUG > 4
+	fprintf( stderr, "\tStoring   %s [%d]\n", data->s, data );
+#endif
+	
+	return 0;
+}
+
+void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
+	int i;
+	
+	s[rcount-1] = '\0';
+	if ( uart_checkQueue( sDev, s ) )
+		return;
+	
+	// Send data through client thread to remote server
+	if ( configFile.is_client ) {
+		if ( write( pipeServer[1], s, rcount ) < 1 )
+			fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
+#if _DEBUG > 1
+		fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to client\n", sDev->no, 4, "", s, rcount - 1 );
+#endif
+	
+	// Send data to parser thread and database
+	} else {
+		if ( write( pipeParser[1], s, rcount ) < 1 )
+			fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
+#if _DEBUG > 1
+		fprintf( stderr, "uart_receive #%d:%*s\"%s\" sent %d bytes to parser\n", sDev->no, 4, "", s, rcount - 1 );
+#endif
+	}
 }
 
 /**
@@ -132,9 +189,13 @@ void uart_init( SerialDevice *sDev ) {
 		if ( strncmp( buffer, "[WR]", 4 ) == 0 ) {			// Weather-Reader
 			sDev->active = 1;
 			sDev->type   = WEATHER_READER;
+			sDev->head   = NULL;
+			sDev->tail   = NULL;
 		} else if ( strncmp( buffer, "[WS]", 4 ) == 0 ) {	// Wired-Sensor
 			sDev->active = 1;
 			sDev->type   = WIRE_SENSOR;
+			sDev->head   = NULL;
+			sDev->tail   = NULL;
 		} else {											// Undefined - quit thread
 			sDev->active = 0;
 			sDev->type   = UNDEFINED;
