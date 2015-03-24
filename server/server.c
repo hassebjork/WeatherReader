@@ -43,13 +43,19 @@ void *client_thread() {
 	
 	fprintf( stderr, "Client enabled:%*sUsing server %s:%d\n", 15, "", configFile.server, configFile.port );
 	
-	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run )
+	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run ) {
+		buffer[rcount-1] = '\0';
+#if _DEBUG > 1
+		fprintf( stderr, "client_thread:%*s\"%s\" recv %d bytes\n", 6, "", buffer, rcount - 1 );
+#endif
 		// Split multiple inputs
 		s = buffer;
 		while( s < buffer + rcount ) {
 			client_send( s );
 			s = strchr( s, 0x0 ) + 1;
 		}
+	}
+	
 	if ( rcount == 0 )
 		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
 	else

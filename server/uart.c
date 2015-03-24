@@ -158,30 +158,22 @@ void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	
 	s[rcount-1] = '\0';
 #if _DEBUG > 1
-	fprintf( stderr, "uart_receive #%d:%*s\"%s\" ", sDev->no, 4, "", s );
+	fprintf( stderr, "uart_receive #%d:%*s\"%s\" recv %d bytes\n", sDev->no, 4, "", s, rcount - 1 );
 #endif
 	if ( uart_checkQueue( sDev, s ) ) {
-#if _DEBUG > 1
-		fprintf( stderr, "Duplicate - skipping!\n" );
-#endif
 		return;
 	}
 	
 	// Send data through client thread to remote server
 	if ( configFile.is_client ) {
-		if ( write( pipeServer[1], s, rcount ) < 1 )
+		if ( ( rcount = write( pipeServer[1], s, rcount ) ) < 1 )
 			fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
-#if _DEBUG > 1
-		fprintf( stderr, "sent %d bytes to client\n", rcount - 1 );
-#endif
 	
 	// Send data to parser thread and database
 	} else {
-		if ( write( pipeParser[1], s, rcount ) < 1 )
+		fprintf( stderr, "Parser " );
+		if ( ( rcount = write( pipeParser[1], s, rcount ) ) < 1 )
 			fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
-#if _DEBUG > 1
-		fprintf( stderr, "sent %d bytes to parser\n", rcount - 1 );
-#endif
 	}
 }
 
