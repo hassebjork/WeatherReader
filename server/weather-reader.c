@@ -79,6 +79,8 @@ int main( int argc, char *argv[]) {
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
 	// Wait for threads to complete
+	for ( ; SerDevNum > 0; SerDevNum-- )
+		pthread_join( threadUart[SerDevNum-1], NULL);
 	if ( configFile.is_client ) {
 		pthread_join( threadServer, NULL);
 	} else if ( configFile.is_server ) {
