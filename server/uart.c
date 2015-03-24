@@ -95,11 +95,13 @@ void *uart_receive( void *ptr ) {
 	
 	close( sDev->tty );
 	
-	struct UARTQueueNode *data;
-	for( data = sDev->head; data != NULL; data = data->link ) {
-		free( sDev->head->s );
-		free( sDev->head );
-		sDev->head = data->link;
+	if ( sDev->head != NULL ) {
+		struct UARTQueueNode *data;
+		for( data = sDev->head; data != NULL; data = data->link ) {
+			free( sDev->head->s );
+			free( sDev->head );
+			sDev->head = data->link;
+		}
 	}
 	free( sDev );
 #if _DEBUG > 0
