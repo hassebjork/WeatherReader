@@ -1,6 +1,5 @@
 TODO
 - At startup, read current sensor data from database
-- UART, put received data into queue and do not resend data within 15 sec
 - Installation
 	- Create start scripts in /etc/init.d and links to /etc/rc.X
 	- Install database user
