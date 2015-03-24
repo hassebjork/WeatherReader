@@ -56,6 +56,7 @@ class Sensor {
 	}
 	
 	static function &fetch_all( $days = 1 ) { 
+		$days = ( is_numeric( $days ) ? $daqys : 1 );
 		$sensors = Sensor::fetch_sensors();
 		$temp = $humid = $wind = $rain = false;
 		foreach ( $sensors as $sensor ) {
@@ -213,6 +214,102 @@ class Sensor {
 		return $data;
 	}
 
+	static function json_sensors() { 
+		$sensors = array();
+		$sql   = 'SELECT `id`, `name`, `team`, `type`, HEX( `color` ) AS `color`, `battery` '
+				.'FROM `wr_sensors` '
+				.'ORDER BY `team`, `name` ASC';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
+		while( $row = $res->fetch_object() ) {
+			$sensor = new stdClass;
+			$sensor->id    = intval( $row->id );
+			$sensor->name  = $row->name;
+			$sensor->team  = intval( $row->team );
+			$sensor->type  = intval( $row->type );
+			$sensor->color = $row->color;
+			$sensor->bat   = intval( $row->battery );
+			$sensors[]     = $sensor;
+		}
+		return '"sensors":' . json_encode( $sensors );
+	}
+	
+	static function json_temperature( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $daqys : 1 );
+ 		return '"temperature":' . Sensor::json_th( $days, 'wr_temperature' );
+	}
+	
+	static function json_humidity( $days = 1 ) { 
+		$days = ( is_numeric( $days ) ? $daqys : 1 );
+ 		return '"humidity":' . Sensor::json_th( $days, 'wr_humidity' );
+	}
+	
+	static function json_th( $days = 1, $tbl ) { 
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `' . $tbl . '` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `date`, `sensor_id` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = floatVal( $row->var );
+		}
+		
+		$sql   = 'SELECT `sensor_id`, '
+			. 'MAX( `value` ) AS `max`, '
+			. 'MIN( `value` ) AS `min` '
+			. 'FROM  `' . $tbl . '` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `sensor_id` '
+			. 'ORDER BY `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' . $sql );
+		while( $row = $res->fetch_object() ) {
+			$sensors['max'][$row->sensor_id] = floatVal( $row->max );
+			$sensors['min'][$row->sensor_id] = floatVal( $row->min );
+		}
+ 		return json_encode( $sensors );
+	}
+	
+	static function json_rain( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, '
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `wr_rain` '
+			. 'WHERE `time` > SUBTIME( NOW(), "' . $days . ' 1:0:0" ) '
+			. 'GROUP BY `sensor_id`, `date` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = intVal( $row->total );
+		}
+ 		return '"rain":' . json_encode( $sensors );
+	}
+	
+	static function JSON_wind( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `speed` ), 1 ) AS `speed`, ' 
+			. 'MAX( `gust` ) AS `gust`, `dir`, ' 
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `wr_wind` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `date`, `sensor_id` '
+			. 'ORDER BY `date` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' );
+		while( $row = $res->fetch_object() ) {
+			$obj   = new stdClass;
+			$obj->s = floatVal( $row->speed );
+			$obj->g = floatVal( $row->gust );
+			$obj->d = ( $row->dir == NULL ? $row->dir : intVal( $row->dir ) );
+			$sensors[$row->date][$row->sensor_id] = $obj;
+		}
+ 		return '"wind":' . json_encode( $sensors );
+	}
+
 	static function draw_sensors() { 
 		$sensors = Sensor::fetch_sensors();
 		foreach ( $sensors as $sensor ) {
@@ -275,6 +372,34 @@ if ( isset( $_REQUEST ) ) {
 		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ) )
 			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
 		exit;
+	} else if ( isset( $_REQUEST['sensors'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_sensors();
+		exit;
+	} else if ( isset( $_REQUEST['temperature'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_temperature( $_REQUEST['temperature'] );
+		exit;
+	} else if ( isset( $_REQUEST['humidity'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_humidity( $_REQUEST['humidity'] );
+		exit;
+	} else if ( isset( $_REQUEST['rain'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_rain( $_REQUEST['rain'] );
+		exit;
+	} else if ( isset( $_REQUEST['wind'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_wind( $_REQUEST['wind'] );
+		exit;
+	} else if ( isset( $_REQUEST['total'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo  Sensor::json_sensors() . ',' 
+			. Sensor::json_temperature( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_humidity( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_rain( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_wind( $_REQUEST['total'] );
+		exit;
 	}
 }
 
@@ -288,7 +413,7 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 	<meta charset="UTF-8"/>
 	<meta name="viewport" content="width=device-width, height=device-height, user-scalable=yes" />
 	
-	<title>Sensors</title>
+	<title>Weather</title>
 	<link rel="shortcut icon" href="icon.ico">
 	<link rel="icon" href="icon.ico">
 
@@ -312,14 +437,15 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 	</style>
 	<script>
 <?php readfile( 'sensors.js' ) ?>
-		window.onload = function() {
-			loadSensor( "/weather/?all=1" );
+window.onload = function() {
+	loadSensor( "/weather/?all=1" );
 <?php if ( !$isMobile ) { ?>
-			var tim1 = setInterval( function() {
-				loadSensor( "/weather/?all=1" );
-			}, 600000 );
+	var tim1 = setInterval( function() {
+		loadSensor( "/weather/?all=1" );
+	}, 600000 );
 <?php } ?>
-		}
+// 	test();
+}
 	</script>
 </head>
 
@@ -351,5 +477,6 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 Sensor::draw_sensors();
 ?>
 	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="display:block;">Update</a>
+	<div style="clear:all"></div>
 </body>
 </html>

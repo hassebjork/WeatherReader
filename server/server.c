@@ -95,7 +95,7 @@ int client_send( char * buffer ) {
 		return 1;
 	}
 	
-#if _DEBUG > 1
+#if _DEBUG > 2
 	fprintf( stderr, "client_send:%*s\"%s\" sent %d bytes to %s\n", 8, "", buffer, strlen( buffer ), inet_ntoa(server.sin_addr) );
 #endif
 	

@@ -80,7 +80,7 @@ unsigned char reverse_8bits( unsigned char n ) {
 }
 
 void parse_input( char *s ) {
-#if _DEBUG > 1
+#if _DEBUG > 2
 	fprintf( stderr, "parse_input:%8s\"%s\" scan %d bytes\n", "", s, strlen( s ) );
 #endif
 	if ( strncmp( s, "[", 1 ) == 0 )
