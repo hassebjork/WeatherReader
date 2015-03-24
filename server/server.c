@@ -45,7 +45,7 @@ void *client_thread() {
 	
 	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run ) {
 		buffer[rcount-1] = '\0';
-#if _DEBUG > 1
+#if _DEBUG > 2
 		fprintf( stderr, "client_thread:%*s\"%s\" recv %d bytes\n", 6, "", buffer, rcount - 1 );
 #endif
 		// Split multiple inputs

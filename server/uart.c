@@ -171,7 +171,6 @@ void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	
 	// Send data to parser thread and database
 	} else {
-		fprintf( stderr, "Parser " );
 		if ( ( rcount = write( pipeParser[1], s, rcount ) ) < 1 )
 			fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
 	}
