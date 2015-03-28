@@ -39,6 +39,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	
 	/* Default Values */
 	conf->run               = 1;
+	conf->daemon            = 0;
 	conf->sensorAutoAdd     = 1;
 	
 	conf->is_client         = '\0';

@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <stdlib.h>
 // #include <string.h>
-// #include <unistd.h>
+#include <unistd.h>
 #include "config.h"
 #include "parser.h"
 #include "sensor.h"
@@ -18,6 +18,7 @@ int pipeServer[2];
 int pipeParser[2];
 
 int main(int argc, char *argv[]);
+void usage( void );
 void signal_interrupt( int signum );
 void signal_alarm( void );
 

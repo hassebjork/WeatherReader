@@ -10,12 +10,59 @@ int SerDevNum;
 int main( int argc, char *argv[]) {
 	pthread_t threadParser, threadServer;
 	struct itimerval timer;
-	int    i;
+	int    i, opt, daemon = 0;
 	char **serName;
+	
+    while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
+        switch (opt) {
+        case 's':
+            daemon = 1;
+            break;
+		default:
+			usage();
+			break;
+		}
+	}
+	
+	if ( daemon ) {
+		pid_t     pid = 0;
+		FILE     *file_err, *file_out;
+		
+		pid = fork();					// http://www.thegeekstuff.com/2012/02/c-daemon-process/
+		if ( pid < 0 ) {
+			fprintf( stderr, "main: Failed to fork!\n" );
+			exit( 1 );
+		} else if ( pid > 0 ) {
+			exit( 0 );
+		}
+		
+		file_err = fopen( "/var/log/weather-reader.err", "a" );
+		if ( file_err ) {
+			fflush( stderr );
+			dup2( fileno( file_err ), STDERR_FILENO );
+			fclose( file_err );
+		} else {
+			fprintf( stderr, "Error opening /var/log/weather-reader.err\n" );
+		}
+		
+		file_out = fopen( "/var/log/weather-reader.log", "w" );
+		if ( file_out ) {
+			fflush( stdout );
+			dup2( fileno( file_out ), STDOUT_FILENO );
+			fclose( file_out );
+		} else {
+			fprintf( stderr, "Error opening /var/log/weather-reader.log\n" );
+		}
+		
+		umask( 0 );
+		chdir( "/" );
+	}
 	
 	// Read configuration file
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	
+	if ( daemon )
+		configFile.daemon = 1;
+
 	// Open pipes to communicate between uart-server, uart-parser & server-parser
 	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
 		fprintf( stderr, "ERROR in main: creating server pipe\n" );
@@ -23,7 +70,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
+	printf( "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
 #endif
 	
 	// Start client to send data to remote server
@@ -90,6 +137,13 @@ int main( int argc, char *argv[]) {
 
 	printf( "Program terminated successfully!\n" );
 	exit(EXIT_SUCCESS);
+}
+
+void usage( void ) {
+    fprintf( stderr,
+        "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
+        "Usage:\t[-s Run as a standard program, not in daemon mode\n\n" );
+    exit(1);
 }
 
 /**

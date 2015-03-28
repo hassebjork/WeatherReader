@@ -44,7 +44,7 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Uart thread #%d:%*sConnecting to %s\n", sDev->no, 15, "", sDev->name );
+	printf( "Uart thread #%d:%*sConnecting to %s\n", sDev->no, 15, "", sDev->name );
 #endif
 	
 	// Open device

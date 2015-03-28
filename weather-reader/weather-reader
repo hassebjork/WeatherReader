@@ -15,7 +15,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Weather reader store sensor data in a MySQL database"
 NAME=weather-reader
 DAEMON=/usr/bin/$NAME
-DAEMON_ARGS=""
+DAEMON_ARGS="-s"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

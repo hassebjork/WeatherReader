@@ -41,6 +41,7 @@
 
 typedef struct {
 	int   run;
+	int   daemon;
 	int   sensorAutoAdd;
 	
 	int   is_client;
