@@ -56,7 +56,7 @@ class Sensor {
 	}
 	
 	static function &fetch_all( $days = 1 ) { 
-		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = Sensor::fetch_sensors();
 		$temp = $humid = $wind = $rain = false;
 		foreach ( $sensors as $sensor ) {
@@ -234,12 +234,12 @@ class Sensor {
 	}
 	
 	static function json_temperature( $days = 1 ) {
-		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$days = ( is_numeric( $days ) ? $days : 1 );
  		return '"temperature":' . Sensor::json_th( $days, 'wr_temperature' );
 	}
 	
 	static function json_humidity( $days = 1 ) { 
-		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$days = ( is_numeric( $days ) ? $days : 1 );
  		return '"humidity":' . Sensor::json_th( $days, 'wr_humidity' );
 	}
 	
@@ -273,7 +273,7 @@ class Sensor {
 	}
 	
 	static function json_rain( $days = 1 ) {
-		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, '
 			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
@@ -289,7 +289,7 @@ class Sensor {
 	}
 	
 	static function JSON_wind( $days = 1 ) {
-		$days = ( is_numeric( $days ) ? $daqys : 1 );
+		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `speed` ), 1 ) AS `speed`, ' 
