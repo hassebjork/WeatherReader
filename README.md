@@ -47,10 +47,18 @@ arduino - Sketches for Arduinos, source code and compiled hex files
 server - Source code for the server program communicating with the 
         Arduinos. It will be run on a Raspberry Pi with Raspian linux. 
         Configuration is done in the file /etc/weather-reader.conf
+        
         Build the source files like this:
           $ sudo apt-get install libmysqlclient-dev
           $ make
+          
+        Installation of files:
           $ sudo make install
+        
+        Setup the database and mode of operation in the config file
+          $ sudo nano /etc/weather-reader.conf
+          
+        Run the program manually
           $ weather-reader
 
 weather-reader - Various files used by the server, for installation, 

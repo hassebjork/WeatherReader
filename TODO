@@ -1,9 +1,9 @@
 TODO
-- At startup, read current sensor data from database
+- At startup, read current temp/humidity data from database
 - Installation
-	- Create start scripts in /etc/init.d and links to /etc/rc.X
 	- Install database user
 	- Install apache/lighttpd configuration
+- Deb package
 
 Wish list
 
