@@ -44,7 +44,7 @@ void *uart_receive( void *ptr ) {
 	char  buffer[256];
 	
 #if _DEBUG > 0
-	printf( "Uart thread #%d:%*sConnecting to %s\n", sDev->no, 15, "", sDev->name );
+	fprintf( stderr, "Uart thread #%d:%*sConnecting to %s\n", sDev->no, 15, "", sDev->name );
 #endif
 	
 	// Open device
@@ -79,7 +79,7 @@ void *uart_receive( void *ptr ) {
 		uart_init( sDev );
 	}
 	
-	printf( "Uart thread #%d:%*s\"%s\" found on %s\n", sDev->no, 15, "", SERIAL_TYPES[sDev->type], sDev->name );
+	fprintf( stderr, "Uart thread #%d:%*s\"%s\" found on %s\n", sDev->no, 15, "", SERIAL_TYPES[sDev->type], sDev->name );
 	
 	// Read serial port loop
 	while ( configFile.run && sDev->active ) {

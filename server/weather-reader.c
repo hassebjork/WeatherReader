@@ -25,10 +25,11 @@ int main( int argc, char *argv[]) {
 	}
 	
 	if ( daemon ) {
-		pid_t     pid = 0;
-		FILE     *file_err, *file_out;
+		pid_t     sid, pid = 0;
+		FILE     *file_err;
 		
-		pid = fork();					// http://www.thegeekstuff.com/2012/02/c-daemon-process/
+		// Fork the daemon and close main program
+		pid = fork(); 		// http://www.thegeekstuff.com/2012/02/c-daemon-process/
 		if ( pid < 0 ) {
 			fprintf( stderr, "main: Failed to fork!\n" );
 			exit( 1 );
@@ -36,22 +37,19 @@ int main( int argc, char *argv[]) {
 			exit( 0 );
 		}
 		
+		// Redirect STDERR to file
 		file_err = fopen( "/var/log/weather-reader.err", "a" );
 		if ( file_err ) {
 			fflush( stderr );
 			dup2( fileno( file_err ), STDERR_FILENO );
 			fclose( file_err );
 		} else {
-			fprintf( stderr, "Error opening /var/log/weather-reader.err\n" );
+			fprintf( stderr, "Error opening /var/log/weather-reader.log\n" );
 		}
 		
-		file_out = fopen( "/var/log/weather-reader.log", "w" );
-		if ( file_out ) {
-			fflush( stdout );
-			dup2( fileno( file_out ), STDOUT_FILENO );
-			fclose( file_out );
-		} else {
-			fprintf( stderr, "Error opening /var/log/weather-reader.log\n" );
+		sid = setsid();
+		if ( sid < 0 ) {
+			fprintf( stderr, "main: Session id failed!" );
 		}
 		
 		umask( 0 );
@@ -70,7 +68,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	printf( "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
+	fprintf( stderr, "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
 #endif
 	
 	// Start client to send data to remote server
@@ -135,7 +133,7 @@ int main( int argc, char *argv[]) {
 		pthread_join( threadParser, NULL);
 	}
 
-	printf( "Program terminated successfully!\n" );
+	fprintf( stderr, "Program terminated successfully!\n" );
 	exit(EXIT_SUCCESS);
 }
 
@@ -152,9 +150,9 @@ void usage( void ) {
  */
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	printf( "\nCaught signal %d\n", signum );
+	fprintf( stderr, "\nCaught signal %d\n", signum );
 	if ( signum == 2 )
-		printf( "Program terminated by user!\n" );
+		fprintf( stderr, "Program terminated by user!\n" );
 	exit( EXIT_SUCCESS );
 }
 

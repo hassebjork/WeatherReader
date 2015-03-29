@@ -63,7 +63,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 		return( 1 );
 	}
 	
-	printf( "Configuration file:%*s%s\n", 11, "", inFname );
+	fprintf( stderr, "Configuration file:%*s%s\n", 11, "", inFname );
 	
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {

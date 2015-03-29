@@ -41,7 +41,7 @@ void *client_thread() {
 	char buffer[BUFF_SIZE], *s;
 	int  rcount;
 	
-	printf( "Client enabled:%*sUsing server %s:%d\n", 15, "", configFile.server, configFile.port );
+	fprintf( stderr, "Client enabled:%*sUsing server %s:%d\n", 15, "", configFile.server, configFile.port );
 	
 	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run ) {
 		buffer[rcount-1] = '\0';
@@ -109,7 +109,7 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
-	printf( "Server thread:%*sStarted on port %d\n", 16, "", configFile.port );
+	fprintf( stderr, "Server thread:%*sStarted on port %d\n", 16, "", configFile.port );
 		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );

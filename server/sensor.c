@@ -65,7 +65,7 @@ char sensorInit() {
 		sensorMysqlInit();
 		return sensorListInit();
 	}
-	printf( "WARNING: No database configured! Sending raw data to stdout only!\n" );
+	fprintf( stderr, "WARNING: No database configured! Sending raw data to stdout only!\n" );
 	return 0;
 }
 
@@ -86,7 +86,7 @@ void sensorMysqlInit() {
 		mysql_close( mysql );
 		configFile.mysql = !configFile.mysql;
 	} else {
-		printf( "Using MySQL database:%*smysql://%s/%s\n", 9, "", configFile.mysqlServer, configFile.mysqlDatabase );
+		fprintf( stderr, "Using MySQL database:%*smysql://%s/%s\n", 9, "", configFile.mysqlServer, configFile.mysqlDatabase );
 		
 		/* Create database tables, if not exits */
 		for ( i=0; CREATE_TABLE_MYSQL[i] != 0; i++ ) {
@@ -278,7 +278,7 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 
 char sensorTemperature( sensor *s, float value ) {
 #if _DEBUG > 2
-	printf( "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	if ( s->temperature == NULL ) {
@@ -309,7 +309,7 @@ char sensorTemperature( sensor *s, float value ) {
 
 char sensorHumidity( sensor *s, unsigned char value ) {
 #if _DEBUG > 2
-	printf( "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
@@ -342,7 +342,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 
 char sensorRain( sensor *s, float total ) {
 #if _DEBUG > 2
-	printf( "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
+	fprintf( stderr, "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
 	if ( s->rain == NULL ) {
@@ -417,7 +417,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	struct DataSample *data;
 	
 #if _DEBUG > 2
-	printf( "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
+	fprintf( stderr, "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
 #endif
 	// Initialize wind
 	if ( s->wind == NULL )
@@ -521,7 +521,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 
 char sensorSwitch( sensor *s, char value ) {
 #if _DEBUG > 2
-	printf( "sensorSwitch: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "sensorSwitch: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
