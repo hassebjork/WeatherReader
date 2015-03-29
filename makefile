@@ -6,4 +6,7 @@ server:
 arduino:
 	$(MAKE) -C arduino all
 
-.PHONY: server arduino
+install:
+	$(MAKE) -C server install
+	
+.PHONY: server arduino install
