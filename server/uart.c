@@ -98,7 +98,8 @@ void *uart_receive( void *ptr ) {
 	if ( sDev->head != NULL ) {
 		struct UARTQueueNode *data;
 		for( data = sDev->head; data != NULL; data = data->link ) {
-			free( sDev->head->s );
+			if ( sDev->head->s != NULL )
+				free( sDev->head->s );
 			free( sDev->head );
 			sDev->head = data->link;
 		}
