@@ -38,7 +38,7 @@ int main( int argc, char *argv[]) {
 		}
 		
 		// Redirect STDERR to file
-		file_err = fopen( "/var/log/weather-reader.err", "a" );
+		file_err = fopen( "/var/log/weather-reader.log", "a" );
 		if ( file_err ) {
 			fflush( stderr );
 			dup2( fileno( file_err ), STDERR_FILENO );
