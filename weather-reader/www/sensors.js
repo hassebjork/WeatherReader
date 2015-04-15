@@ -27,6 +27,8 @@ function updateSensors( sensors ) {
 			drawWind( sensors[sens] );
 		if ( sensors[sens].type & 32 )	// Rain
 			drawRain( sensors[sens] );
+// 		if ( sensors[sens].type & 1 )	// Temp
+// 			SVG.createGraph( sensors[sens], "t" );
 	}
 }
 function drawTemp( sensor ) {
@@ -35,21 +37,21 @@ function drawTemp( sensor ) {
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
 	if ( sensor.data.length < 4 ) {
-		$c(node,"t_cur").textContent = "---°C";
-		$c(node,"t_min").textContent = "---°C";
-		$c(node,"t_max").textContent = "---°C";
+		$c(node,"t_cur").textContent = "---°";
+		$c(node,"t_min").textContent = "---°";
+		$c(node,"t_max").textContent = "---°";
 		return;
 	}
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
-			$c(node,"t_cur").textContent = sensor.data[i].t + "°C";
+			$c(node,"t_cur").textContent = sensor.data[i].t + "°";
 			break;
 		}
 	}
 	if ( typeof sensor.min.t !== "undefined" )
-		$c(node,"t_min").textContent = sensor.min.t + "°C";
+		$c(node,"t_min").textContent = sensor.min.t + "°";
 	if ( typeof sensor.max.t !== "undefined" )
-		$c(node,"t_max").textContent = sensor.max.t + "°C";
+		$c(node,"t_max").textContent = sensor.max.t + "°";
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
 	t  = sensor.max.t - sensor.min.t;
@@ -72,18 +74,18 @@ function drawHumidity( sensor, node ) {
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"humi").style.visibility = "visible";
 	if ( sensor.data.length < 4 ) {
-		$c(node,"h_cur").textContent = "---%";
-		$c(node,"h_min").textContent = "---%";
-		$c(node,"h_max").textContent = "---%";
+		$c(node,"h_cur").textContent = "---";
+		$c(node,"h_min").textContent = "---";
+		$c(node,"h_max").textContent = "---";
 		return;
 	}
 	if ( typeof sensor.max.h !== "undefined" )
-		$c(node,"h_max").textContent = sensor.max.h + " %";
+		$c(node,"h_max").textContent = sensor.max.h + "";
 	if ( typeof sensor.min.h !== "undefined" )
-		$c(node,"h_min").textContent = sensor.min.h + " %";
+		$c(node,"h_min").textContent = sensor.min.h + "";
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].h !== "undefined" ) {
-			$c(node,"h_cur").textContent = sensor.data[i].h + " %";
+			$c(node,"h_cur").textContent = sensor.data[i].h + "%";
 			break;
 		}
 	}
@@ -115,7 +117,8 @@ function drawRain( sensor ) {
 		return;
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-	dy = ( sensor.max.r > 0 ? node.clientHeight / sensor.max.r * .8 : 1 );
+// 	dy = ( sensor.max.r > 0 ? node.clientHeight / sensor.max.r * .9 : 1 );
+	dy = node.clientHeight / 5;
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		if ( typeof sensor.data[i].r !== "undefined" ) {
 			x1 = Math.round( i*dx );
@@ -138,4 +141,48 @@ function $c( node, id ) {
 // Get by id
 function $i( id ) {
 	return document.getElementById( id );
+}
+
+// http://codereview.stackexchange.com/a/40324
+function test() {
+	var svg = new SVGGraph();
+	
+}
+
+/* Skicka först sensor objekten
+ * Skicka sensor data sorterat efter klockslag, senaste värdet först
+ * Sätt en variabel för "Senaste klockslag" på x-axeln
+ * Sätt en variabel för antal dagar som ska visas
+ */
+function SVGGraph( team, sensors ) {
+	
+	this.canvas = null;
+	
+	function createCanvas( w, h, id ) {
+		this.canvas = document.createElementNS( "http://www.w3.org/2000/svg", "svg" );
+		document.body.appendChild( canvas );
+		canvas.setAttribute( "id", id );
+		canvas.setAttribute( "width",  w + "px" );
+		canvas.setAttribute( "height", h + "px" );
+	}
+	function createGraph( sensor, property ) {
+		var max = Number.MIN_VALUE;
+		var min = Number.MAX_VALUE;
+		var dh, dx, dy, i;
+		for ( i = 0; i < sensor.data.length; i++ ) {
+			if ( max < sensor.data[i][property] )
+				max = sensor.data[i][property];
+			if ( min > sensor.data[i][property] )
+				min = sensor.data[i][property];
+		}
+	}
+	function createRect( x, y, w, h, fill, stroke ) {
+		var rect = document.createElementNS( "http://www.w3.org/2000/svg", "rect" );
+		rect.setAttribute( "x", x );
+		rect.setAttribute( "y", y );
+		rect.setAttribute( "width",  w );
+		rect.setAttribute( "height", h );
+		rect.setAttribute( "style", "fill:" + fill + ";stroke:" + stroke );
+		this.canvas.appendChild( rect );
+	}
 }
