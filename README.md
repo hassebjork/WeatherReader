@@ -41,25 +41,25 @@ arduino - Sketches for Arduinos, source code and compiled hex files
         
         Uploading pre compiled HEX files to an Arduino throug the
         USB-serial cable is done with avrdude:
-        `  $ avrdude -C/etc/avrdude.conf -v -patmega328p -carduino \  `
-        `      -P/dev/ttyUSB0 -b57600 -D -Uflash:w:WeatherReader.hex:i `
+          $ avrdude -C/etc/avrdude.conf -v -patmega328p -carduino \
+              -P/dev/ttyUSB0 -b57600 -D -Uflash:w:WeatherReader.hex:i
 
 server - Source code for the server program communicating with the 
         Arduinos. It will be run on a Raspberry Pi with Raspian linux. 
         Configuration is done in the file /etc/weather-reader.conf
         
         Build the source files like this:
-        `  $ sudo apt-get install libmysqlclient-dev  `
-        `  $ make                                     `
+          $ sudo apt-get install libmysqlclient-dev
+          $ make
           
         Installation of files:
-        `  $ sudo make install `
+          $ sudo make install
         
         Setup the database and mode of operation in the config file
-        `  $ sudo nano /etc/weather-reader.conf `
+          $ sudo nano /etc/weather-reader.conf
           
         Run the program manually
-        `  $ weather-reader `
+          $ weather-reader
 
 weather-reader - Various files used by the server, for installation, 
         configuration and setting up Apache2 or Lighthttpd servers.
@@ -103,19 +103,19 @@ The configuration file is first read starting some threads:
    SERVER - Recieves raw signals from multiple clients for parsing 
             and filtering
 
-1. Default: UART sends to PARSER wich stores in database
+a. Default: UART sends to PARSER wich stores in database
 ```
    +--------+      +--------+               +-------+
    |  UART  | -->  | PARSER | --[lo/net]--> | MySQL |
    +--------+      +--------+               +-------+
 ```
-2. Client-mode: UART sends to CLIENT wich over network sends to a server 
+b. Client-mode: UART sends to CLIENT wich over network sends to a server 
 ```
    +--------+      +--------+                +--------+
    |  UART  | -->  | CLIENT | --[network]--> | SERVER |
    +--------+      +--------+                +--------+
 ```
-3. Server-mode: UART and network SERVER sends to PARSER wich stores in database 
+c. Server-mode: UART and network SERVER sends to PARSER wich stores in database 
 ```
    +--------+      +--------+     +--------+
    |  UART  | -->  | PARSER | <-- | SERVER | <--[network]--
