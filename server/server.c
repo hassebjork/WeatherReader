@@ -67,9 +67,9 @@ void *client_thread() {
 }
 
 int client_send( char * buffer ) {
-	int  sockServer, n;
+	int  sockServer;
 	unsigned int length = sizeof( struct sockaddr_in );
-	struct sockaddr_in server, from;
+	struct sockaddr_in server;
 	struct hostent    *serv_host;
 	
 	// Create socket
