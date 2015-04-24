@@ -36,22 +36,30 @@ function drawTemp( sensor ) {
 	node = $i("sTemp" + sensor.id);
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
+	
+	// Check minimum values
 	if ( sensor.data.length < 4 ) {
 		$c(node,"t_cur").textContent = "---°";
 		$c(node,"t_min").textContent = "---°";
 		$c(node,"t_max").textContent = "---°";
 		return;
 	}
+	
+	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
 			$c(node,"t_cur").textContent = sensor.data[i].t + "°";
 			break;
 		}
 	}
+	
+	// Set Min/Max
 	if ( typeof sensor.min.t !== "undefined" )
 		$c(node,"t_min").textContent = sensor.min.t + "°";
 	if ( typeof sensor.max.t !== "undefined" )
 		$c(node,"t_max").textContent = sensor.max.t + "°";
+	
+	// Draw graph
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
 	t  = sensor.max.t - sensor.min.t;

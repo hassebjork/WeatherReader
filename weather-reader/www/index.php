@@ -23,7 +23,6 @@ class Sensor {
 	public  $name;
 	public  $team;
 	public  $bat;
-	public  $color;
 	public  $type;
 	public  $data = array();
 	
@@ -35,7 +34,7 @@ class Sensor {
 
 	static function &fetch_sensors() { 
 		$sensors = array();
-		$sql   = 'SELECT `id`, `name`, `team`, `type`, `color`, `battery` '
+		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
 				.'ORDER BY `team`, `name`';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
@@ -45,7 +44,6 @@ class Sensor {
 			$sensor->name  = $row['name'];
 			$sensor->team  = intval( $row['team'] );
 			$sensor->type  = intval( $row['type'] );
-			$sensor->color = dechex( $row['color'] );
 			$sensor->bat   = intval( $row['battery'] );
 			$sensors[$row['id']] = $sensor;
 		}
@@ -213,7 +211,7 @@ class Sensor {
 
 	static function json_sensors() { 
 		$sensors = array();
-		$sql   = 'SELECT `id`, `name`, `team`, `type`, HEX( `color` ) AS `color`, `battery` '
+		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
 				.'ORDER BY `team`, `name` ASC';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
@@ -223,7 +221,6 @@ class Sensor {
 			$sensor->name  = $row->name;
 			$sensor->team  = intval( $row->team );
 			$sensor->type  = intval( $row->type );
-			$sensor->color = $row->color;
 			$sensor->bat   = intval( $row->battery );
 			$sensors[]     = $sensor;
 		}
@@ -323,11 +320,11 @@ class Sensor {
 				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
 				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title" style="fill:#' . $this->color . '"></text>' . "\n\t" . $tabs
+				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
 				.'<g class="graph">' . "\n\t\t" . $tabs
-				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" style="fill:#' . $this->color . ';opacity:.25" />' . "\n\t" . $tabs
+				.'<polygon class="t_graph team' . $this->team . '" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
 				.'</g>' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
+				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="temp">' . "\n\t\t" . $tabs
 				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
 				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
@@ -348,22 +345,22 @@ class Sensor {
 				.'<text x="50%" y="25%" class="windSpd"></text>' . "\n\t" . $tabs
 				.'<text x="50%" y="50%" class="windDir"></text>' . "\n\t" . $tabs
 				.'<text x="50%" y="75%" class="windGst"></text>' . "\n\t" . $tabs
-				.'<use x="10" y="10" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
+				.'<use x="10" y="10" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'</svg>' . "\n" . $tabs;
 		if ( $this->type & RAINTOTAL )
 			echo $tabs
 				.'<svg id="sRain' . $this->id .'" width="'.$width.'px" height="'.$height.'px" '
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
 				.'<use xlink:href="#svgBg" class="rainBg" />' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
+				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="rainRulers">' . "\n\t\t" . $tabs
 				.'<path d="M0 '.$height*0.19.' L'.$width.' '.$height*0.19.'"/>' . "\n\t\t" . $tabs
 				.'<path d="M0 '.$height*0.38.' L'.$width.' '.$height*0.38.'"/>' . "\n\t\t" . $tabs
 				.'<path d="M0 '.$height*0.57.' L'.$width.' '.$height*0.57.'"/>' . "\n\t\t" . $tabs
 				.'<path d="M0 '.$height*0.76.' L'.$width.' '.$height*0.76.'"/>' . "\n\t" . $tabs
 				.'</g>' . "\n\t" . $tabs
-				.'<polygon class="r_graph" points="0,'.($height-1).' '.$width.','.($height-1).' '.$width.','.$height.' 0,'.$height.'" style="fill:#0047e9;opacity:.35" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title" style="fill:#' . $this->color . '"></text>' . "\n\t" . $tabs
+				.'<polygon class="r_graph" points="0,'.($height-1).' '.$width.','.($height-1).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
+				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
 				.'<text x="49%" y="48" class="r_cur"></text>' . "\n\t" . $tabs
 				.'</svg>' . "\n" . $tabs;
 	}
@@ -423,29 +420,44 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 	<style type="text/css" media="all">
 		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
 		text.title { font-size: 24px; text-anchor: middle; }
+		use.batt { opacity: .5; visibility: hidden; }
 		
+		/* Wind */
 		text.windSpd { font-size: 18px; fill: #34637b; text-anchor: middle; }
 		text.windGst { font-size: 18px; fill: #34637b; text-anchor: middle; }
 		text.windDir { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width; 5px; }
+		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
 		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
+		/* Temperature */
 		text.t_cur { font-weight: bold; font-size: 20px; text-anchor: end; fill: #666666; }
 		text.t_min { font-weight: bold; text-anchor: end; fill: #6060ff; }
 		text.t_max { font-weight: bold; text-anchor: end; fill: #ff6060; }
+		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
+		polygon.t_graph { opacity: .25; }
+		
+		/* Humidity */
 		text.h_cur { font-size: 12px; font-weight: bold; text-anchor: start; fill: #666666; }
 		text.h_min { font-size: 8px; text-anchor: start; fill: #6060ff; }
 		text.h_max { font-size: 8px; text-anchor: start; fill: #ff6060; }
-		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
 		
-		text.r_cur { font-size: 18px; text-anchor: middle; fill: #666666; }
-		.rainRulers{ opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
-		use.rainBg { fill: url(#gradBg); stroke:#2e8abb }
+		/* Rain */
+		text.r_cur   { font-size: 18px; text-anchor: middle; fill: #666666; }
+		g.rainRulers { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
+		polygon.r_graph { fill:#0047e9; opacity: .35; }
 		
+		/* Backgrounds an common colors */
+		.team1    { fill: #5555cd; }
+		.team2    { fill: #5ba162; }
+		.team3    { fill: #b567d9; }
+		.team4    { fill: #cf696a; }
+		.team5    { fill: #606060; }
 		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
 		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: 1; }
 		stop.wArr2 { stop-color: #fff; stop-opacity: 1; }
+		
 	</style>
 	<script>
 <?php readfile( 'sensors.js' ) ?>
