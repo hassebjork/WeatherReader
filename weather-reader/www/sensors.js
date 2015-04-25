@@ -78,7 +78,7 @@ function drawTemp( sensor ) {
 function drawHumidity( sensor, node ) {
 	var i, node;
 	node = $i("sTemp" + sensor.id);
-	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
+	checkBatt( node, sensor.bat == 0 );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"humi").style.visibility = "visible";
 	if ( sensor.data.length < 4 ) {
@@ -100,13 +100,13 @@ function drawHumidity( sensor, node ) {
 }
 function drawWind( sensor ) {
 	var i, wind, node, a;
-	node = $i("sWind" + sensor.id);
-	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
+	node = $i("defsSVG");
+	checkBatt( node, sensor.bat == 0 );
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].w !== "undefined" ) {
 			a = $c(node,"windArr");
 			a.transform.baseVal.getItem(0).setRotate(sensor.data[i].w.d, a.x.baseVal.value, a.y.baseVal.value);
-			$c(node,"windSpd").textContent = "Speed: " + sensor.data[i].w.s + " m/s";
+			$c(node,"windSpd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
 			$c(node,"windDir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
 			$c(node,"windGst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
 			break;
@@ -114,19 +114,20 @@ function drawWind( sensor ) {
 	}
 }
 function drawRain( sensor ) {
-//  	debugger;
 	var y, x1, x2, path = "";
-	var node = $i("sRain" + sensor.id);
-	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
-	$c(node,"title").textContent = sensor.name;
+	var node = $i("defsSVG");
+	checkBatt( node, sensor.bat == 0 );
+	
+	// Set value
 	if ( typeof sensor.current.r !== "undefined" )
-		$c(node,"r_cur").textContent = "24h: " + sensor.current.r + " mm";
+		$c(node,"r_cur").textContent = "Rain: " + sensor.current.r + " mm";
+	
+	// Draw graph
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-// 	dy = ( sensor.max.r > 0 ? node.clientHeight / sensor.max.r * .9 : 1 );
-	dy = node.clientHeight / 5;
+	dy = node.clientHeight / 10;
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		if ( typeof sensor.data[i].r !== "undefined" ) {
 			x1 = Math.round( i*dx );
@@ -139,8 +140,12 @@ function drawRain( sensor ) {
 		}
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
-// 	console.log( sensor.id + ": " + path + "\n" );
 	$c(node,"r_graph").setAttribute("points", path);
+// 	debugger;
+// 	console.log( sensor.id + ": " + path + "\n" );
+}
+function checkBatt( node, value ) {
+	$c(node,"batt").style.visibility = ( value ? "visible" : "hidden" );
 }
 // Get by class name
 function $c( node, id ) {

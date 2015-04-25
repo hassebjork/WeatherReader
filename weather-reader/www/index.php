@@ -315,33 +315,6 @@ class Sensor {
 	
 	function svg_head( $tabs = "\t" ) {
 		$width = 150; $height = 75;
-		if ( $this->type & WINDDIRECTION )
-			echo $tabs
-				.'<svg id="sWind' . $this->id .'" width="'.$width.'px" height="'.$width.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" class="windBg" />' . "\n\t" . $tabs
-				.'<use x="'.($width/2).'" y="'.($width/2).'" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>' . "\n\t" . $tabs
-				.'<text x="50%" y="25%" class="windSpd"></text>' . "\n\t" . $tabs
-				.'<text x="50%" y="50%" class="windDir"></text>' . "\n\t" . $tabs
-				.'<text x="50%" y="75%" class="windGst"></text>' . "\n\t" . $tabs
-				.'<use x="10" y="10" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
-				.'</svg>' . "\n" . $tabs;
-		if ( $this->type & RAINTOTAL )
-			echo $tabs
-				.'<svg id="sRain' . $this->id .'" width="'.$width.'px" height="'.$height.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" class="rainBg" />' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
-				.'<g class="rainRulers">' . "\n\t\t" . $tabs
-				.'<path d="M0 '.$height*0.19.' L'.$width.' '.$height*0.19.'"/>' . "\n\t\t" . $tabs
-				.'<path d="M0 '.$height*0.38.' L'.$width.' '.$height*0.38.'"/>' . "\n\t\t" . $tabs
-				.'<path d="M0 '.$height*0.57.' L'.$width.' '.$height*0.57.'"/>' . "\n\t\t" . $tabs
-				.'<path d="M0 '.$height*0.76.' L'.$width.' '.$height*0.76.'"/>' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<polygon class="r_graph" points="0,'.($height-1).' '.$width.','.($height-1).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
-				.'<text x="49%" y="48" class="r_cur"></text>' . "\n\t" . $tabs
-				.'</svg>' . "\n" . $tabs;
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
 			echo $tabs
 				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
@@ -424,9 +397,9 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		svg      { float: left; }
 		
 		/* Wind */
-		text.windSpd { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		text.windGst { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		text.windDir { font-size: 18px; fill: #34637b; text-anchor: middle; }
+		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.windGst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.windDir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
 		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
 		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
@@ -443,10 +416,10 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		text.h_max { font-size: 8px; text-anchor: start; fill: #ff6060; }
 		
 		/* Rain */
-		text.r_cur   { font-size: 18px; text-anchor: middle; fill: #666666; }
-		g.rainRulers { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
+		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		polygon.r_graph { fill:#0047e9; opacity: 1; }
 		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
-		polygon.r_graph { fill:#0047e9; opacity: .35; }
 		
 		/* Backgrounds an common colors */
 		.team1    { fill: #5555cd; }
@@ -457,8 +430,8 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		.team6    { fill: #606060; }
 		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
 		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
-		stop.wArr1 { stop-color: #2e8abb; stop-opacity: 1; }
-		stop.wArr2 { stop-color: #fff; stop-opacity: 1; }
+		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
+		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
 		
 	</style>
 	<script>
@@ -475,8 +448,8 @@ window.onload = function() {
 	</script>
 </head>
 
-<body>
-	<svg id="defsSVG" class="chart" width="0" height="0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="visibility:hidden;">
+<body><?php $width = 150; $height = 150; ?>
+	<svg id="defsSVG" class="chart" width="<?= $width ?>" height="<?= $height ?>" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<defs>
 			<linearGradient id="windGradArrow" x1="0%" y1="0%"   x2="0%" y2="100%">
 				<stop offset="0%" class="wArr1" />
@@ -498,6 +471,25 @@ window.onload = function() {
 				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" transform="rotate(0)" />
 			</g>
 		</defs>
+		<use xlink:href="#svgBg" class="windBg" />
+		<g class="r_ruler">
+<?php
+// Calculations based on sensors.js function drawRain
+$dy = $height / 10;
+$dh = $height * .95;
+for ( $i = 1; $i <= 10; $i++ ) {
+	echo "\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
+		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
+}
+?>
+			<polygon class="r_graph" points="0,<?= intval($height/2) ?> <?= $width ?>,<?= intval($height/2) ?> <?= $width ?>,<?= $height-1 ?> 0,<?= $height-1 ?>" />
+		</g>
+		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
+		<text x="50%" y="30" class="windSpd"></text>
+		<text x="50%" y="50" class="windDir"></text>
+		<text x="50%" y="70" class="windGst"></text>
+		<text x="50%" y="100" class="r_cur"></text>
+		<use x="10" y="10" class="batt" xlink:href="#sBat" />
 	</svg>
 <?php
 Sensor::draw_sensors();
