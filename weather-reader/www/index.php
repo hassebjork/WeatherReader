@@ -315,27 +315,6 @@ class Sensor {
 	
 	function svg_head( $tabs = "\t" ) {
 		$width = 150; $height = 75;
-		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
-			echo $tabs
-				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
-				.'<g class="graph">' . "\n\t\t" . $tabs
-				.'<polygon class="t_graph team' . $this->team . '" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
-				.'<g class="temp">' . "\n\t\t" . $tabs
-				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="50" class="t_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<g class="humi" style="visibility: hidden">' . "\n\t\t" . $tabs
-				.'<text x="50%" y="38" class="h_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n" . $tabs
-				.'</svg>' . "\n";
 		if ( $this->type & WINDDIRECTION )
 			echo $tabs
 				.'<svg id="sWind' . $this->id .'" width="'.$width.'px" height="'.$width.'px" '
@@ -363,6 +342,27 @@ class Sensor {
 				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
 				.'<text x="49%" y="48" class="r_cur"></text>' . "\n\t" . $tabs
 				.'</svg>' . "\n" . $tabs;
+		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
+			echo $tabs
+				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
+				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
+				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
+				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
+				.'<g class="graph">' . "\n\t\t" . $tabs
+				.'<polygon class="t_graph team' . $this->team . '" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
+				.'</g>' . "\n\t" . $tabs
+				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
+				.'<g class="temp">' . "\n\t\t" . $tabs
+				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
+				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
+				.'<text x="95%" y="50" class="t_min"></text>' . "\n\t" . $tabs
+				.'</g>' . "\n\t" . $tabs
+				.'<g class="humi" style="visibility: hidden">' . "\n\t\t" . $tabs
+				.'<text x="50%" y="38" class="h_cur"></text>' . "\n\t\t" . $tabs
+				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
+				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
+				.'</g>' . "\n" . $tabs
+				.'</svg>' . "\n";
 	}
 }
 
@@ -421,6 +421,7 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
 		text.title { font-size: 24px; text-anchor: middle; }
 		use.batt { opacity: .5; visibility: hidden; }
+		svg      { float: left; }
 		
 		/* Wind */
 		text.windSpd { font-size: 18px; fill: #34637b; text-anchor: middle; }
@@ -449,10 +450,11 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		
 		/* Backgrounds an common colors */
 		.team1    { fill: #5555cd; }
-		.team2    { fill: #5ba162; }
-		.team3    { fill: #b567d9; }
-		.team4    { fill: #cf696a; }
-		.team5    { fill: #606060; }
+		.team2    { fill: #5555cd; }
+		.team3    { fill: #5ba162; }
+		.team4    { fill: #b567d9; }
+		.team5    { fill: #cf696a; }
+		.team6    { fill: #606060; }
 		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
 		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: 1; }
@@ -500,7 +502,7 @@ window.onload = function() {
 <?php
 Sensor::draw_sensors();
 ?>
+	<div style="clear:both"></div>
 	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="display:block;">Update</a>
-	<div style="clear:all"></div>
 </body>
 </html>
