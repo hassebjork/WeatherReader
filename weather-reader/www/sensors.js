@@ -34,6 +34,8 @@ function updateSensors( sensors ) {
 function drawTemp( sensor ) {
 	var i, t, dh, dx, dy, path = "", node;
 	node = $i("sTemp" + sensor.id);
+	if ( node == null )
+		return;
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
 	
@@ -78,6 +80,8 @@ function drawTemp( sensor ) {
 function drawHumidity( sensor, node ) {
 	var i, node;
 	node = $i("sTemp" + sensor.id);
+	if ( node == null )
+		return;
 	checkBatt( node, sensor.bat == 0 );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"humi").style.visibility = "visible";
@@ -88,12 +92,12 @@ function drawHumidity( sensor, node ) {
 		return;
 	}
 	if ( typeof sensor.max.h !== "undefined" )
-		$c(node,"h_max").textContent = sensor.max.h + "";
+		$c(node,"h_max").textContent = parseInt( sensor.max.h ) + "";
 	if ( typeof sensor.min.h !== "undefined" )
-		$c(node,"h_min").textContent = sensor.min.h + "";
+		$c(node,"h_min").textContent = parseInt( sensor.min.h ) + "";
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].h !== "undefined" ) {
-			$c(node,"h_cur").textContent = sensor.data[i].h + "%";
+			$c(node,"h_cur").textContent = parseInt( sensor.data[i].h ) + "%";
 			break;
 		}
 	}
@@ -101,6 +105,8 @@ function drawHumidity( sensor, node ) {
 function drawWind( sensor ) {
 	var i, wind, node, a;
 	node = $i("defsSVG");
+	if ( node == null )
+		return;
 	checkBatt( node, sensor.bat == 0 );
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].w !== "undefined" ) {
@@ -116,6 +122,8 @@ function drawWind( sensor ) {
 function drawRain( sensor ) {
 	var y, x1, x2, path = "";
 	var node = $i("defsSVG");
+	if ( node == null )
+		return;
 	checkBatt( node, sensor.bat == 0 );
 	
 	// Set value

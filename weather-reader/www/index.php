@@ -36,6 +36,7 @@ class Sensor {
 		$sensors = array();
 		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
+				.'WHERE `team` > 0 '
 				.'ORDER BY `team`, `name`';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
 		while( $row = $res->fetch_array() ) {
@@ -190,7 +191,7 @@ class Sensor {
 				$sensor = $id;
 				$start  = $row->total;
 				$last   = -1;
-				$sensors[$id]->max->r = 0;
+				@$sensors[$id]->max->r = 0;
 			}
 			
 			if ( $last > -1 ) { //&& $row->total > $last ) {
@@ -204,7 +205,7 @@ class Sensor {
 					$sensors[$id]->max->r = $data[$id][$row->date]->r;
 			}
 			$last = $row->total;
-			$sensors[$id]->current->r  = $row->total - $start;
+			@$sensors[$id]->current->r  = $row->total - $start;
 		}
 		return $data;
 	}
@@ -317,12 +318,12 @@ class Sensor {
 		$width = 150; $height = 75;
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
 			echo $tabs
-				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
+				.'<svg id="sTemp' . $this->id .'" class="c_head team' . $this->team . '" width="'.$width.'px" height="'.$height.'px" '
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
 				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title team' . $this->team . '"></text>' . "\n\t" . $tabs
+				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
 				.'<g class="graph">' . "\n\t\t" . $tabs
-				.'<polygon class="t_graph team' . $this->team . '" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
+				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
 				.'</g>' . "\n\t" . $tabs
 				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="temp">' . "\n\t\t" . $tabs
@@ -380,7 +381,6 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
 ?>
 <!DOCTYPE html>
-
 <html>
 <head>
 	<meta charset="UTF-8"/>
