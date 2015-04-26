@@ -32,7 +32,7 @@ function updateSensors( sensors ) {
 	}
 }
 function drawTemp( sensor ) {
-	var i, t, dh, dx, dy, path = "", node;
+	var i, t, x, dh, dx, dy, path = "", node, ruler;
 	node = $i("sTemp" + sensor.id);
 	if ( node == null )
 		return;
@@ -64,14 +64,24 @@ function drawTemp( sensor ) {
 	// Draw graph
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
+	ruler = $c(node,"t_ruler");
+	while( ruler.firstChild )
+		ruler.removeChild(ruler.firstChild);
 	t  = sensor.max.t - sensor.min.t;
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = ( t == 0 ? 1 : node.clientHeight / t * .9 );
 	for ( i = 0; i < sensor.data.length; i++ ) {
+		x = Math.round(i*dx);
 		if ( typeof sensor.data[i].t !== "undefined" ) {
 			t = Math.round( dh - ( sensor.data[i].t - sensor.min.t ) * dy );
-			path += Math.round(i*dx) + "," + t + " ";
+			path += x + "," + t + " ";
+		}
+		if ( typeof sensor.data[i].d !== "undefined" ) {
+			hr = sensor.data[i].d.substring( sensor.data[i].d.indexOf( ' ' ) + 1 );
+			if ( hr % 3 == 0 ) {
+				ruler.appendChild( createText( x, node.clientHeight-2, hr ) );
+			}
 		}
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
@@ -151,6 +161,21 @@ function drawRain( sensor ) {
 	$c(node,"r_graph").setAttribute("points", path);
 // 	debugger;
 // 	console.log( sensor.id + ": " + path + "\n" );
+}
+function createLine( x1, x2, y1, y2 ) {
+	var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+	line.setAttribute("x1",x1);
+	line.setAttribute("x2",x2);
+	line.setAttribute("y1",y1);
+	line.setAttribute("y2",y2);
+	return line;
+}
+function createText( x, y, txt ) {
+	var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+	text.setAttribute("x",x);
+	text.setAttribute("y",y);
+	text.appendChild(document.createTextNode(txt));
+	return 	text;
 }
 function checkBatt( node, value ) {
 	$c(node,"batt").style.visibility = ( value ? "visible" : "hidden" );

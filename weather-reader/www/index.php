@@ -322,9 +322,8 @@ class Sensor {
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
 				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
 				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
-				.'<g class="graph">' . "\n\t\t" . $tabs
+				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
 				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
 				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="temp">' . "\n\t\t" . $tabs
 				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
@@ -393,8 +392,9 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 	<style type="text/css" media="all">
 		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
 		text.title { font-size: 24px; text-anchor: middle; }
-		use.batt { opacity: .5; visibility: hidden; }
-		svg      { float: left; }
+		use.batt   { opacity: .5; visibility: hidden; }
+		svg        { float: left; }
+		text       { stroke-width: 0; }
 		
 		/* Wind */
 		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
@@ -409,6 +409,7 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		text.t_max { font-weight: bold; text-anchor: end; fill: #ff6060; }
 		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
 		polygon.t_graph { opacity: .25; }
+		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
 		
 		/* Humidity */
 		text.h_cur { font-size: 12px; font-weight: bold; text-anchor: start; fill: #666666; }
@@ -422,12 +423,12 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
 		/* Backgrounds an common colors */
-		.team1    { fill: #5555cd; }
-		.team2    { fill: #5555cd; }
-		.team3    { fill: #5ba162; }
-		.team4    { fill: #b567d9; }
-		.team5    { fill: #cf696a; }
-		.team6    { fill: #606060; }
+		.team1    { fill: #5555cd; stroke: #5555cd; }
+		.team2    { fill: #5555cd; stroke: #5555cd; }
+		.team3    { fill: #5ba162; stroke: #5ba162; }
+		.team4    { fill: #b567d9; stroke: #b567d9; }
+		.team5    { fill: #cf696a; stroke: #cf696a; }
+		.team6    { fill: #606060; stroke: #606060; }
 		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
 		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
