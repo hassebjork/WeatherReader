@@ -130,7 +130,7 @@ function drawWind( sensor ) {
 	}
 }
 function drawRain( sensor ) {
-	var y, x1, x2, path = "";
+	var y, x1, x2, ruler, hr, path = "";
 	var node = $i("defsSVG");
 	if ( node == null )
 		return;
@@ -140,10 +140,14 @@ function drawRain( sensor ) {
 	if ( typeof sensor.current.r !== "undefined" )
 		$c(node,"r_cur").textContent = "Rain: " + sensor.current.r + " mm";
 	
+	ruler = $c(node,"r_ruler_txt");
+	while( ruler.firstChild )
+		ruler.removeChild(ruler.firstChild);
+
 	// Draw graph
 	if ( sensor.data.length < 2 )	// Division by 0
 		return;
-	dh = node.clientHeight * .95;
+	dh = node.clientHeight - 10;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = node.clientHeight / 10;
 	for ( i = 0; i < sensor.data.length; i++ ) {
@@ -155,6 +159,12 @@ function drawRain( sensor ) {
 				  + x1 + "," + y + ' '
 				  + x2 + "," + y + ' '
 				  + x2 + "," + node.clientHeight + ' ';
+		}
+		if ( typeof sensor.data[i].d !== "undefined" ) {
+			hr = sensor.data[i].d.substring( sensor.data[i].d.indexOf( ' ' ) + 1 );
+			if ( hr % 3 == 0 ) {
+				ruler.appendChild( createText( parseInt( x1 + (x2-x1) / 2), node.clientHeight-2, hr ) );
+			}
 		}
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;

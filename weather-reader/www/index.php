@@ -322,7 +322,6 @@ class Sensor {
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
 				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
 				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
-				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
 				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
 				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="temp">' . "\n\t\t" . $tabs
@@ -335,6 +334,7 @@ class Sensor {
 				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
 				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
 				.'</g>' . "\n" . $tabs
+				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
 				.'</svg>' . "\n";
 	}
 }
@@ -394,7 +394,6 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		text.title { font-size: 24px; text-anchor: middle; }
 		use.batt   { opacity: .5; visibility: hidden; }
 		svg        { float: left; }
-		text       { stroke-width: 0; }
 		
 		/* Wind */
 		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
@@ -419,6 +418,7 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		/* Rain */
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
 		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
 		polygon.r_graph { fill:#0047e9; opacity: 1; }
 		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
@@ -434,6 +434,7 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
 		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
 		
+		text       { stroke-width: 0; }
 	</style>
 	<script>
 <?php readfile( 'sensors.js' ) ?>
@@ -477,7 +478,7 @@ window.onload = function() {
 <?php
 // Calculations based on sensors.js function drawRain
 $dy = $height / 10;
-$dh = $height * .95;
+$dh = $height - 10;
 for ( $i = 1; $i <= 10; $i++ ) {
 	echo "\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
 		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
@@ -485,6 +486,7 @@ for ( $i = 1; $i <= 10; $i++ ) {
 ?>
 			<polygon class="r_graph" points="0,<?= intval($height/2) ?> <?= $width ?>,<?= intval($height/2) ?> <?= $width ?>,<?= $height-1 ?> 0,<?= $height-1 ?>" />
 		</g>
+		<g class="r_ruler_txt"></g>
 		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
 		<text x="50%" y="30" class="windSpd"></text>
 		<text x="50%" y="50" class="windDir"></text>
