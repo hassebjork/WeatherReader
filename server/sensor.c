@@ -470,6 +470,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	for( data = s->wind->head; data != NULL; data = data->link ) {
 		samples++;
 		speed += data->speed;
+		// Quick fix: Sometimes I get wrong readings of wind gust 37 or 38 m/s
 		if ( data->gust > gust && gust < 37.0 && gust > 38.0 )
 			gust = data->gust;
 #if _DEBUG > 3
@@ -499,7 +500,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 						s->rowid, speed, gust, dir);
 		
 	// Update latest data to database
-	} else if ( speed < 0.1 ) {
+	} else if ( speed < 0.1 && gust < 0.1 ) {	// Without wind direction is invalid
 		sprintf( query, "UPDATE wr_wind SET speed=0,gust=%.1f,dir=NULL,"
 						"samples=%d, time=NOW() WHERE id=%d", 
 						gust, samples, s->wind->rowid );
