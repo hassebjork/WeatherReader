@@ -377,7 +377,6 @@ if ( isset( $_REQUEST ) ) {
 }
 
 header( 'Content-Type: text/html; charset=UTF-8' );
-$isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
 ?>
 <!DOCTYPE html>
 <html>
@@ -437,16 +436,15 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 		text       { stroke-width: 0; }
 	</style>
 	<script>
-<?php readfile( 'sensors.js' ) ?>
-window.onload = function() {
+var tim1;
+function doLoad() {
 	loadSensor( "/weather/?all=1" );
-<?php if ( !$isMobile ) { ?>
-	var tim1 = setInterval( function() {
-		loadSensor( "/weather/?all=1" );
-	}, 600000 );
-<?php } ?>
-// 	test();
+	tim1 = setInterval( function() { loadSensor( "/weather/?all=1" ); }, 600000 );
 }
+<?php readfile( 'sensors.js' ) ?>
+window.onload  = doLoad;
+window.onfocus = doLoad;
+window.onblur  = function() { clearInterval(tim1) };
 	</script>
 </head>
 
