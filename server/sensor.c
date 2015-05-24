@@ -470,7 +470,8 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	for( data = s->wind->head; data != NULL; data = data->link ) {
 		samples++;
 		speed += data->speed;
-		if ( data->gust > gust )
+		// Quick fix: Sometimes I get wrong readings of wind gust 37 or 38 m/s
+		if ( data->gust > gust && ( data->gust < 37.0 || data->gust > 38.0 ) )
 			gust = data->gust;
 #if _DEBUG > 3
 		fprintf( stderr, "\t%*d.\t[%d]\tspeed:%0.1f\tgust:%0.1f\tdir:%d\tlink:[%d]\n", 5, samples, data, data->speed, data->gust, data->dir, data->link );
