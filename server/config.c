@@ -39,39 +39,38 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	
 	/* Default Values */
 	conf->run               = 1;
+	conf->daemon            = 0;
 	conf->sensorAutoAdd     = 1;
 	
-	conf->is_client         = 0;
-	conf->serverAddress[0]  = 0;
-	conf->serverPort        = 9876;
+	conf->is_client         = '\0';
+	conf->server[0]         = 0;
+	conf->port              = 0;
 	conf->is_server         = 0;
-	conf->listenPort        = 0;
 
-	conf->mysqlServer[0]    = 0;
-	conf->mysqlUser[0]      = 0;
-	conf->mysqlPass[0]      = 0;
+	conf->mysqlServer[0]    = '\0';
+	conf->mysqlUser[0]      = '\0';
+	conf->mysqlPass[0]      = '\0';
 	conf->mysqlPort         = 3306;
-	conf->mysqlDatabase[0]  = 0;
+	conf->mysqlDatabase[0]  = '\0';
 	
 	conf->saveTemperatureTime = 60;
 	conf->saveHumidityTime    = 60;
 	conf->saveRainTime        = 60;
-	conf->sampleWindTime      = 60;
+	conf->sampleWindTime      = 10;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
 		fprintf( stderr, LANG_CONF_OPEN_ERR, inFname );
 		return( 1 );
 	}
 	
-	printf( "Configuration file: %s\n", inFname );
+	fprintf( stderr, "Configuration file:%*s%s\n", 11, "", inFname );
 	
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
 			if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
-			else if ( confIntVar( rdBuf, "serverPort", &conf->serverPort ) ) {}
-			else if ( confStringVar( rdBuf, "serverAddress", conf->serverAddress ) ) {}
-			else if ( confIntVar( rdBuf, "listenPort", &conf->listenPort ) ) {}
+			else if ( confIntVar( rdBuf, "port", &conf->port ) ) {}
+			else if ( confStringVar( rdBuf, "server", conf->server ) ) {}
 			
 			else if ( confStringVar( rdBuf, "mysqlServer", conf->mysqlServer ) ) {}
 			else if ( confStringVar( rdBuf, "mysqlUser", conf->mysqlUser ) ) {}
@@ -92,8 +91,8 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveRainTime        *= 60;
 	conf->sampleWindTime      *= 60;
 	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
-	conf->is_server  = ( conf->listenPort > 0 );
-	conf->is_client  = ( conf->serverAddress[0] != 0 && ! conf->is_server );
+	conf->is_client  = ( conf->server[0] != 0 && strlen( conf->server ) > 5 );
+	conf->is_server  = ( conf->port > 0 && !conf->is_client );
 	
 	if ( conf->is_client ) {
 		conf->mysql             = 0;

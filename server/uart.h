@@ -37,11 +37,15 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 #include "config.h"
 #include "parser.h"
 #include "server.h"
 #include "weather-reader.h"
+
+// Time to withhold a resend of identical data
+#define QUEUE_TIME     15
 
 #define UNDEFINED      0
 #define WEATHER_READER 1
@@ -49,15 +53,26 @@
 
 static const char * SERIAL_TYPES[] =  { "Undefined", "Weather-reader", "Wire-sensor" };
 
+struct UARTQueueNode {
+	time_t                time; 	// Node time
+	char                 *s;		// Received string
+	struct UARTQueueNode *link;		// Next node
+};
+
 typedef struct {
 	int   tty;
 	int   no;
 	int   active;
 	int   type;
 	char *name;
+	struct UARTQueueNode *head;		// Fisrst stored value
+	struct UARTQueueNode *tail;		// Last stored value
 } SerialDevice;
 
 void *uart_receive( void *ptr );
+char uart_checkQueue( SerialDevice *sDev, char *s );
+void uart_handleData( SerialDevice *sDev, char *s, int rcount );
+void uart_init( SerialDevice *sDev );
 void reset_arduino( SerialDevice *sDev );
 char **uart_get_serial( void );
 #endif

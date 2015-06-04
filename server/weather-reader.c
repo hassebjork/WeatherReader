@@ -10,12 +10,57 @@ int SerDevNum;
 int main( int argc, char *argv[]) {
 	pthread_t threadParser, threadServer;
 	struct itimerval timer;
-	int    i;
+	int    i, opt, daemon = 0;
 	char **serName;
+	
+    while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
+        switch (opt) {
+        case 's':
+            daemon = 1;
+            break;
+		default:
+			usage();
+			break;
+		}
+	}
+	
+	if ( daemon ) {
+		pid_t     sid, pid = 0;
+		FILE     *file_err;
+		
+		// Fork the daemon and close main program
+		pid = fork(); 		// http://www.thegeekstuff.com/2012/02/c-daemon-process/
+		if ( pid < 0 ) {
+			fprintf( stderr, "main: Failed to fork!\n" );
+			exit( 1 );
+		} else if ( pid > 0 ) {
+			exit( 0 );
+		}
+		
+		// Redirect STDERR to file
+		file_err = fopen( "/var/log/weather-reader.log", "a" );
+		if ( file_err ) {
+			fflush( stderr );
+			dup2( fileno( file_err ), STDERR_FILENO );
+			fclose( file_err );
+		} else {
+			fprintf( stderr, "Error opening /var/log/weather-reader.log\n" );
+		}
+		
+		sid = setsid();
+		if ( sid < 0 ) {
+			fprintf( stderr, "main: Session id failed!" );
+		}
+		
+		umask( 0 );
+		chdir( "/" );
+	}
 	
 	// Read configuration file
 	confReadFile( CONFIG_FILE_NAME, &configFile );
-	
+	if ( daemon )
+		configFile.daemon = 1;
+
 	// Open pipes to communicate between uart-server, uart-parser & server-parser
 	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
 		fprintf( stderr, "ERROR in main: creating server pipe\n" );
@@ -23,7 +68,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info: enabled\n" );
+	fprintf( stderr, "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
 #endif
 	
 	// Start client to send data to remote server
@@ -47,11 +92,13 @@ int main( int argc, char *argv[]) {
 		}
 	}
 	
+	// Scan for USB-serial devices
 	serName = uart_get_serial();
 	for ( SerDevNum = 0; serName[SerDevNum]; SerDevNum++ );
 	
+	// Start a thread for each USB-serial device
 	sDev = malloc( sizeof( SerialDevice ) * SerDevNum );
-	pthread_t    threadUart[SerDevNum];
+	pthread_t threadUart[SerDevNum];
 	for ( i = 0; serName[i]; i++ ) {
 		sDev[i].name   = strdup( serName[i] );
 		sDev[i].active = 0;
@@ -77,7 +124,8 @@ int main( int argc, char *argv[]) {
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
 	// Wait for threads to complete
-// 	pthread_join( threadUart, NULL);
+	for ( ; SerDevNum > 0; SerDevNum-- )
+		pthread_join( threadUart[SerDevNum-1], NULL);
 	if ( configFile.is_client ) {
 		pthread_join( threadServer, NULL);
 	} else if ( configFile.is_server ) {
@@ -85,7 +133,15 @@ int main( int argc, char *argv[]) {
 		pthread_join( threadParser, NULL);
 	}
 
+	fprintf( stderr, "Program terminated successfully!\n" );
 	exit(EXIT_SUCCESS);
+}
+
+void usage( void ) {
+    fprintf( stderr,
+        "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
+        "Usage:\t[-s Run as a standard program, not in daemon mode\n\n" );
+    exit(1);
 }
 
 /**
@@ -94,7 +150,9 @@ int main( int argc, char *argv[]) {
  */
 void signal_interrupt( int signum ) {
 	configFile.run = 0;
-	printf( "Caught signal %d\nExiting!\n", signum );
+	fprintf( stderr, "\nCaught signal %d\n", signum );
+	if ( signum == 2 )
+		fprintf( stderr, "Program terminated by user!\n" );
 	exit( EXIT_SUCCESS );
 }
 

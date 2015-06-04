@@ -15,9 +15,6 @@ define( 'WINDGUST', 8 );
 define( 'WINDDIRECTION', 16 );
 define( 'RAINTOTAL', 32 );
 
-define( 'SVG_COLOR_BG', '80a2e0' );
-define( 'SVG_COLOR_WIND_ARROW', '2e8abb' );
-
 $mysqli = new mysqli( DB_HOST, DB_USER, DB_PASS, DB_DATABASE );
 $mysqli->set_charset( 'utf8' );
 
@@ -26,7 +23,6 @@ class Sensor {
 	public  $name;
 	public  $team;
 	public  $bat;
-	public  $color;
 	public  $type;
 	public  $data = array();
 	
@@ -38,8 +34,9 @@ class Sensor {
 
 	static function &fetch_sensors() { 
 		$sensors = array();
-		$sql   = 'SELECT `id`, `name`, `team`, `type`, `color`, `battery` '
+		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
+				.'WHERE `team` > 0 '
 				.'ORDER BY `team`, `name`';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
 		while( $row = $res->fetch_array() ) {
@@ -48,7 +45,6 @@ class Sensor {
 			$sensor->name  = $row['name'];
 			$sensor->team  = intval( $row['team'] );
 			$sensor->type  = intval( $row['type'] );
-			$sensor->color = dechex( $row['color'] );
 			$sensor->bat   = intval( $row['battery'] );
 			$sensors[$row['id']] = $sensor;
 		}
@@ -56,6 +52,7 @@ class Sensor {
 	}
 	
 	static function &fetch_all( $days = 1 ) { 
+		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = Sensor::fetch_sensors();
 		$temp = $humid = $wind = $rain = false;
 		foreach ( $sensors as $sensor ) {
@@ -194,7 +191,7 @@ class Sensor {
 				$sensor = $id;
 				$start  = $row->total;
 				$last   = -1;
-				$sensors[$id]->max->r = 0;
+				@$sensors[$id]->max->r = 0;
 			}
 			
 			if ( $last > -1 ) { //&& $row->total > $last ) {
@@ -208,9 +205,104 @@ class Sensor {
 					$sensors[$id]->max->r = $data[$id][$row->date]->r;
 			}
 			$last = $row->total;
-			$sensors[$id]->current->r  = $row->total - $start;
+			@$sensors[$id]->current->r  = $row->total - $start;
 		}
 		return $data;
+	}
+
+	static function json_sensors() { 
+		$sensors = array();
+		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
+				.'FROM `wr_sensors` '
+				.'ORDER BY `team`, `name` ASC';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
+		while( $row = $res->fetch_object() ) {
+			$sensor = new stdClass;
+			$sensor->id    = intval( $row->id );
+			$sensor->name  = $row->name;
+			$sensor->team  = intval( $row->team );
+			$sensor->type  = intval( $row->type );
+			$sensor->bat   = intval( $row->battery );
+			$sensors[]     = $sensor;
+		}
+		return '"sensors":' . json_encode( $sensors );
+	}
+	
+	static function json_temperature( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $days : 1 );
+ 		return '"temperature":' . Sensor::json_th( $days, 'wr_temperature' );
+	}
+	
+	static function json_humidity( $days = 1 ) { 
+		$days = ( is_numeric( $days ) ? $days : 1 );
+ 		return '"humidity":' . Sensor::json_th( $days, 'wr_humidity' );
+	}
+	
+	static function json_th( $days = 1, $tbl ) { 
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `' . $tbl . '` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `date`, `sensor_id` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = floatVal( $row->var );
+		}
+		
+		$sql   = 'SELECT `sensor_id`, '
+			. 'MAX( `value` ) AS `max`, '
+			. 'MIN( `value` ) AS `min` '
+			. 'FROM  `' . $tbl . '` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `sensor_id` '
+			. 'ORDER BY `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' . $sql );
+		while( $row = $res->fetch_object() ) {
+			$sensors['max'][$row->sensor_id] = floatVal( $row->max );
+			$sensors['min'][$row->sensor_id] = floatVal( $row->min );
+		}
+ 		return json_encode( $sensors );
+	}
+	
+	static function json_rain( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $days : 1 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, '
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `wr_rain` '
+			. 'WHERE `time` > SUBTIME( NOW(), "' . $days . ' 1:0:0" ) '
+			. 'GROUP BY `sensor_id`, `date` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = intVal( $row->total );
+		}
+ 		return '"rain":' . json_encode( $sensors );
+	}
+	
+	static function JSON_wind( $days = 1 ) {
+		$days = ( is_numeric( $days ) ? $days : 1 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `speed` ), 1 ) AS `speed`, ' 
+			. 'MAX( `gust` ) AS `gust`, `dir`, ' 
+			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'FROM  `wr_wind` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY `date`, `sensor_id` '
+			. 'ORDER BY `date` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data: ' );
+		while( $row = $res->fetch_object() ) {
+			$obj   = new stdClass;
+			$obj->s = floatVal( $row->speed );
+			$obj->g = floatVal( $row->gust );
+			$obj->d = ( $row->dir == NULL ? $row->dir : intVal( $row->dir ) );
+			$sensors[$row->date][$row->sensor_id] = $obj;
+		}
+ 		return '"wind":' . json_encode( $sensors );
 	}
 
 	static function draw_sensors() { 
@@ -226,46 +318,24 @@ class Sensor {
 		$width = 150; $height = 75;
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
 			echo $tabs
-				.'<svg id="sTemp' . $this->id .'" class="c_head" width="'.$width.'px" height="'.$height.'px" '
+				.'<svg id="sTemp' . $this->id .'" class="c_head team' . $this->team . '" width="'.$width.'px" height="'.$height.'px" '
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title" style="fill:#' . $this->color . '"></text>' . "\n\t" . $tabs
-				.'<g class="graph">' . "\n\t\t" . $tabs
-				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" style="fill:#' . $this->color . ';opacity:.25" />' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
+				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
+				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
+				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
+				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
 				.'<g class="temp">' . "\n\t\t" . $tabs
-				.'<text x="49%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="98%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="98%" y="50" class="t_min"></text>' . "\n\t" . $tabs
+				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
+				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
+				.'<text x="95%" y="50" class="t_min"></text>' . "\n\t" . $tabs
 				.'</g>' . "\n\t" . $tabs
 				.'<g class="humi" style="visibility: hidden">' . "\n\t\t" . $tabs
-				.'<text x="54%" y="36" class="h_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="54%" y="44" class="h_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="54%" y="52" class="h_min"></text>' . "\n\t" . $tabs
+				.'<text x="50%" y="38" class="h_cur"></text>' . "\n\t\t" . $tabs
+				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
+				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
 				.'</g>' . "\n" . $tabs
+				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
 				.'</svg>' . "\n";
-		if ( $this->type & WINDDIRECTION )
-			echo $tabs
-				.'<svg id="sWind' . $this->id .'" width="'.$width.'px" height="'.$width.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" />' . "\n\t" . $tabs
-				.'<use x="'.($width/2).'" y="'.($width/2).'" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>' . "\n\t" . $tabs
-				.'<text x="50%" y="25%" class="windSpd"></text>' . "\n\t" . $tabs
-				.'<text x="50%" y="50%" class="windDir"></text>' . "\n\t" . $tabs
-				.'<text x="50%" y="75%" class="windGst"></text>' . "\n\t" . $tabs
-				.'<use x="10" y="10" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
-				.'</svg>' . "\n" . $tabs;
-		if ( $this->type & RAINTOTAL )
-			echo $tabs
-				.'<svg id="sRain' . $this->id .'" width="'.$width.'px" height="'.$height.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" />' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" style="opacity:.5;visibility:hidden" />' . "\n\t" . $tabs
-				.'<polygon class="r_graph" points="0,'.($height-1).' '.$width.','.($height-1).' '.$width.','.$height.' 0,'.$height.'" style="fill:#0047e9;opacity:.25" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title" style="fill:#' . $this->color . '"></text>' . "\n\t" . $tabs
-				.'<text x="49%" y="48" class="r_cur"></text>' . "\n\t" . $tabs
-				.'</svg>' . "\n" . $tabs;
 	}
 }
 
@@ -275,56 +345,111 @@ if ( isset( $_REQUEST ) ) {
 		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ) )
 			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
 		exit;
+	} else if ( isset( $_REQUEST['sensors'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_sensors();
+		exit;
+	} else if ( isset( $_REQUEST['temperature'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_temperature( $_REQUEST['temperature'] );
+		exit;
+	} else if ( isset( $_REQUEST['humidity'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_humidity( $_REQUEST['humidity'] );
+		exit;
+	} else if ( isset( $_REQUEST['rain'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_rain( $_REQUEST['rain'] );
+		exit;
+	} else if ( isset( $_REQUEST['wind'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_wind( $_REQUEST['wind'] );
+		exit;
+	} else if ( isset( $_REQUEST['total'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo  Sensor::json_sensors() . ',' 
+			. Sensor::json_temperature( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_humidity( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_rain( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_wind( $_REQUEST['total'] );
+		exit;
 	}
 }
 
 header( 'Content-Type: text/html; charset=UTF-8' );
-$isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
 ?>
 <!DOCTYPE html>
-
 <html>
 <head>
 	<meta charset="UTF-8"/>
 	<meta name="viewport" content="width=device-width, height=device-height, user-scalable=yes" />
 	
-	<title>Sensors</title>
+	<title>Weather</title>
 	<link rel="shortcut icon" href="icon.ico">
 	<link rel="icon" href="icon.ico">
 
 	<style type="text/css" media="all">
 		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
 		text.title { font-size: 24px; text-anchor: middle; }
-		text.windSpd { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		text.windGst { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		text.windDir { font-size: 18px; fill: #34637b; text-anchor: middle; }
-		text.t_cur { font-size: 20px; text-anchor: end; fill: #666666; }
-		text.t_min { text-anchor: end; fill: #6060ff; }
-		text.t_max { text-anchor: end; fill: #ff6060; }
-		text.h_cur { font-size: 8px; text-anchor: start; fill: #666666; }
+		use.batt   { opacity: .5; visibility: hidden; }
+		svg        { float: left; }
+		
+		/* Wind */
+		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.windGst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.windDir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
+		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
+		
+		/* Temperature */
+		text.t_cur { font-weight: bold; font-size: 20px; text-anchor: end; fill: #666666; }
+		text.t_min { font-weight: bold; text-anchor: end; fill: #6060ff; }
+		text.t_max { font-weight: bold; text-anchor: end; fill: #ff6060; }
+		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
+		polygon.t_graph { opacity: .25; }
+		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
+		
+		/* Humidity */
+		text.h_cur { font-size: 12px; font-weight: bold; text-anchor: start; fill: #666666; }
 		text.h_min { font-size: 8px; text-anchor: start; fill: #6060ff; }
 		text.h_max { font-size: 8px; text-anchor: start; fill: #ff6060; }
-		text.r_cur { font-size: 18px; text-anchor: middle; fill: #666666; }
-		stop.bg1 { stop-color:#80a2e0; stop-opacity: 1; }
-		stop.bg2 { stop-color:#fff; stop-opacity: 1; }
-		stop.wArr1 { stop-color:#2e8abb; stop-opacity: 1; }
-		stop.wArr2 { stop-color:#fff; stop-opacity: 1; }
+		
+		/* Rain */
+		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
+		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
+		polygon.r_graph { fill:#0047e9; opacity: 1; }
+		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
+		
+		/* Backgrounds an common colors */
+		.team1    { fill: #5555cd; stroke: #5555cd; }
+		.team2    { fill: #5555cd; stroke: #5555cd; }
+		.team3    { fill: #5ba162; stroke: #5ba162; }
+		.team4    { fill: #b567d9; stroke: #b567d9; }
+		.team5    { fill: #cf696a; stroke: #cf696a; }
+		.team6    { fill: #606060; stroke: #606060; }
+		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
+		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
+		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
+		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
+		
+		text       { stroke-width: 0; }
 	</style>
 	<script>
+var tim1;
+function doLoad() {
+	loadSensor( "/weather/?all=1" );
+	tim1 = setInterval( function() { loadSensor( "/weather/?all=1" ); }, 600000 );
+}
 <?php readfile( 'sensors.js' ) ?>
-		window.onload = function() {
-			loadSensor( "/weather/?all=1" );
-<?php if ( !$isMobile ) { ?>
-			var tim1 = setInterval( function() {
-				loadSensor( "/weather/?all=1" );
-			}, 600000 );
-<?php } ?>
-		}
+window.onload  = doLoad;
+window.onfocus = doLoad;
+window.onblur  = function() { clearInterval(tim1) };
 	</script>
 </head>
 
-<body>
-	<svg id="defsSVG" class="chart" width="0" height="0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="visibility:hidden;">
+<body><?php $width = 150; $height = 150; ?>
+	<svg id="defsSVG" class="chart" width="<?= $width ?>" height="<?= $height ?>" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<defs>
 			<linearGradient id="windGradArrow" x1="0%" y1="0%"   x2="0%" y2="100%">
 				<stop offset="0%" class="wArr1" />
@@ -340,16 +465,37 @@ $isMobile = preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|f
 				</polygon>
 			</g>
 			<g id="svgBg">
- 				<rect x="0" y="0" width="100%" height="100%" rx="10" ry="10" style="fill:url(#gradBg);stroke:#2e8abb" /> 
+ 				<rect x="0" y="0" width="100%" height="100%" rx="10" ry="10" /> 
 			</g>
 			<g id="sArrow">
-				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" style="fill: url(#windGradArrow); stroke: #<?= SVG_COLOR_WIND_ARROW ?>; stroke-width; 5px; " transform="rotate(0)" />
+				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" transform="rotate(0)" />
 			</g>
 		</defs>
+		<use xlink:href="#svgBg" class="windBg" />
+		<g class="r_ruler">
+<?php
+// Calculations based on sensors.js function drawRain
+$dy = $height / 10;
+$dh = $height - 10;
+for ( $i = 1; $i <= 10; $i++ ) {
+	echo "\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
+		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
+}
+?>
+			<polygon class="r_graph" points="0,<?= intval($height/2) ?> <?= $width ?>,<?= intval($height/2) ?> <?= $width ?>,<?= $height-1 ?> 0,<?= $height-1 ?>" />
+		</g>
+		<g class="r_ruler_txt"></g>
+		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
+		<text x="50%" y="30" class="windSpd"></text>
+		<text x="50%" y="50" class="windDir"></text>
+		<text x="50%" y="70" class="windGst"></text>
+		<text x="50%" y="100" class="r_cur"></text>
+		<use x="10" y="10" class="batt" xlink:href="#sBat" />
 	</svg>
 <?php
 Sensor::draw_sensors();
 ?>
+	<div style="clear:both"></div>
 	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="display:block;">Update</a>
 </body>
 </html>
