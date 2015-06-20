@@ -315,27 +315,24 @@ class Sensor {
 	}
 	
 	function svg_head( $tabs = "\t" ) {
-		$width = 150; $height = 75;
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
 			echo $tabs
-				.'<svg id="sTemp' . $this->id .'" class="c_head team' . $this->team . '" width="'.$width.'px" height="'.$height.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
-				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
-				.'<g class="temp">' . "\n\t\t" . $tabs
-				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="50" class="t_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<g class="humi" style="visibility: hidden">' . "\n\t\t" . $tabs
-				.'<text x="50%" y="38" class="h_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n" . $tabs
+				.'<div id="sTemp' . $this->id .'" class="wTemp team' . $this->team . '">' . "\n\t" . $tabs
+				.'<svg width="100%" height="100%" '
+				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t\t" . $tabs
+				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t\t" . $tabs
+				.'<polygon class="t_graph" />' . "\n\t\t" . $tabs
+				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t\t" . $tabs
 				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
-				.'</svg>' . "\n";
+				.'</svg>' . "\n\t" . $tabs
+				.'<div class="title"></div>' . "\n\t" . $tabs
+				.'<div class="t_cur"></div>' . "\n\t" . $tabs
+				.'<div class="t_max"></div>' . "\n\t" . $tabs
+				.'<div class="t_min"></div>' . "\n\t" . $tabs
+				.'<div class="h_cur"></div>' . "\n\t" . $tabs
+				.'<div class="h_max"></div>' . "\n\t" . $tabs
+				.'<div class="h_min"></div>' . "\n" . $tabs
+				.'</div>' . "\n";
 	}
 }
 
@@ -403,19 +400,20 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
 		/* Temperature */
-		.temp  { font-weight: bold; text-anchor: end; } 
-		.t_cur { font-size: 22px; fill: #666666; }
-		.t_min { fill: #6060ff; }
-		.t_max { fill: #ff6060; }
 		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
 		polygon.t_graph { opacity: .25; }
 		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
-		
-		/* Humidity */
-		.humi  { font-size: smaller; text-anchor: start; } 
-		.h_cur { font-size: 14px; font-weight: bold; fill: #666666; }
-		.h_min { fill: #6060ff; }
-		.h_max { fill: #ff6060; }
+		div.wTemp  { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
+		div.wTemp .title { font-size: 26px; text-align: center; position: absolute; left: 0px; width: 100%; }
+		.t_cur { color: #666666; top: 25px; left:  5px;  width: 60px; position: absolute; text-align: right; display: inline; font-size: 22px; }
+		.t_max { color: #ff6060; top: 25px; left: 112px; width: 33px; position: absolute; text-align: right; display: inline; }
+		.t_min { color: #6060ff; top: 40px; left: 112px; width: 33px; position: absolute; text-align: right; display: inline; }
+		.t_cur::after { content: "°"; }
+		.t_min::after { content: "°"; }
+		.t_max::after { content: "°"; }
+		.h_cur { color: #666666; top: 25px; left: 75px;  position: absolute; text-align: left; display: inline; font-size: 14px; }
+		.h_min { color: #6060ff; top: 40px; left: 70px;  position: absolute; text-align: right; display: inline; font-size: smaller; }
+		.h_max { color: #ff6060; top: 40px; left: 93px;  position: absolute; text-align: left; display: inline; font-size: smaller; }
 		
 		/* Rain */
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
@@ -424,13 +422,13 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		polygon.r_graph { stroke: none; opacity: .25; }
 		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
-		/* Backgrounds and common colors */
-		.team1    { fill: #5555cd; stroke: #5555cd; }
-		.team2    { fill: #5555cd; stroke: #5555cd; }
-		.team3    { fill: #5ba162; stroke: #5ba162; }
-		.team4    { fill: #b567d9; stroke: #b567d9; }
-		.team5    { fill: #cf696a; stroke: #cf696a; }
-		.team6    { fill: #606060; stroke: #606060; }
+		/* Backgrounds an common colors */
+		.team1    { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team2    { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team3    { color: #5ba162; fill: #5ba162; stroke: #5ba162; }
+		.team4    { color: #b567d9; fill: #b567d9; stroke: #b567d9; }
+		.team5    { color: #cf696a; fill: #cf696a; stroke: #cf696a; }
+		.team6    { color: #606060; fill: #606060; stroke: #606060; }
 		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
 		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
@@ -500,7 +498,6 @@ for ( $i = 1; $i <= 10; $i++ ) {
 <?php
 Sensor::draw_sensors();
 ?>
-	<div style="clear:both"></div>
-	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="display:block;">Update</a>
+	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Update</a>
 </body>
 </html>
