@@ -130,11 +130,27 @@ function drawWind( sensor ) {
 	}
 }
 function drawRain( sensor ) {
-	var y, x1, x2, ruler, hr, path = "";
+	var x, y, x1, x2, dx, dy, dh, ruler, hr, path = "";
 	var node = $i("defsSVG");
 	if ( node == null )
 		return;
 	checkBatt( node, sensor.bat == 0 );
+	
+	var rain = $i("rainSVG");
+	if ( rain != null ) {
+		var graph = $i("rainGraph" + sensor.id);
+		if ( graph == null ) {
+			graph = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+			graph.setAttribute("id","rainGraph" + sensor.id);
+			graph.setAttribute("class","r_graph team" + sensor.team );
+			$c(rain,"r_graph").appendChild(graph);
+		}
+		var title = $i("rainTitle" + sensor.id);
+		if ( title == null ) {
+		}
+	} else {
+		return;
+	}
 	
 	// Set value
 	if ( typeof sensor.current.r !== "undefined" )
@@ -150,10 +166,11 @@ function drawRain( sensor ) {
 	dh = node.clientHeight - 10;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = node.clientHeight / 10;
+	x1 = 0;
 	for ( i = 0; i < sensor.data.length; i++ ) {
+		x2 = Math.round( (i+1) * dx ) - 1;
+		x  = Math.round( x1 + ( x2-x1) / 2 );
 		if ( typeof sensor.data[i].r !== "undefined" ) {
-			x1 = Math.round( i*dx );
-			x2 = Math.round( (i+1) * dx ) - 1;
 			y  = Math.round( dh - sensor.data[i].r * dy );
 			path += x1 + "," + node.clientHeight + ' '
 				  + x1 + "," + y + ' '
@@ -163,12 +180,13 @@ function drawRain( sensor ) {
 		if ( typeof sensor.data[i].d !== "undefined" ) {
 			hr = sensor.data[i].d.substring( sensor.data[i].d.indexOf( ' ' ) + 1 );
 			if ( hr % 3 == 0 ) {
-				ruler.appendChild( createText( parseInt( x1 + (x2-x1) / 2), node.clientHeight-2, hr ) );
+				ruler.appendChild( createText( x, node.clientHeight-2, hr ) );
 			}
 		}
+		x1 = x2 + 1;
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
-	$c(node,"r_graph").setAttribute("points", path);
+	graph.setAttribute("points",path);
 // 	debugger;
 // 	console.log( sensor.id + ": " + path + "\n" );
 }

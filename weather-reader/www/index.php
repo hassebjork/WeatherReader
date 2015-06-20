@@ -389,8 +389,9 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	<link rel="icon" href="icon.ico">
 
 	<style type="text/css" media="all">
-		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
-		text.title { font-size: 24px; text-anchor: middle; }
+		@import url("http://fonts.googleapis.com/css?family=Droid+Sans");
+		body	   { font-family: 'Droid Sans',Sans-serif; font-size: 14px; margin: 0px; padding: 0px; }
+		text.title { font-size: 26px; text-anchor: middle; }
 		use.batt   { opacity: .5; visibility: hidden; }
 		svg        { float: left; }
 		
@@ -402,26 +403,28 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
 		/* Temperature */
-		text.t_cur { font-weight: bold; font-size: 20px; text-anchor: end; fill: #666666; }
-		text.t_min { font-weight: bold; text-anchor: end; fill: #6060ff; }
-		text.t_max { font-weight: bold; text-anchor: end; fill: #ff6060; }
+		.temp  { font-weight: bold; text-anchor: end; } 
+		.t_cur { font-size: 22px; fill: #666666; }
+		.t_min { fill: #6060ff; }
+		.t_max { fill: #ff6060; }
 		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
 		polygon.t_graph { opacity: .25; }
 		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
 		
 		/* Humidity */
-		text.h_cur { font-size: 12px; font-weight: bold; text-anchor: start; fill: #666666; }
-		text.h_min { font-size: 8px; text-anchor: start; fill: #6060ff; }
-		text.h_max { font-size: 8px; text-anchor: start; fill: #ff6060; }
+		.humi  { font-size: smaller; text-anchor: start; } 
+		.h_cur { font-size: 14px; font-weight: bold; fill: #666666; }
+		.h_min { fill: #6060ff; }
+		.h_max { fill: #ff6060; }
 		
 		/* Rain */
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
 		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
 		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
-		polygon.r_graph { fill:#0047e9; opacity: 1; }
+		polygon.r_graph { stroke: none; opacity: .25; }
 		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
 		
-		/* Backgrounds an common colors */
+		/* Backgrounds and common colors */
 		.team1    { fill: #5555cd; stroke: #5555cd; }
 		.team2    { fill: #5555cd; stroke: #5555cd; }
 		.team3    { fill: #5ba162; stroke: #5ba162; }
@@ -472,19 +475,21 @@ window.onblur  = function() { clearInterval(tim1) };
 			</g>
 		</defs>
 		<use xlink:href="#svgBg" class="windBg" />
-		<g class="r_ruler">
+		<g id="rainSVG">
+			<g class="r_graph"></g>
+			<g class="r_ruler">
 <?php
 // Calculations based on sensors.js function drawRain
 $dy = $height / 10;
 $dh = $height - 10;
 for ( $i = 1; $i <= 10; $i++ ) {
-	echo "\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
+	echo "\t\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
 		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
 }
 ?>
-			<polygon class="r_graph" points="0,<?= intval($height/2) ?> <?= $width ?>,<?= intval($height/2) ?> <?= $width ?>,<?= $height-1 ?> 0,<?= $height-1 ?>" />
+			</g>
+			<g class="r_ruler_txt"></g>
 		</g>
-		<g class="r_ruler_txt"></g>
 		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
 		<text x="50%" y="30" class="windSpd"></text>
 		<text x="50%" y="50" class="windDir"></text>
