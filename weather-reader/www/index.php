@@ -314,24 +314,23 @@ class Sensor {
 		}
 	}
 	
-	function svg_head( $tabs = "\t" ) {
+	function svg_head() {
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
-			echo $tabs
-				.'<div id="sTemp' . $this->id .'" class="wTemp team' . $this->team . '">' . "\n\t" . $tabs
+			echo '<div id="sTemp' . $this->id .'" class="t_widget team' . $this->team . '">'
 				.'<svg width="100%" height="100%" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t\t" . $tabs
-				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t\t" . $tabs
-				.'<polygon class="t_graph" />' . "\n\t\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t\t" . $tabs
-				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
-				.'</svg>' . "\n\t" . $tabs
-				.'<div class="title"></div>' . "\n\t" . $tabs
-				.'<div class="t_cur"></div>' . "\n\t" . $tabs
-				.'<div class="t_max"></div>' . "\n\t" . $tabs
-				.'<div class="t_min"></div>' . "\n\t" . $tabs
-				.'<div class="h_cur"></div>' . "\n\t" . $tabs
-				.'<div class="h_max"></div>' . "\n\t" . $tabs
-				.'<div class="h_min"></div>' . "\n" . $tabs
+				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+				.'<use xlink:href="#svgBg" class="widgetBg"/>'
+				.'<polygon class="t_graph"/>'
+				.'<use x="5" y="8" class="batt" style="visibility:hidden" xlink:href="#icon_bat"/>'
+				.'<g class="t_ruler"/>'
+				.'</svg>'
+				.'<div class="title">' . $this->name . '</div>'
+				.'<div class="t_cur"></div>'
+				.'<div class="t_max"></div>'
+				.'<div class="t_min"></div>'
+				.'<div class="h_cur"></div>'
+				.'<div class="h_max"></div>'
+				.'<div class="h_min"></div>'
 				.'</div>' . "\n";
 	}
 }
@@ -386,55 +385,56 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	<link rel="icon" href="icon.ico">
 
 	<style type="text/css" media="all">
+		/* Global and common */
 		@import url("http://fonts.googleapis.com/css?family=Droid+Sans");
 		body	   { font-family: 'Droid Sans',Sans-serif; font-size: 14px; margin: 0px; padding: 0px; }
 		text.title { font-size: 26px; text-anchor: middle; }
-		use.batt   { opacity: .5; visibility: hidden; }
 		svg        { float: left; }
+		.team1     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team2     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team3     { color: #5ba162; fill: #5ba162; stroke: #5ba162; }
+		.team4     { color: #b567d9; fill: #b567d9; stroke: #b567d9; }
+		.team5     { color: #cf696a; fill: #cf696a; stroke: #cf696a; }
+		.team6     { color: #606060; fill: #606060; stroke: #606060; }
+		/* svg */
+		text       { stroke-width: 0; }
+		#icon_bat  { stroke: black; fill: white; opacity: .75; }
+		.widgetBg  { fill:url(#gradBg); stroke:#2e8abb }
+		stop.bg1   { stop-color: #80a2e0; stop-opacity: 1; }
+		stop.bg2   { stop-color: #fff; stop-opacity: 1; }
+		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
+		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
 		
 		/* Wind */
-		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		text.windGst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		text.windDir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
-		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
+		/* svg */
+		text.w_spd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.w_gst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.w_dir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		use.w_arr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
 		
 		/* Temperature */
-		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
-		polygon.t_graph { opacity: .25; }
-		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
-		div.wTemp  { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
-		div.wTemp .title { font-size: 26px; text-align: center; position: absolute; left: 0px; width: 100%; }
-		.t_cur { color: #666666; top: 25px; left:  5px;  width: 60px; position: absolute; text-align: right; display: inline; font-size: 22px; }
-		.t_max { color: #ff6060; top: 25px; left: 112px; width: 33px; position: absolute; text-align: right; display: inline; }
-		.t_min { color: #6060ff; top: 40px; left: 112px; width: 33px; position: absolute; text-align: right; display: inline; }
+		div.t_widget        { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
+		div.t_widget > *    { text-align: right; position: absolute; display: inline; }
+		div.t_widget .title { font-size: 24px; font-weight: normal; text-align: center; top: 5px; left: 0px; width: 100%; }
+		.t_cur { color: #666666; top: 30px; left:  5px;  width: 60px; font-size: 22px; }
+		.t_max { color: #ff6060; top: 30px; left: 112px; width: 33px; }
+		.t_min { color: #6060ff; top: 45px; left: 112px; width: 33px; }
 		.t_cur::after { content: "°"; }
 		.t_min::after { content: "°"; }
 		.t_max::after { content: "°"; }
-		.h_cur { color: #666666; top: 25px; left: 75px;  position: absolute; text-align: left; display: inline; font-size: 14px; }
-		.h_min { color: #6060ff; top: 40px; left: 70px;  position: absolute; text-align: right; display: inline; font-size: smaller; }
-		.h_max { color: #ff6060; top: 40px; left: 93px;  position: absolute; text-align: left; display: inline; font-size: smaller; }
+		.h_cur { color: #666666; top: 30px; left: 75px; text-align: left; font-size: 14px; }
+		.h_min { color: #6060ff; top: 45px; left: 70px; font-size: smaller; }
+		.h_max { color: #ff6060; top: 45px; left: 93px; text-align: left; font-size: small; }
+		/* svg */
+		polygon.t_graph { opacity: .25; }
+		g.t_ruler       { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
 		
 		/* Rain */
+		/* svg */
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
 		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
 		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
 		polygon.r_graph { stroke: none; opacity: .25; }
-		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
-		
-		/* Backgrounds an common colors */
-		.team1    { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
-		.team2    { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
-		.team3    { color: #5ba162; fill: #5ba162; stroke: #5ba162; }
-		.team4    { color: #b567d9; fill: #b567d9; stroke: #b567d9; }
-		.team5    { color: #cf696a; fill: #cf696a; stroke: #cf696a; }
-		.team6    { color: #606060; fill: #606060; stroke: #606060; }
-		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
-		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
-		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
-		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
-		
-		text       { stroke-width: 0; }
 	</style>
 	<script>
 var tim1;
@@ -460,10 +460,9 @@ window.onblur  = function() { clearInterval(tim1) };
 				<stop offset="0%" class="bg1" />
 				<stop offset="100%" class="bg2" />
 			</linearGradient>
-			<g id="sBat">
-				<polygon points="0,20 0,2 2.5,2 2.5,0 7.5,0 7.5,2 10,2 10,20 0,20" style="fill: white; stroke: black; stroke-width; 1px;" />
-				<polygon points="2,18 2,15 8,13 8,18 2,18" style="fill: #b30000; stroke: none;">
-				</polygon>
+			<g id="icon_bat">
+				<polygon points="0,20 0,2 2.5,2 2.5,0 7.5,0 7.5,2 10,2 10,20 0,20"/>
+				<polygon points="2,18 2,15 8,13 8,18 2,18" style="fill:#b30000; stroke:none;"/>
 			</g>
 			<g id="svgBg">
  				<rect x="0" y="0" width="100%" height="100%" rx="10" ry="10" /> 
@@ -472,7 +471,7 @@ window.onblur  = function() { clearInterval(tim1) };
 				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" transform="rotate(0)" />
 			</g>
 		</defs>
-		<use xlink:href="#svgBg" class="windBg" />
+		<use xlink:href="#svgBg" class="widgetBg" />
 		<g id="rainSVG">
 			<g class="r_graph"></g>
 			<g class="r_ruler">
@@ -488,12 +487,12 @@ for ( $i = 1; $i <= 10; $i++ ) {
 			</g>
 			<g class="r_ruler_txt"></g>
 		</g>
-		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
-		<text x="50%" y="30" class="windSpd"></text>
-		<text x="50%" y="50" class="windDir"></text>
-		<text x="50%" y="70" class="windGst"></text>
+		<use x="50%" y="50%" class="w_arr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
+		<text x="50%" y="30" class="w_spd"></text>
+		<text x="50%" y="50" class="w_dir"></text>
+		<text x="50%" y="70" class="w_gst"></text>
 		<text x="50%" y="100" class="r_cur"></text>
-		<use x="10" y="10" class="batt" xlink:href="#sBat" />
+		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <?php
 Sensor::draw_sensors();

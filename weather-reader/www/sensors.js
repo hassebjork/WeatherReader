@@ -27,8 +27,6 @@ function updateSensors( sensors ) {
 			drawWind( sensors[sens] );
 		if ( sensors[sens].type & 32 )	// Rain
 			drawRain( sensors[sens] );
-// 		if ( sensors[sens].type & 1 )	// Temp
-// 			SVG.createGraph( sensors[sens], "t" );
 	}
 }
 function drawTemp( sensor ) {
@@ -119,11 +117,11 @@ function drawWind( sensor ) {
 	checkBatt( node, sensor.bat == 0 );
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].w !== "undefined" ) {
-			a = $c(node,"windArr");
+			a = $c(node,"w_arr");
 			a.transform.baseVal.getItem(0).setRotate(sensor.data[i].w.d, a.x.baseVal.value, a.y.baseVal.value);
-			$c(node,"windSpd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
-			$c(node,"windDir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
-			$c(node,"windGst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
+			$c(node,"w_spd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
+			$c(node,"w_dir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
+			$c(node,"w_gst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
 			break;
 		}
 	}
@@ -219,7 +217,6 @@ function $i( id ) {
 // http://codereview.stackexchange.com/a/40324
 function test() {
 	var svg = new SVGGraph();
-	
 }
 
 /* Skicka först sensor objekten
