@@ -24,7 +24,7 @@ int main( int argc, char *argv[]) {
 		}
 	}
 	
-	if ( daemon ) {
+	if ( daemon == 1 ) {
 		pid_t     sid, pid = 0;
 		FILE     *file_err;
 		
@@ -140,7 +140,7 @@ int main( int argc, char *argv[]) {
 void usage( void ) {
     fprintf( stderr,
         "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
-        "Usage:\t[-s Run as a standard program, not in daemon mode\n\n" );
+        "Usage:\t[-s Run program in daemon mode\n\n" );
     exit(1);
 }
 
