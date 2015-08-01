@@ -9,4 +9,7 @@ arduino:
 install:
 	$(MAKE) -C server install
 	
-.PHONY: server arduino install
+uninstall:
+	$(MAKE) -C server uninstall
+	
+.PHONY: server arduino install unbinstall
