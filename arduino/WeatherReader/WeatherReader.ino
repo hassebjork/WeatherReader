@@ -101,6 +101,7 @@ public:
 					if (w != 0) {
 						// Long pulse
 						++flip;
+// 					} else if (w == 0 && 24 <= flip) {
 					} else if (32 <= flip) {
 						// Short pulse, start bit
 						flip = 0;
@@ -129,6 +130,8 @@ public:
 					}
 					break;
 			}
+// 		} else if (width >= 2500 && pos >= 8) {
+// 			return 1;
 		} else {
 			return -1;
 		}
