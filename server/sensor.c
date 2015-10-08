@@ -133,7 +133,7 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 		if ( sensor_list[i].sensor_id == sensor_id 
 				&& sensor_list[i].channel == channel 
 				&& sensor_list[i].rolling == rolling
-				&& strncmp( protocol, sensor_list[i].protocol, 4 ) == 0 ) {
+				&& strcmp( protocol, sensor_list[i].protocol ) == 0 ) {
 			
 			// Update battery status if changed
 			if ( sensor_list[i].battery != battery )

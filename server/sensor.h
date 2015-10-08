@@ -47,7 +47,8 @@ typedef enum {
 	WINDGUST    = 8,
 	WINDDIR  	= 16,
 	RAINTOTAL   = 32,
-	SWITCH      = 64
+	SWITCH      = 64,
+	BAROMETER   = 128
 } SensorType;
 
 typedef struct {

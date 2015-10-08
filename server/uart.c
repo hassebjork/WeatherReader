@@ -197,6 +197,11 @@ void uart_init( SerialDevice *sDev ) {
 			sDev->type   = WIRE_SENSOR;
 			sDev->head   = NULL;
 			sDev->tail   = NULL;
+		} else if ( strncmp( buffer, "[SR]", 4 ) == 0 ) {	// Wired-Sensor
+			sDev->active = 1;
+			sDev->type   = SENSOR_READER;
+			sDev->head   = NULL;
+			sDev->tail   = NULL;
 		} else {											// Undefined - quit thread
 			sDev->active = 0;
 			sDev->type   = UNDEFINED;

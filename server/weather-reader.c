@@ -119,7 +119,7 @@ int main( int argc, char *argv[]) {
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
 		fprintf( stderr, "ERROR in main: Could not set timer\n" );
 
-	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Ardiono
+	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Arduino
 	signal( SIGCHLD, SIG_IGN );						// 
 	signal( SIGINT, signal_interrupt );				// Program exit
 	

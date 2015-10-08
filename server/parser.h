@@ -48,4 +48,11 @@ void vent_parse( char *s );
 void mandolyn_parse( char *s );
 void fineoffset_parse( char *s );
 void wired_parse( char *s );
+void json_parse( char *s );
+
+void json_parseString( char *p, char *s );
+void json_parseInt( char *p, int *value );
+void json_parseFloat( char *p, float *value );
+void json_parseWhitespace( char *p );
+
 #endif
