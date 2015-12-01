@@ -35,10 +35,11 @@ install: weather-reader
 	install -m 0644    ../weather-reader/www/* $(PREFIX)/share/weather-reader/www
 	install -b -m 0644 ../weather-reader/weather-reader.conf /etc
 	install -m 0755    ../weather-reader/weather-reader /etc/init.d
-	update-rc.d weather-reader defaults 95
+	update-rc.d weather-reader defaults 95 2> /dev/null
 
 uninstall:
-	-rm -fr $(PREFIX)/bin/weather-reader \
+	- update-rc.d weather-reader remove 2> /dev/null
+	- rm -fr $(PREFIX)/bin/weather-reader \
 		$(PREFIX)/share/weather-reader \
 		/etc/weather-reader.conf \
 		/etc/init.d/weather-reader \

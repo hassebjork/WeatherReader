@@ -27,8 +27,6 @@ function updateSensors( sensors ) {
 			drawWind( sensors[sens] );
 		if ( sensors[sens].type & 32 )	// Rain
 			drawRain( sensors[sens] );
-// 		if ( sensors[sens].type & 1 )	// Temp
-// 			SVG.createGraph( sensors[sens], "t" );
 	}
 }
 function drawTemp( sensor ) {
@@ -50,16 +48,16 @@ function drawTemp( sensor ) {
 	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].t !== "undefined" ) {
-			$c(node,"t_cur").textContent = sensor.data[i].t + "°";
+			$c(node,"t_cur").textContent = sensor.data[i].t;
 			break;
 		}
 	}
 	
 	// Set Min/Max
 	if ( typeof sensor.min.t !== "undefined" )
-		$c(node,"t_min").textContent = sensor.min.t + "°";
+		$c(node,"t_min").textContent = sensor.min.t;
 	if ( typeof sensor.max.t !== "undefined" )
-		$c(node,"t_max").textContent = sensor.max.t + "°";
+		$c(node,"t_max").textContent = sensor.max.t;
 	
 	// Draw graph
 	if ( sensor.data.length < 2 )	// Division by 0
@@ -94,7 +92,6 @@ function drawHumidity( sensor, node ) {
 		return;
 	checkBatt( node, sensor.bat == 0 );
 	$c(node,"title").textContent = sensor.name;
-	$c(node,"humi").style.visibility = "visible";
 	if ( sensor.data.length < 4 ) {
 		$c(node,"h_cur").textContent = "---";
 		$c(node,"h_min").textContent = "---";
@@ -120,21 +117,37 @@ function drawWind( sensor ) {
 	checkBatt( node, sensor.bat == 0 );
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].w !== "undefined" ) {
-			a = $c(node,"windArr");
+			a = $c(node,"w_arr");
 			a.transform.baseVal.getItem(0).setRotate(sensor.data[i].w.d, a.x.baseVal.value, a.y.baseVal.value);
-			$c(node,"windSpd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
-			$c(node,"windDir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
-			$c(node,"windGst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
+			$c(node,"w_spd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
+			$c(node,"w_dir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
+			$c(node,"w_gst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
 			break;
 		}
 	}
 }
 function drawRain( sensor ) {
-	var y, x1, x2, ruler, hr, path = "";
+	var x, y, x1, x2, dx, dy, dh, ruler, hr, path = "";
 	var node = $i("defsSVG");
 	if ( node == null )
 		return;
 	checkBatt( node, sensor.bat == 0 );
+	
+	var rain = $i("rainSVG");
+	if ( rain != null ) {
+		var graph = $i("rainGraph" + sensor.id);
+		if ( graph == null ) {
+			graph = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+			graph.setAttribute("id","rainGraph" + sensor.id);
+			graph.setAttribute("class","r_graph team" + sensor.team );
+			$c(rain,"r_graph").appendChild(graph);
+		}
+		var title = $i("rainTitle" + sensor.id);
+		if ( title == null ) {
+		}
+	} else {
+		return;
+	}
 	
 	// Set value
 	if ( typeof sensor.current.r !== "undefined" )
@@ -150,10 +163,11 @@ function drawRain( sensor ) {
 	dh = node.clientHeight - 10;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = node.clientHeight / 10;
+	x1 = 0;
 	for ( i = 0; i < sensor.data.length; i++ ) {
+		x2 = Math.round( (i+1) * dx ) - 1;
+		x  = Math.round( x1 + ( x2-x1) / 2 );
 		if ( typeof sensor.data[i].r !== "undefined" ) {
-			x1 = Math.round( i*dx );
-			x2 = Math.round( (i+1) * dx ) - 1;
 			y  = Math.round( dh - sensor.data[i].r * dy );
 			path += x1 + "," + node.clientHeight + ' '
 				  + x1 + "," + y + ' '
@@ -163,12 +177,13 @@ function drawRain( sensor ) {
 		if ( typeof sensor.data[i].d !== "undefined" ) {
 			hr = sensor.data[i].d.substring( sensor.data[i].d.indexOf( ' ' ) + 1 );
 			if ( hr % 3 == 0 ) {
-				ruler.appendChild( createText( parseInt( x1 + (x2-x1) / 2), node.clientHeight-2, hr ) );
+				ruler.appendChild( createText( x, node.clientHeight-2, hr ) );
 			}
 		}
+		x1 = x2 + 1;
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
-	$c(node,"r_graph").setAttribute("points", path);
+	graph.setAttribute("points",path);
 // 	debugger;
 // 	console.log( sensor.id + ": " + path + "\n" );
 }
@@ -202,7 +217,6 @@ function $i( id ) {
 // http://codereview.stackexchange.com/a/40324
 function test() {
 	var svg = new SVGGraph();
-	
 }
 
 /* Skicka först sensor objekten

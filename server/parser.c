@@ -95,6 +95,8 @@ void parse_input( char *s ) {
 		fineoffset_parse( s + 5 );
 	else if ( strncmp( s, "WIRE", 4 ) == 0 )
 		wired_parse( s + 5 );
+	else if ( strncmp( s, "{\"", 2 ) == 0 )
+		json_parse( s );
 #if _DEBUG > 2
 	else
 		fprintf( stderr, "Not recognised: %s", s );
@@ -356,3 +358,116 @@ void wired_parse( char *s ) {
 	}
 }
 
+/**************************************************************************************************
+ * JSON
+ * A custom library for sensors connected by wire to an arduino
+ **************************************************************************************************/
+
+void json_parse( char *s ) {
+	unsigned int  id = 0, channel = 0, button = 0;
+	float         temperature, humidity, pressure;
+	SensorType    type = UNDEFINED;
+	
+	char *p, key[32], model[128], lev = 0;
+	float f;
+	int i;
+	
+	for ( p = s; *p != '\0'; p++ ) {
+		if ( lev == 0 && ( *p == '{' || *p == '[' || *p == ',' ) ) {
+			lev = 1;
+			for ( p; *p != '"'; p++ );
+		
+		// Scan key
+		} else if ( lev == 1 ) {
+			json_parseString( p, key );
+			for ( p; *p != ':'; p++ );
+			json_parseWhitespace( ++p );
+
+			if ( strcmp( key, "T" ) == 0 ) {
+				json_parseFloat( p, &temperature );
+				type |= TEMPERATURE;
+			} else if ( strcmp( key, "H" ) == 0 ) {
+				json_parseFloat( p, &humidity );
+				type |= HUMIDITY;
+			} else if ( strcmp( key, "P" ) == 0 ) {
+				json_parseFloat( p, &pressure );
+				type |= BAROMETER;
+			} else if ( strcmp( key, "S" ) == 0 ) {
+				json_parseInt( p, &button );
+				type |= SWITCH;
+			} else if ( strcmp( key, "id" ) == 0 ) {
+				json_parseInt( p, &id );
+			} else if ( strcmp( key, "ch" ) == 0 ) {
+				json_parseInt( p, &channel );
+			} else if ( strcmp( key, "type" ) == 0 ) {
+				json_parseString( p, model );
+			} else {
+				if ( *p == '"' )
+					for ( ++p; *p != '"'; p++ );
+				else
+					for ( p; *p != '}' || *p != ']' || *p != ','; p++ );
+			}
+			lev = 0;
+		}
+	}
+	
+	sensor *sptr = sensorListLookup( "WIRE", id, channel, 0, type, 1 );
+	if ( sptr ) {
+		if ( type & TEMPERATURE )
+			sensorTemperature( sptr, temperature );
+		if ( type & HUMIDITY )
+			sensorHumidity( sptr, humidity );
+		if ( type & SWITCH )
+			sensorSwitch( sptr, button );
+	}
+}
+
+void json_parseWhitespace( char *p ) {
+	for ( p; *p == ' ' || *p == '\t' || *p == '\f' || *p == '\n' || *p == '\r'; p++ );
+}
+
+void json_parseInt( char *p, int *value ) {
+	char val[32], ptr = 0;
+	for ( p; ( *p >= '0' && *p <= '9' ) || *p == '-' || *p == '+' || *p == '.' ; p++ )
+		val[ptr++] = *p;
+	val[ptr] = '\0';
+ 	int varCount = sscanf( val, "%d", value );
+}
+
+void json_parseFloat( char *p, float *value ) {
+	char val[32], ptr = 0;
+	for ( p; ( *p >= '0' && *p <= '9' ) || *p == '-' || *p == '+' || *p == 'e' || *p == 'E' || *p == '.' ; p++ )
+		val[ptr++] = *p;
+	val[ptr] = '\0';
+ 	int varCount = sscanf( val, "%f", value );
+}
+
+void json_parseString( char *p, char *s ) {
+	char ptr = 0;
+	if ( *p == '"' )
+		p++;
+	for ( p; *p != '"'; p++ ) {
+		if ( *p == '\\' ) {
+			p++;
+			if ( *p == '"' )
+				s[ptr++] = '"';
+			else if ( *p == '\\' )
+				s[ptr++] = '\\';
+			else if ( *p == 'b' )
+				s[ptr++] = '\b';
+			else if ( *p == 'f' )
+				s[ptr++] = '\f';
+			else if ( *p == 'n' )
+				s[ptr++] = '\n';
+			else if ( *p == 'r' )
+				s[ptr++] = '\r';
+			else if ( *p == 't' )
+				s[ptr++] = '\t';
+			else if ( *p == 'u' )
+				s[ptr++] = 'u';
+		} else {
+			s[ptr++] = *p;
+		}
+	}
+	s[ptr] = '\0';
+}

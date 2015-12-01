@@ -24,7 +24,7 @@ int main( int argc, char *argv[]) {
 		}
 	}
 	
-	if ( daemon ) {
+	if ( daemon == 1 ) {
 		pid_t     sid, pid = 0;
 		FILE     *file_err;
 		
@@ -119,7 +119,7 @@ int main( int argc, char *argv[]) {
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
 		fprintf( stderr, "ERROR in main: Could not set timer\n" );
 
-	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Ardiono
+	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Arduino
 	signal( SIGCHLD, SIG_IGN );						// 
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
@@ -140,7 +140,7 @@ int main( int argc, char *argv[]) {
 void usage( void ) {
     fprintf( stderr,
         "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
-        "Usage:\t[-s Run as a standard program, not in daemon mode\n\n" );
+        "Usage:\t[-s Run program in daemon mode\n\n" );
     exit(1);
 }
 

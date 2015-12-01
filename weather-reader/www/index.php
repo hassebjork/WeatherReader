@@ -314,28 +314,24 @@ class Sensor {
 		}
 	}
 	
-	function svg_head( $tabs = "\t" ) {
-		$width = 150; $height = 75;
+	function svg_head() {
 		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
-			echo $tabs
-				.'<svg id="sTemp' . $this->id .'" class="c_head team' . $this->team . '" width="'.$width.'px" height="'.$height.'px" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' . "\n\t" . $tabs
-				.'<use xlink:href="#svgBg" class="tempBg" />' . "\n\t" . $tabs
-				.'<text x="49%" y="24" class="title"></text>' . "\n\t" . $tabs
-				.'<polygon class="t_graph" points="0,'.($height/2).' '.$width.','.($height/2).' '.$width.','.$height.' 0,'.$height.'" />' . "\n\t" . $tabs
-				.'<use x="1%" y="18" class="batt" xlink:href="#sBat" />' . "\n\t" . $tabs
-				.'<g class="temp">' . "\n\t\t" . $tabs
-				.'<text x="47%" y="48" class="t_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="38" class="t_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="95%" y="50" class="t_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n\t" . $tabs
-				.'<g class="humi" style="visibility: hidden">' . "\n\t\t" . $tabs
-				.'<text x="50%" y="38" class="h_cur"></text>' . "\n\t\t" . $tabs
-				.'<text x="60%" y="50" class="h_max"></text>' . "\n\t\t" . $tabs
-				.'<text x="50%" y="50" class="h_min"></text>' . "\n\t" . $tabs
-				.'</g>' . "\n" . $tabs
-				.'<g class="t_ruler"></g>' . "\n\t" . $tabs
-				.'</svg>' . "\n";
+			echo '<div id="sTemp' . $this->id .'" class="t_widget team' . $this->team . '">'
+				.'<svg width="100%" height="100%" '
+				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+				.'<use xlink:href="#svgBg" class="widgetBg"/>'
+				.'<polygon class="t_graph"/>'
+				.'<use x="5" y="8" class="batt" style="visibility:hidden" xlink:href="#icon_bat"/>'
+				.'<g class="t_ruler"/>'
+				.'</svg>'
+				.'<div class="title">' . $this->name . '</div>'
+				.'<div class="t_cur"></div>'
+				.'<div class="t_max"></div>'
+				.'<div class="t_min"></div>'
+				.'<div class="h_cur"></div>'
+				.'<div class="h_max"></div>'
+				.'<div class="h_min"></div>'
+				.'</div>' . "\n";
 	}
 }
 
@@ -389,51 +385,56 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	<link rel="icon" href="icon.ico">
 
 	<style type="text/css" media="all">
-		body	   { font-family: Arial,Sans-serif; font-size: 12px; margin: 0px; padding: 0px; }
-		text.title { font-size: 24px; text-anchor: middle; }
-		use.batt   { opacity: .5; visibility: hidden; }
+		/* Global and common */
+		@import url("http://fonts.googleapis.com/css?family=Droid+Sans");
+		body	   { font-family: 'Droid Sans',Sans-serif; font-size: 14px; margin: 0px; padding: 0px; }
+		text.title { font-size: 26px; text-anchor: middle; }
 		svg        { float: left; }
-		
-		/* Wind */
-		text.windSpd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		text.windGst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		text.windDir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
-		use.windArr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
-		use.windBg   { fill: url(#gradBg); stroke:#2e8abb }
-		
-		/* Temperature */
-		text.t_cur { font-weight: bold; font-size: 20px; text-anchor: end; fill: #666666; }
-		text.t_min { font-weight: bold; text-anchor: end; fill: #6060ff; }
-		text.t_max { font-weight: bold; text-anchor: end; fill: #ff6060; }
-		use.tempBg { fill:url(#gradBg); stroke:#2e8abb }
-		polygon.t_graph { opacity: .25; }
-		.t_ruler   { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
-		
-		/* Humidity */
-		text.h_cur { font-size: 12px; font-weight: bold; text-anchor: start; fill: #666666; }
-		text.h_min { font-size: 8px; text-anchor: start; fill: #6060ff; }
-		text.h_max { font-size: 8px; text-anchor: start; fill: #ff6060; }
-		
-		/* Rain */
-		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
-		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
-		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
-		polygon.r_graph { fill:#0047e9; opacity: 1; }
-		use.rainBg   { fill: url(#gradBg); stroke:#2e8abb }
-		
-		/* Backgrounds an common colors */
-		.team1    { fill: #5555cd; stroke: #5555cd; }
-		.team2    { fill: #5555cd; stroke: #5555cd; }
-		.team3    { fill: #5ba162; stroke: #5ba162; }
-		.team4    { fill: #b567d9; stroke: #b567d9; }
-		.team5    { fill: #cf696a; stroke: #cf696a; }
-		.team6    { fill: #606060; stroke: #606060; }
-		stop.bg1 { stop-color: #80a2e0; stop-opacity: 1; }
-		stop.bg2 { stop-color: #fff; stop-opacity: 1; }
+		.team1     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team2     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
+		.team3     { color: #5ba162; fill: #5ba162; stroke: #5ba162; }
+		.team4     { color: #b567d9; fill: #b567d9; stroke: #b567d9; }
+		.team5     { color: #cf696a; fill: #cf696a; stroke: #cf696a; }
+		.team6     { color: #606060; fill: #606060; stroke: #606060; }
+		/* svg */
+		text       { stroke-width: 0; }
+		#icon_bat  { stroke: black; fill: white; opacity: .75; }
+		.widgetBg  { fill:url(#gradBg); stroke:#2e8abb }
+		stop.bg1   { stop-color: #80a2e0; stop-opacity: 1; }
+		stop.bg2   { stop-color: #fff; stop-opacity: 1; }
 		stop.wArr1 { stop-color: #2e8abb; stop-opacity: .5; }
 		stop.wArr2 { stop-color: #fff; stop-opacity: .5; }
 		
-		text       { stroke-width: 0; }
+		/* Wind */
+		/* svg */
+		text.w_spd { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.w_gst { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		text.w_dir { font-size: 18px; fill: #cf696a; text-anchor: middle; }
+		use.w_arr  { fill: url(#windGradArrow); stroke: #2e8abb; stroke-width: 1px; }
+		
+		/* Temperature */
+		div.t_widget        { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
+		div.t_widget > *    { text-align: right; position: absolute; display: inline; }
+		div.t_widget .title { font-size: 24px; font-weight: normal; text-align: center; top: 5px; left: 0px; width: 100%; }
+		.t_cur { color: #666666; top: 30px; left:  5px;  width: 60px; font-size: 22px; }
+		.t_max { color: #ff6060; top: 30px; left: 112px; width: 33px; }
+		.t_min { color: #6060ff; top: 45px; left: 112px; width: 33px; }
+		.t_cur::after { content: "°"; }
+		.t_min::after { content: "°"; }
+		.t_max::after { content: "°"; }
+		.h_cur { color: #666666; top: 30px; left: 75px; text-align: left; font-size: 14px; }
+		.h_min { color: #6060ff; top: 45px; left: 70px; font-size: smaller; }
+		.h_max { color: #ff6060; top: 45px; left: 93px; text-align: left; font-size: small; }
+		/* svg */
+		polygon.t_graph { opacity: .25; }
+		g.t_ruler       { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
+		
+		/* Rain */
+		/* svg */
+		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
+		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
+		polygon.r_graph { stroke: none; opacity: .25; }
 	</style>
 	<script>
 var tim1;
@@ -459,10 +460,9 @@ window.onblur  = function() { clearInterval(tim1) };
 				<stop offset="0%" class="bg1" />
 				<stop offset="100%" class="bg2" />
 			</linearGradient>
-			<g id="sBat">
-				<polygon points="0,20 0,2 2.5,2 2.5,0 7.5,0 7.5,2 10,2 10,20 0,20" style="fill: white; stroke: black; stroke-width; 1px;" />
-				<polygon points="2,18 2,15 8,13 8,18 2,18" style="fill: #b30000; stroke: none;">
-				</polygon>
+			<g id="icon_bat">
+				<polygon points="0,20 0,2 2.5,2 2.5,0 7.5,0 7.5,2 10,2 10,20 0,20"/>
+				<polygon points="2,18 2,15 8,13 8,18 2,18" style="fill:#b30000; stroke:none;"/>
 			</g>
 			<g id="svgBg">
  				<rect x="0" y="0" width="100%" height="100%" rx="10" ry="10" /> 
@@ -471,31 +471,32 @@ window.onblur  = function() { clearInterval(tim1) };
 				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" transform="rotate(0)" />
 			</g>
 		</defs>
-		<use xlink:href="#svgBg" class="windBg" />
-		<g class="r_ruler">
+		<use xlink:href="#svgBg" class="widgetBg" />
+		<g id="rainSVG">
+			<g class="r_graph"></g>
+			<g class="r_ruler">
 <?php
 // Calculations based on sensors.js function drawRain
 $dy = $height / 10;
 $dh = $height - 10;
 for ( $i = 1; $i <= 10; $i++ ) {
-	echo "\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
+	echo "\t\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
 		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
 }
 ?>
-			<polygon class="r_graph" points="0,<?= intval($height/2) ?> <?= $width ?>,<?= intval($height/2) ?> <?= $width ?>,<?= $height-1 ?> 0,<?= $height-1 ?>" />
+			</g>
+			<g class="r_ruler_txt"></g>
 		</g>
-		<g class="r_ruler_txt"></g>
-		<use x="50%" y="50%" class="windArr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
-		<text x="50%" y="30" class="windSpd"></text>
-		<text x="50%" y="50" class="windDir"></text>
-		<text x="50%" y="70" class="windGst"></text>
+		<use x="50%" y="50%" class="w_arr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
+		<text x="50%" y="30" class="w_spd"></text>
+		<text x="50%" y="50" class="w_dir"></text>
+		<text x="50%" y="70" class="w_gst"></text>
 		<text x="50%" y="100" class="r_cur"></text>
-		<use x="10" y="10" class="batt" xlink:href="#sBat" />
+		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <?php
 Sensor::draw_sensors();
 ?>
-	<div style="clear:both"></div>
-	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="display:block;">Update</a>
+	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Update</a>
 </body>
 </html>

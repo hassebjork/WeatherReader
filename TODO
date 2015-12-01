@@ -4,6 +4,7 @@ TODO
 	- Install database user
 	- Install apache/lighttpd configuration
 - Deb package
+- Websocket server (http://ahoj.io/libwebsockets-simple-websocket-server)
 
 Wish list
 

@@ -50,8 +50,9 @@
 #define UNDEFINED      0
 #define WEATHER_READER 1
 #define WIRE_SENSOR    2
+#define SENSOR_READER  3
 
-static const char * SERIAL_TYPES[] =  { "Undefined", "Weather-reader", "Wire-sensor" };
+static const char * SERIAL_TYPES[] =  { "Undefined", "Weather-reader", "Wire-sensor", "Sensor-reader" };
 
 struct UARTQueueNode {
 	time_t                time; 	// Node time
