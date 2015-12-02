@@ -27,7 +27,8 @@
 #define DHTLIB_WAKEUP    1
 #define DHTLIB_TIMEOUT (F_CPU/40000)
 
-#define US_ROUNDTRIP_CM  57 
+#define US_SAMPLES       5
+#define US_MAX_ECHO      25000	/* Amaximum of 32000 */
 
 class DHT {
 public:
@@ -59,7 +60,7 @@ public:
 class UltraSonic {
 public:
 	UltraSonic( uint8_t trigger, uint8_t echo );
-    long read();
+    int read();
     void print();
 	
 	uint8_t trig_pin;
@@ -209,26 +210,41 @@ UltraSonic::UltraSonic( uint8_t trigger, uint8_t echo ) {
 	pinMode( echo_pin, INPUT );
 }
 
-long UltraSonic::read() {
-	long distance;
-	digitalWrite( trig_pin, LOW );
-	delayMicroseconds( 2 );
-	digitalWrite( trig_pin, HIGH );
-	delayMicroseconds( 10 );
-	digitalWrite( trig_pin, LOW );
-	distance = pulseIn( echo_pin, HIGH ) / US_ROUNDTRIP_CM;
-	if ( distance < 2 || distance > 400 )
+int UltraSonic::read() {
+	unsigned int var[US_SAMPLES], i, j, k;
+	for ( i = 0; i < US_SAMPLES; i++ ) {
+		digitalWrite( trig_pin, LOW );
+		delayMicroseconds( 2 );
+		digitalWrite( trig_pin, HIGH );
+		delayMicroseconds( 10 );
+		digitalWrite( trig_pin, LOW );
+		var[i] = (unsigned int) pulseIn( echo_pin, HIGH, US_MAX_ECHO );
+		delay( 30 );					// Remove noise from previous ping
+	}
+	// Bubble sort
+	for ( j = 0; j < (US_SAMPLES - 1) ; j++ ) {
+		for ( i = 0; i < (US_SAMPLES - j - 1) ; i++ ) {
+			if ( var[i] > var[i+1] ) {
+				k        = var[i];
+				var[i]   = var[i+1];
+				var[i+1] = k;
+			}
+		}
+	}
+	k = var[US_SAMPLES/2] / 58;			// Return median distance
+	if ( k < 2 || k > 400 )
 		return INVALID_VALUE;
-	return distance;
+	return (int) k;
+	
 }
 
 void UltraSonic::print() {
-	long distance = read();
+	int distance = read();
 	Serial.print( "{\"type\":\"US\",\"id\":" );
 	Serial.print( echo_pin );
 	Serial.print( ",\"ch\":" );
 	Serial.print( CHANNEL );
-	if ( distance != INVALID_VALUE ) {
+	if ( distance > 0 ) {
 		Serial.print( ",\"D\":" );
 		Serial.print( distance );
 	}
@@ -299,8 +315,6 @@ void setup() {
 	Serial.print( " Name:\"" );
 	Serial.print( NAME );
 	Serial.println( "\"" );
-	
-	uint8_t i, n;
 	
 	/* Clear the reset flag. */
 	MCUSR &= ~(1<<WDRF);
