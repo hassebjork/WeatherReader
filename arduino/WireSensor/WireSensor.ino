@@ -8,11 +8,6 @@
 #include <Arduino.h>
 #endif
 
-#define CHANNEL 22
-#define NAME "Vinden"
-
-#define SLEEP_8SEC_COUNT  6		/* Sleep intervall counted in aprox 8 sec */
-
 #define OK                0
 #define ERROR_CHECKSUM   -1
 #define ERROR_TIMEOUT    -2
@@ -29,6 +24,19 @@
 
 #define US_SAMPLES       5
 #define US_MAX_ECHO      25000	/* Amaximum of 32000 */
+#define SLEEP_8SEC_COUNT 6		/* Sleep intervall counted in aprox 8 sec */
+
+// Choose type and location
+#define LOCATION 2
+
+#if LOCATION == 1
+#define CHANNEL 22
+#define NAME "Attic"
+
+#elif LOCATION == 2
+#define CHANNEL 21
+#define NAME "Basement"
+#endif
 
 class DHT {
 public:
@@ -289,6 +297,7 @@ void enterSleep( void ) {
  * 
  ******************************************************************************/
 
+#if LOCATION == 1
 DHT dht[] = {
 // 	DHT( pin, type1 ),				  		
 // 	DHT( 4, DHT21 ),	/* Attic   NC  		
@@ -296,17 +305,29 @@ DHT dht[] = {
 	DHT( 6, DHT21 ),	/* Outdoor Lower	*/
 	DHT( 7, DHT21 )		/* Outdoor Upper	*/
 };
+Switch sw[] = {
+// 	Switch( pin ),							
+};
+UltraSonic us[] = {
+// 	UltraSonic( trigger, echo ),			
+};
+
+#elif LOCATION == 2
+DHT dht[] = {
+// 	DHT( pin, type1 ),				  		
+ 	DHT( 13, DHT22 ),				  		
+};
 
 Switch sw[] = {
 // 	Switch( pin ),							
-// 	Switch( 8 ),	
-// 	Switch( 9 )		
 };
 
 UltraSonic us[] = {
 // 	UltraSonic( trigger, echo ),			
-// 	UltraSonic( 10, 11 )					
+ 	UltraSonic( 12, 11 )					
 };
+
+#endif
 
 void setup() {
 	Serial.begin( 115200 );
