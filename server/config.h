@@ -59,6 +59,7 @@ typedef struct {
 	int   saveTemperatureTime;
 	int   saveHumidityTime;
 	int   saveRainTime;
+	int   saveDistanceTime;
 	int   sampleWindTime;
 	
 } ConfigSettings;
