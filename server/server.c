@@ -133,10 +133,10 @@ void *server_thread() {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
 		buffer[rcount++] = '\0';
 		if ( rcount < 0 )
-			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
+			fprintf( stderr, "ERROR in server_thread: recv from failed!\n" );
 
 #if _DEBUG > 1
-		fprintf( stderr, "server_thread (%d b): \"%s\" from %s\n", rcount - 1, buffer, inet_ntoa(client.sin_addr) );
+		fprintf( stderr, "server_thread # (%d b): \"%s\" from %s\n", rcount - 1, buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
