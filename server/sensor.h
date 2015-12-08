@@ -48,7 +48,8 @@ typedef enum {
 	WINDDIR  	= 16,
 	RAINTOTAL   = 32,
 	SWITCH      = 64,
-	BAROMETER   = 128
+	BAROMETER   = 128,
+	DISTANCE    = 256
 } SensorType;
 
 typedef struct {
@@ -118,6 +119,8 @@ char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
+char sensorDistance( sensor *s, int value );
+
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );
 time_t sensorTimeSync();

@@ -364,7 +364,7 @@ void wired_parse( char *s ) {
  **************************************************************************************************/
 
 void json_parse( char *s ) {
-	unsigned int  id = 0, channel = 0, button = 0;
+	unsigned int  id = 0, channel = 0, button = 0, distance = 0;
 	float         temperature, humidity, pressure;
 	SensorType    type = UNDEFINED;
 	
@@ -382,19 +382,26 @@ void json_parse( char *s ) {
 			json_parseString( p, key );
 			for ( p; *p != ':'; p++ );
 			json_parseWhitespace( ++p );
-
+			// Temperature
 			if ( strcmp( key, "T" ) == 0 ) {
 				json_parseFloat( p, &temperature );
 				type |= TEMPERATURE;
+			// Humidity
 			} else if ( strcmp( key, "H" ) == 0 ) {
 				json_parseFloat( p, &humidity );
 				type |= HUMIDITY;
+			// Barometer
 			} else if ( strcmp( key, "P" ) == 0 ) {
 				json_parseFloat( p, &pressure );
 				type |= BAROMETER;
+			// Switch
 			} else if ( strcmp( key, "S" ) == 0 ) {
 				json_parseInt( p, &button );
 				type |= SWITCH;
+			// Distance
+			} else if ( strcmp( key, "D" ) == 0 ) {
+				json_parseInt( p, &distance );
+				type |= DISTANCE;
 			} else if ( strcmp( key, "id" ) == 0 ) {
 				json_parseInt( p, &id );
 			} else if ( strcmp( key, "ch" ) == 0 ) {
@@ -419,6 +426,8 @@ void json_parse( char *s ) {
 			sensorHumidity( sptr, humidity );
 		if ( type & SWITCH )
 			sensorSwitch( sptr, button );
+		if ( type & DISTANCE )
+			sensorDistance( sptr, distance );
 	}
 }
 
