@@ -104,10 +104,10 @@ void *uart_receive( void *ptr ) {
 			sDev->head = data->link;
 		}
 	}
-	free( sDev );
 #if _DEBUG > 0
 	fprintf( stderr, "Uart thread #%d %s:%*sClosing\n", sDev->no, sDev->name, 14 - strlen( sDev->name ), "" );
 #endif
+	free( sDev );
 }
 
 char uart_checkQueue( SerialDevice *sDev, char *s ) {
@@ -161,7 +161,7 @@ void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	
 	s[rcount-1] = '\0';
 #if _DEBUG > 1
-	fprintf( stderr, "uart_receive #%d:%*s\"%s\" recv %d bytes\n", sDev->no, 4, "", s, rcount - 1 );
+	fprintf( stderr, "uart_receive #%d (%db): %s\n", sDev->no, rcount - 1, s );
 #endif
 	if ( uart_checkQueue( sDev, s ) ) {
 		return;
