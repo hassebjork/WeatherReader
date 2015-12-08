@@ -159,7 +159,10 @@ char uart_checkQueue( SerialDevice *sDev, char *s ) {
 void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	int i;
 	
-	s[rcount-1] = '\0';
+	while ( ( s[rcount-1] == '\n' || s[rcount-1] == '\r' ) && rcount > 1 )
+		--rcount;
+	s[rcount] = '\0';
+	
 #if _DEBUG > 1
 	fprintf( stderr, "uart_receive #%d (%d b): \"%s\"\n", sDev->no, rcount - 1, s );
 #endif
