@@ -426,6 +426,8 @@ void json_parse( char *s ) {
 			sensorHumidity( sptr, humidity );
 		if ( type & SWITCH )
 			sensorSwitch( sptr, button );
+		if ( type & DISTANCE )
+			sensorDistance( sptr, distance );
 	}
 }
 
