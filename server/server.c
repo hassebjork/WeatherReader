@@ -41,12 +41,12 @@ void *client_thread() {
 	char buffer[BUFF_SIZE], *s;
 	int  rcount;
 	
-	fprintf( stderr, "Client enabled:%*sUsing server %s:%d\n", 15, "", configFile.server, configFile.port );
+	fprintf( stderr, "Client enabled: Using server %s:%d\n", configFile.server, configFile.port );
 	
 	while ( ( rcount = read( pipeServer[0], &buffer, BUFF_SIZE ) ) > 0 && configFile.run ) {
 		buffer[rcount-1] = '\0';
 #if _DEBUG > 2
-		fprintf( stderr, "client_thread:%*s\"%s\" recv %d bytes\n", 6, "", buffer, rcount - 1 );
+		fprintf( stderr, "client_thread: \"%s\" recv %d bytes\n", buffer, rcount - 1 );
 #endif
 		// Split multiple inputs
 		s = buffer;
@@ -62,7 +62,7 @@ void *client_thread() {
 		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", rcount );
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Client thread:%*sClosing\n", 16, "" );
+	fprintf( stderr, "Client thread: Closing\n" );
 #endif
 }
 
@@ -96,7 +96,7 @@ int client_send( char * buffer ) {
 	}
 	
 #if _DEBUG > 2
-	fprintf( stderr, "client_send:%*s\"%s\" sent %d bytes to %s\n", 8, "", buffer, strlen( buffer ), inet_ntoa(server.sin_addr) );
+	fprintf( stderr, "client_send: \"%s\" sent %d bytes to %s\n", buffer, strlen( buffer ), inet_ntoa(server.sin_addr) );
 #endif
 	
 	close( sockServer );
@@ -109,7 +109,7 @@ void *server_thread() {
 	struct sockaddr_in server, client;
 	char buffer[BUFF_SIZE];
 	
-	fprintf( stderr, "Server thread:%*sStarted on port %d\n", 16, "", configFile.port );
+	fprintf( stderr, "Server thread: Started on port %d\n", configFile.port );
 		
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -136,12 +136,12 @@ void *server_thread() {
 			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		fprintf( stderr, "server_thread:%*s\"%s\" recv %d from %s\n", 6, "", buffer, rcount - 1, inet_ntoa(client.sin_addr) );
+		fprintf( stderr, "server_thread: \"%s\" recv %d from %s\n", buffer, rcount - 1, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
 	}
 #if _DEBUG > 0
-	fprintf( stderr, "Server thread:%*sClosing\n", 16, "" );
+	fprintf( stderr, "Server thread: Closing\n" );
 #endif
 }

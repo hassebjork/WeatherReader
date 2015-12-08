@@ -68,7 +68,7 @@ int main( int argc, char *argv[]) {
 	}
 	
 #if _DEBUG > 0
-	fprintf( stderr, "Debug info:%*sLevel %d\n", 19, "", _DEBUG );
+	fprintf( stderr, "Debug info: Level %d\n", _DEBUG );
 #endif
 	
 	// Start client to send data to remote server
