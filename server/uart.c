@@ -161,7 +161,7 @@ void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	
 	s[rcount-1] = '\0';
 #if _DEBUG > 1
-	fprintf( stderr, "uart_receive #%d: \"%s\" recv %d bytes\n", sDev->no, s, rcount - 1 );
+	fprintf( stderr, "uart_receive #%d (%d b): \"%s\" recv %d bytes\n", sDev->no, rcount - 1, s );
 #endif
 	if ( uart_checkQueue( sDev, s ) ) {
 		return;

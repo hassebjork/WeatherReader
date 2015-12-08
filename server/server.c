@@ -136,7 +136,7 @@ void *server_thread() {
 			fprintf( stderr, "ERROR in server_thread: recvfrom failed!\n" );
 
 #if _DEBUG > 1
-		fprintf( stderr, "server_thread: \"%s\" recv %d from %s\n", buffer, rcount - 1, inet_ntoa(client.sin_addr) );
+		fprintf( stderr, "server_thread (%d b): \"%s\" recv %d from %s\n", rcount - 1, buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
 			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
