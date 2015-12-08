@@ -56,6 +56,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveTemperatureTime = 60;
 	conf->saveHumidityTime    = 60;
 	conf->saveRainTime        = 60;
+	conf->saveDistanceTime    = 60;
 	conf->sampleWindTime      = 10;
 	
 	if ( ( infd = fopen( inFname, "r" ) ) == NULL ) {
@@ -81,6 +82,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 			else if ( confIntVar( rdBuf, "saveTemperatureTime", &conf->saveTemperatureTime ) ) {}
 			else if ( confIntVar( rdBuf, "saveHumidityTime", &conf->saveHumidityTime ) ) {}
 			else if ( confIntVar( rdBuf, "saveRainTime", &conf->saveRainTime ) ) {}
+			else if ( confIntVar( rdBuf, "saveDistanceTime", &conf->saveDistanceTime ) ) {}
 			else if ( confIntVar( rdBuf, "sampleWindTime", &conf->sampleWindTime ) ) {}
 		}
 	}
@@ -89,6 +91,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->saveTemperatureTime *= 60;
 	conf->saveHumidityTime    *= 60;
 	conf->saveRainTime        *= 60;
+	conf->saveDistanceTime    *= 60;
 	conf->sampleWindTime      *= 60;
 	conf->mysql      = ( conf->mysqlServer[0] != 0 && conf->mysqlUser[0] != 0 && conf->mysqlPass[0] != 0 && conf->mysqlDatabase[0] != 0 );
 	conf->is_client  = ( conf->server[0] != 0 && strlen( conf->server ) > 5 );

@@ -50,6 +50,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
+	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	0
 };
 
@@ -548,6 +549,37 @@ char sensorSwitch( sensor *s, char value ) {
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	return 0;
+}
+
+char sensorDistance( sensor *s, int value ) {
+#if _DEBUG > 2
+	fprintf( stderr, "sensorDistance: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	time_t now = sensorTimeSync();
+	
+	if ( s->dataInt== NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
+			fprintf( stderr, "ERROR in sensorDistance: Could not allocate memory for value\n" );
+			return 1;
+		}
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
+	}
+	
+	if ( s->dataInt->value == value )
+		return 0;
+
+	char query[255] = "";
+	sprintf( query, "INSERT INTO wr_distance (sensor_id, value) "
+					"VALUES(%d,%d)", s->rowid, value );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorDistance: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->dataInt->value  = value;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 

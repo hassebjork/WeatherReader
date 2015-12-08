@@ -104,10 +104,10 @@ void *uart_receive( void *ptr ) {
 			sDev->head = data->link;
 		}
 	}
-	free( sDev );
 #if _DEBUG > 0
 	fprintf( stderr, "Uart thread #%d %s:%*sClosing\n", sDev->no, sDev->name, 14 - strlen( sDev->name ), "" );
 #endif
+	free( sDev );
 }
 
 char uart_checkQueue( SerialDevice *sDev, char *s ) {
