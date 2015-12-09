@@ -14,6 +14,9 @@ define( 'WINDAVERAGE', 4 );
 define( 'WINDGUST', 8 );
 define( 'WINDDIRECTION', 16 );
 define( 'RAINTOTAL', 32 );
+define( 'SWITCH', 64 );
+define( 'BAROMETER', 128 );
+define( 'DISTANCE', 256 );
 
 $mysqli = new mysqli( DB_HOST, DB_USER, DB_PASS, DB_DATABASE );
 $mysqli->set_charset( 'utf8' );
@@ -34,18 +37,19 @@ class Sensor {
 
 	static function &fetch_sensors() { 
 		$sensors = array();
-		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
+		$sql   = 'SELECT `id`, `name`, `protocol`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
 				.'WHERE `team` > 0 '
 				.'ORDER BY `team`, `name`';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
 		while( $row = $res->fetch_array() ) {
 			$sensor = new Sensor;
-			$sensor->id    = intval( $row['id'] );
-			$sensor->name  = $row['name'];
-			$sensor->team  = intval( $row['team'] );
-			$sensor->type  = intval( $row['type'] );
-			$sensor->bat   = intval( $row['battery'] );
+			$sensor->id       = intval( $row['id'] );
+			$sensor->name     = $row['name'];
+			$sensor->protocol = $row['protocol'];
+			$sensor->team     = intval( $row['team'] );
+			$sensor->type     = intval( $row['type'] );
+			$sensor->bat      = intval( $row['battery'] );
 			$sensors[$row['id']] = $sensor;
 		}
 		return $sensors;
@@ -54,7 +58,7 @@ class Sensor {
 	static function &fetch_all( $days = 1 ) { 
 		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = Sensor::fetch_sensors();
-		$temp = $humid = $wind = $rain = false;
+		$temp = $humid = $wind = $rain = $distance = false;
 		foreach ( $sensors as $sensor ) {
 			if ( $sensor->type & TEMPERATURE )
 				$temp = true;
@@ -64,6 +68,8 @@ class Sensor {
 				$wind = true;
 			if ( $sensor->type & RAINTOTAL )
 				$rain = true;
+			if ( $sensor->type & DISTANCE )
+				$distance = true;
 		}
 		$data = array();
 		if ( $temp )
@@ -72,8 +78,10 @@ class Sensor {
 			$data = Sensor::fetch_humidity( $data, $days );
 		if ( $wind )
 			$data = Sensor::fetch_wind( $data, $days );
-		if ( $temp )
+		if ( $rain )
 			$data = Sensor::fetch_rain( $data, $sensors, $days );
+		if ( $distance )
+			$data = Sensor::fetch_distance( $data, $days );
 		foreach ( $data as $key=>$val ) {
 			// Skip sensors with team == 0
 			if ( !array_key_exists( $key, $sensors ) ) {
@@ -106,7 +114,7 @@ class Sensor {
 	static function &fetch_th( $data, $days = 1, $tbl, $var ) {
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
-			. 'CONCAT( DATE( `time` ), " ", HOUR( `time` ) ) AS `date` '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `' . $tbl . '` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 			. 'GROUP BY `date`, `sensor_id` '
@@ -147,7 +155,7 @@ class Sensor {
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `speed` ), 1 ) AS `speed`, ' 
 			. 'MAX( `gust` ) AS `gust`, `dir`, ' 
-			. 'CONCAT( DATE( `time` ), " ", HOUR( `time` ) ) AS `date` '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_wind` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) AND speed > 0 '
 			. 'GROUP BY `date`, `sensor_id` '
@@ -175,7 +183,8 @@ class Sensor {
 	}
 
 	static function &fetch_rain( $data, $sensors, $days = 1 ) {
-		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, CONCAT( DATE( `time` ), " ", HOUR( `time` ) ) AS `date` '
+		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_rain` '
 			. 'WHERE `time` > SUBTIME( NOW(), "' . $days . ' 1:0:0" ) '
 			. 'GROUP BY `sensor_id`, `date` '
@@ -210,22 +219,47 @@ class Sensor {
 		return $data;
 	}
 
+	static function fetch_distance( $data, $days = 10 ) {
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 0 ) AS `var`, ' 
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+			. 'FROM  `wr_distance` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+// 			. 'GROUP BY `date`, `sensor_id` '
+			. 'GROUP BY FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
+			. 'ORDER BY `time` ASC; ';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$id = $row->sensor_id;
+			unset( $row->sensor_id );
+			if ( !isset( $data[$id] ) )
+				$data[$id] = array();
+			if ( !isset( $data[$id][$row->date] ) ) {
+				$data[$id][$row->date] = new stdClass;
+				$data[$id][$row->date]->d = $row->date;
+			}
+			$data[$id][$row->date]->v = intVal( $row->var );
+		}
+		return $data;
+	}
+	
 	static function json_sensors() { 
 		$sensors = array();
-		$sql   = 'SELECT `id`, `name`, `team`, `type`, `battery` '
+		$sql   = 'SELECT `id`, `name`, `protocol`, `team`, `type`, `battery` '
 				.'FROM `wr_sensors` '
 				.'ORDER BY `team`, `name` ASC';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensors' );
 		while( $row = $res->fetch_object() ) {
 			$sensor = new stdClass;
-			$sensor->id    = intval( $row->id );
-			$sensor->name  = $row->name;
-			$sensor->team  = intval( $row->team );
-			$sensor->type  = intval( $row->type );
-			$sensor->bat   = intval( $row->battery );
-			$sensors[]     = $sensor;
+			$sensor->id       = intval( $row->id );
+			$sensor->name     = $row->name;
+			$sensor->protocol = $row->protocol;
+			$sensor->team     = intval( $row->team );
+			$sensor->type     = intval( $row->type );
+			$sensor->bat      = intval( $row->battery );
+			$sensors[]        = $sensor;
 		}
-		return '"sensors":' . json_encode( $sensors );
+		return '"sensors":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
 	static function json_temperature( $days = 1 ) {
@@ -242,7 +276,7 @@ class Sensor {
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
-			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `' . $tbl . '` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 			. 'GROUP BY `date`, `sensor_id` '
@@ -264,14 +298,14 @@ class Sensor {
 			$sensors['max'][$row->sensor_id] = floatVal( $row->max );
 			$sensors['min'][$row->sensor_id] = floatVal( $row->min );
 		}
- 		return json_encode( $sensors );
+ 		return json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
 	static function json_rain( $days = 1 ) {
 		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, MAX(`total`) AS `total`, '
-			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_rain` '
 			. 'WHERE `time` > SUBTIME( NOW(), "' . $days . ' 1:0:0" ) '
 			. 'GROUP BY `sensor_id`, `date` '
@@ -280,16 +314,16 @@ class Sensor {
 		while( $row = $res->fetch_object() ) {
 			$sensors[$row->date][$row->sensor_id] = intVal( $row->total );
 		}
- 		return '"rain":' . json_encode( $sensors );
+ 		return '"rain":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
-	static function JSON_wind( $days = 1 ) {
+	static function json_wind( $days = 1 ) {
 		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `speed` ), 1 ) AS `speed`, ' 
 			. 'MAX( `gust` ) AS `gust`, `dir`, ' 
-			. 'CONCAT( DATE( `time` ), " ", LPAD( HOUR( `time` ), 2, "0" ) ) AS `date` '
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_wind` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 			. 'GROUP BY `date`, `sensor_id` '
@@ -302,9 +336,27 @@ class Sensor {
 			$obj->d = ( $row->dir == NULL ? $row->dir : intVal( $row->dir ) );
 			$sensors[$row->date][$row->sensor_id] = $obj;
 		}
- 		return '"wind":' . json_encode( $sensors );
+ 		return '"wind":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 
+	static function json_distance( $days = 10 ) {
+		$days = ( is_numeric( $days ) ? $days : 10 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+			. 'FROM  `wr_distance` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+// 			. 'GROUP BY `date`, `sensor_id` '
+			. 'GROUP BY FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = intVal( $row->var );
+		}
+ 		return '"distance":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
+	}
+	
 	static function draw_sensors() { 
 		$sensors = Sensor::fetch_sensors();
 		foreach ( $sensors as $sensor ) {
@@ -315,7 +367,8 @@ class Sensor {
 	}
 	
 	function svg_head() {
-		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY )
+		static $switch = 0;
+		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY ) {
 			echo '<div id="sTemp' . $this->id .'" class="t_widget team' . $this->team . '">'
 				.'<svg width="100%" height="100%" '
 				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
@@ -332,14 +385,27 @@ class Sensor {
 				.'<div class="h_max"></div>'
 				.'<div class="h_min"></div>'
 				.'</div>' . "\n";
+		}
+		if ( $this->type & DISTANCE ) {
+			echo '<div id="sDist' . $this->id .'" class="d_widget team' . $this->team . '">'
+				.'<svg width="100%" height="100%" '
+				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+				.'<use xlink:href="#svgBg" class="widgetBg"/>'
+				.'<polygon class="d_graph"/>'
+				.'<g class="d_ruler"/>'
+				.'</svg>'
+				.'<div class="title">' . $this->name . '</div>'
+				.'<div class="d_cur"></div>'
+				.'</div>' . "\n";
+		}
 	}
 }
 
 if ( isset( $_REQUEST ) ) {
 	if ( isset( $_REQUEST['all'] ) ) {
 		header( 'Content-Type: application/json' );
-		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ) )
-			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
+		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK )
+			. ',"time":"' . date('Y-m d H:i:s' ) . '"}';
 		exit;
 	} else if ( isset( $_REQUEST['sensors'] ) ) {
 		header( 'Content-Type: application/json' );
@@ -361,13 +427,18 @@ if ( isset( $_REQUEST ) ) {
 		header( 'Content-Type: application/json' );
 		echo Sensor::json_wind( $_REQUEST['wind'] );
 		exit;
+	} else if ( isset( $_REQUEST['distance'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_distance( $_REQUEST['distance'] );
+		exit;
 	} else if ( isset( $_REQUEST['total'] ) ) {
 		header( 'Content-Type: application/json' );
 		echo  Sensor::json_sensors() . ',' 
 			. Sensor::json_temperature( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_humidity( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_rain( $_REQUEST['total'] ) . ',' 
-			. Sensor::json_wind( $_REQUEST['total'] );
+			. Sensor::json_wind( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_distance( $_REQUEST['total'] * 10 );
 		exit;
 	}
 }
@@ -435,17 +506,32 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
 		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
 		polygon.r_graph { stroke: none; opacity: .25; }
+		
+		/* Distance */
+		div.d_widget        { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
+		div.d_widget > *    { position: absolute; display: inline; }
+		div.d_widget .title { font-size: 24px; font-weight: normal; text-align: center; top: 5px; left: 0px; width: 100%; }
+		.d_cur { color: #666666; top: 30px; text-align: center; left: 0px;  width: 100%; font-size: 22px; }
+		polygon.d_graph { opacity: .25; }
+		g.d_ruler       { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
 	</style>
 	<script>
-var tim1;
+var tim1, tim2;
 function doLoad() {
 	loadSensor( "/weather/?all=1" );
 	tim1 = setInterval( function() { loadSensor( "/weather/?all=1" ); }, 600000 );
+	tim2 = setTimeout( function() {
+		var yr = "http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png";
+		return setInterval( function() { 
+			document.getElementById("yr").src = yr + "?r=" + Math.random() 
+		}, 3600000 );
+	}, ( 60 - (new Date()).getMinutes() ) * 60000 );
+	
 }
 <?php readfile( 'sensors.js' ) ?>
 window.onload  = doLoad;
 window.onfocus = doLoad;
-window.onblur  = function() { clearInterval(tim1) };
+window.onblur  = function() { clearInterval(tim1); clearInterval(tim2); };
 	</script>
 </head>
 
@@ -498,5 +584,8 @@ for ( $i = 1; $i <= 10; $i++ ) {
 Sensor::draw_sensors();
 ?>
 	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Update</a>
+	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
+		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
+	</a>
 </body>
 </html>
