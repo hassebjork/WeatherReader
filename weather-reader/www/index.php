@@ -81,7 +81,7 @@ class Sensor {
 		if ( $rain )
 			$data = Sensor::fetch_rain( $data, $sensors, $days );
 		if ( $distance )
-			$data = Sensor::fetch_distance( $data, $days );
+			$data = Sensor::fetch_distance( $data, 8 );
 		foreach ( $data as $key=>$val ) {
 			// Skip sensors with team == 0
 			if ( !array_key_exists( $key, $sensors ) ) {
@@ -219,14 +219,14 @@ class Sensor {
 		return $data;
 	}
 
-	static function fetch_distance( $data, $days = 10 ) {
+	static function fetch_distance( $data, $days = 8 ) {
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `value` ), 0 ) AS `var`, ' 
 			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_distance` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 // 			. 'GROUP BY `date`, `sensor_id` '
-			. 'GROUP BY FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
+			. 'GROUP BY DATE(`time`), FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
 			. 'ORDER BY `time` ASC; ';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
 		while( $row = $res->fetch_object() ) {
@@ -240,6 +240,7 @@ class Sensor {
 			}
 			$data[$id][$row->date]->v = intVal( $row->var );
 		}
+// 		$data[$id]['sql'] = $sql;
 		return $data;
 	}
 	
@@ -339,8 +340,8 @@ class Sensor {
  		return '"wind":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 
-	static function json_distance( $days = 10 ) {
-		$days = ( is_numeric( $days ) ? $days : 10 );
+	static function json_distance( $days = 8 ) {
+		$days = ( is_numeric( $days ) ? $days : 8 );
 		$sensors = array();
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 

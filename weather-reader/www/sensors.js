@@ -192,8 +192,8 @@ function drawRain( sensor ) {
 // 	console.log( sensor.id + ": " + path + "\n" );
 }
 function drawDistance( sensor ) {
+	var depth = 104;
 	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
-	var max = 104;
 	var hr   = -1;
 	node = $i("sDist" + sensor.id);
 	if ( node == null )
@@ -209,18 +209,19 @@ function drawDistance( sensor ) {
 	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].v !== "undefined" ) {
-			$c(node,"d_cur").textContent = ( max - sensor.data[i].v ) + " cm";
+			$c(node,"d_cur").textContent = Math.round( 100 - sensor.data[i].v / depth * 100 ) + " %";
+//  			$c(node,"d_cur").textContent = ( depth - sensor.data[i].v ) + " cm";
 			break;
 		}
 	}
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-	dy = node.clientHeight / max * .9;
+	dy = node.clientHeight / depth * .9;
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		x = Math.round(i*dx);
 		if ( typeof sensor.data[i].v !== "undefined" ) {
-			y = Math.round( dh - ( max - sensor.data[i].v ) * dy );
-			path += x + "," + y + " ";
+			y = Math.round( dh - ( depth - sensor.data[i].v ) * dy );
+			path += x + "," + ( y > 0 ? y : 0 ) + " ";
 		}
 		if ( typeof sensor.data[i].d !== "undefined" ) {
 			t = Math.floor( sensor.data[i].d / 100 ) % 100;
