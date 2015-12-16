@@ -13,6 +13,7 @@
 #include "sensor.h"
 #include "server.h"
 #include "uart.h"
+#include "wire-sensor.h"
 
 int pipeServer[2];
 int pipeParser[2];
