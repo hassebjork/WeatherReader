@@ -3,6 +3,7 @@
 extern ConfigSettings configFile;
 SerialDevice *sDev;
 int SerDevNum;
+int time_count = 0;
 
 /**
  * Main Weather-Reader program function
@@ -115,7 +116,7 @@ int main( int argc, char *argv[]) {
  	free(serName);
 	
 	// Start timer
-	timer.it_value.tv_sec  = 3600;
+	timer.it_value.tv_sec  = 60;
 	timer.it_value.tv_usec = 0;
 	timer.it_interval      = timer.it_value;
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
@@ -164,10 +165,17 @@ void signal_interrupt( int signum ) {
  */
 void signal_alarm( void ) {
 	int i;
-	for ( i = 0; i < SerDevNum; i++ ) {
-		if ( sDev[i].active )
-			reset_arduino( &sDev[i] );
+	if ( time_count % 60 == 0 ) {
+		for ( i = 0; i < SerDevNum; i++ ) {
+			if ( sDev[i].active )
+				reset_arduino( &sDev[i] );
+		}
+		confReadFile( CONFIG_FILE_NAME, &configFile );
 	}
-	confReadFile( CONFIG_FILE_NAME, &configFile );
+	
+	wire_main();
+	
+	if ( ++time_count > 3600 * 24 )
+		time_count = 0;
 }
 
