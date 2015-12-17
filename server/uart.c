@@ -107,7 +107,7 @@ void *uart_receive( void *ptr ) {
 #if _DEBUG > 0
 	fprintf( stderr, "Uart thread #%d %s: Closing\n", sDev->no, sDev->name );
 #endif
-	free( sDev );
+// 	free( sDev );
 }
 
 char uart_checkQueue( SerialDevice *sDev, char *s ) {
