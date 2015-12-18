@@ -147,9 +147,13 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 			return &sensor_list[i];
 		}
 	}
-	ptr = sensorDbSearch( protocol, sensor_id, channel, rolling, type, battery );
-	if ( !ptr )
-		return sensorDbAdd( protocol, sensor_id, channel, rolling, type, battery );
+	if ( configFile.mysql )	{
+		ptr = sensorDbSearch( protocol, sensor_id, channel, rolling, type, battery );
+		if ( !ptr )
+			return sensorDbAdd( protocol, sensor_id, channel, rolling, type, battery );
+	} else {
+		ptr = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
+	}
 	return ptr;
 }
 
@@ -207,7 +211,7 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 
 sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, 
 				   unsigned char rolling, SensorType type, unsigned char battery ) {
-	if ( !configFile.sensorAutoAdd )
+	if ( !configFile.mysql || !configFile.sensorAutoAdd )
 		return NULL;
 	
 	char query[256] = "";
@@ -256,22 +260,30 @@ sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned c
 }
 
 char sensorUpdateBattery( sensor *s, unsigned char battery ) {
-	char query[255] = "";
-	sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d", battery, s->rowid );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorUpdateBattery: Updating\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d", battery, s->rowid );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorUpdateBattery: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Battery status change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", battery, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->battery = battery;
 	return 0;
 }
 
 char sensorUpdateType( sensor *s, SensorType type ) {
-	char query[255] = "";
-	sprintf( query, "UPDATE wr_sensors SET type=%d WHERE id=%d", ( s->type | type ), s->rowid );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorUpdateType: Updating\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "UPDATE wr_sensors SET type=%d WHERE id=%d", ( s->type | type ), s->rowid );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorUpdateType: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Sensor type change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", type, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->type |= type;
 	return 0;
@@ -296,12 +308,16 @@ char sensorTemperature( sensor *s, float value ) {
 		return 0;
 	
 	// Save temperature
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
-					"VALUES(%d,%f)", s->rowid, value );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
+						"VALUES(%d,%f)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Temperature change [%.2f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->temperature->value  = value;
 	s->temperature->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
@@ -329,12 +345,16 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		return 0;
 	
 	// Save humidity
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
-					"VALUES(%d,%d)", s->rowid, value );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
+						"VALUES(%d,%d)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "humidity change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
@@ -360,12 +380,16 @@ char sensorRain( sensor *s, float total ) {
 		return 0;
 	
 	// Save rain
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
-					"VALUES (%d,%f)", s->rowid, total );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
+						"VALUES (%d,%f)", s->rowid, total );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Rain change [%.0f] on sensor (%s ID:%d CH:%d ROL:%d)\n", total, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->rain->value  = total;
 	s->rain->t_save = (time_t) ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
@@ -493,6 +517,8 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 #if _DEBUG > 3
 		fprintf( stderr, "\tstore:\tsamples:%d\tspeed:%0.1f\tgust:%0.1f\tdir:%d\ttime:%d\n", samples, speed, gust, dir, (s->wind->tail->time - s->wind->head->time) );
 #endif
+	if ( !configFile.mysql )
+		return 0;
 	// Store new data
 	char query[255] = "";
 	if ( now > s->wind->save_time ) {
@@ -540,12 +566,16 @@ char sensorSwitch( sensor *s, char value ) {
 	if ( s->dataInt->value == value )
 		return 0;
 
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_switch (sensor_id, value) "
-					"VALUES(%d,%d)", s->rowid, value );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorSwitch: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_switch (sensor_id, value) "
+						"VALUES(%d,%d)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorSwitch: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Switch change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
@@ -571,12 +601,16 @@ char sensorDistance( sensor *s, int value ) {
 	if ( s->dataInt->value == value )
 		return 0;
 
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_distance (sensor_id, value) "
-					"VALUES(%d,%d)", s->rowid, value );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorDistance: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_distance (sensor_id, value) "
+						"VALUES(%d,%d)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorDistance: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Distance change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
@@ -588,7 +622,7 @@ time_t sensorTimeSync() {
 	static int    correction = 0, syncTime = 3600;
 	time_t        now = time( NULL );
 	
-	if ( now < update )
+	if ( now < update || !configFile.mysql )
 		return (time_t) now - correction;
 	
 	// Sync time with database
