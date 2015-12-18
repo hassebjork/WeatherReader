@@ -105,6 +105,8 @@ int main( int argc, char *argv[]) {
 		sDev[i].tty    = 0;
 		sDev[i].no     = i+1;
 		sDev[i].type   = 0;
+		sDev[i].head   = 0;
+		sDev[i].tail   = 0;
  		free(serName[i]);
 		if ( pthread_create( &threadUart[i], NULL, uart_receive, (void *) &sDev[i] ) < 0 ) {
 			fprintf( stderr, "ERROR in main: creating threadUart %d\n", (i+1) );
