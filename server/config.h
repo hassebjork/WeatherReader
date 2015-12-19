@@ -40,9 +40,9 @@
 #define MAX_TAG_SIZE 200
 
 typedef struct {
-	int   run;
-	int   daemon;
-	int   sensorAutoAdd;
+	char  run;
+	char  daemon;
+	char  sensorAutoAdd;
 	
 	int   is_client;
 	char  server[16];
@@ -66,9 +66,10 @@ typedef struct {
 
 ConfigSettings configFile;
 
-int confReadFile( char *inFname, ConfigSettings *conf );
-int confStringVar( char *buf, char *matchStr, char *destStr );
-int confIntVar( char *buf, char *matchStr, int *valp );
-int confFloatVar( char *buf, char *matchStr, float *valp );
+char confReadFile( char *inFname, ConfigSettings *conf );
+char confStringVar( char *buf, char *matchStr, char *destStr );
+char confCharVar( char *buf, char *matchStr, char *valp );
+char confIntVar( char *buf, char *matchStr, int *valp );
+char confFloatVar( char *buf, char *matchStr, float *valp );
 
 #endif

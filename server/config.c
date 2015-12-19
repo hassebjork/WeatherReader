@@ -33,7 +33,7 @@
 
 static const char LANG_CONF_OPEN_ERR[] = "ERROR: Can not open configuration file \"%s\" for reading!\n";
 
-int confReadFile( char *inFname, ConfigSettings *conf ) {
+char confReadFile( char *inFname, ConfigSettings *conf ) {
 	FILE *infd;
 	char rdBuf[READ_BUFSIZE];
 	
@@ -69,7 +69,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Read each line in the file and process the tags on that line. */
 	while ( fgets( rdBuf, READ_BUFSIZE, infd ) != NULL ) {
 		if ( ( rdBuf[0] != ';' ) && ( rdBuf[0] != '[' ) ) {
-			if ( confIntVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
+			if ( confCharVar( rdBuf, "sensorAutoAdd", &conf->sensorAutoAdd ) ) {}
 			else if ( confIntVar( rdBuf, "port", &conf->port ) ) {}
 			else if ( confStringVar( rdBuf, "server", conf->server ) ) {}
 			
@@ -108,7 +108,7 @@ int confReadFile( char *inFname, ConfigSettings *conf ) {
 /* Process a config file line with a single string var on it
  * Must be of the form 'StringVar=str' with no spaces or special characters before the '='.  After the = whitespace is treated
  * as part of the string. */
-int confStringVar( char *buf, char *matchStr, char *destStr ) {
+char confStringVar( char *buf, char *matchStr, char *destStr ) {
 	int len = strlen( matchStr );
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		int i = len;
@@ -129,7 +129,21 @@ int confStringVar( char *buf, char *matchStr, char *destStr ) {
 
 /* Process a config file line with a numeric var  on it
  * Must be of the form 'numericVar=n' with no spaces or special characters. */
-int confIntVar( char *buf, char *matchStr, int *valp ) {
+char confCharVar( char *buf, char *matchStr, char *valp ) {
+	int varCount, len = strlen( matchStr );
+	char temp = 0;
+	if ( strncmp( buf, matchStr, len ) == 0 ) {
+		varCount = sscanf( &buf[len+1], "%d", &temp );
+		if ( varCount == 1 ) 
+			*valp = temp;
+		return 1;
+	}
+	return 0;   
+}
+
+/* Process a config file line with a numeric var  on it
+ * Must be of the form 'numericVar=n' with no spaces or special characters. */
+char confIntVar( char *buf, char *matchStr, int *valp ) {
 	int varCount, temp = 0, len = strlen( matchStr );
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
 		varCount = sscanf( &buf[len+1], "%d", &temp );
@@ -142,7 +156,7 @@ int confIntVar( char *buf, char *matchStr, int *valp ) {
 
 /* Process a config file line with a float var  on it
  * Must be of the form 'floatVar=n.n' with no spaces or special characters. */
-int confFloatVar( char *buf, char *matchStr, float *valp ) {
+char confFloatVar( char *buf, char *matchStr, float *valp ) {
 	int varCount, len = strlen( matchStr );
 	float temp = 0.0;
 	if ( strncmp( buf, matchStr, len ) == 0 ) {
