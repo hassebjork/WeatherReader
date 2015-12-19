@@ -31,10 +31,10 @@
 #define _WIRE_SENSOR_H_
 
 #include <stdio.h>
+#include <unistd.h>
 #include "config.h"
 #include "i2c-sensor.h"
-#include "weather-reader.h"
 
-void *wire_thread();
+void wire_main();
 
 #endif
