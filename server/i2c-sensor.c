@@ -153,7 +153,8 @@ int i2c_bmp085( int fd, char *str ) {
 	p += ( x1 + x2 + 3791 ) >> 4;
 	pressure = ( ( double )p / 100 );
 // 	double altitude = 44330 * ( 1 - pow( pressure / p0 ), 1/5.255 );	// Altitude in meters, p0 ground level pressure hPa
-	sprintf( str, "{\"type\":\"BMP085\",\"id\":%d,\"ch\":%d,\"T\":%.1f,\"P\":%.2f}\n", (ac1 & 0xFF), (ac2 & 0xFF), temperature, pressure );
+	sprintf( str, "{\"type\":\"BMP085\",\"id\":%d,\"ch\":%d,\"roll\":%d,\"T\":%.1f,\"P\":%.2f}\n", 
+				(ac1 & 0xFF), (ac2 & 0xFF), (ac3 & 0xFF), temperature, pressure );
 	return 0;
 }
 

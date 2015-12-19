@@ -375,12 +375,12 @@ void json_parse( char *s ) {
 	for ( p = s; *p != '\0'; p++ ) {
 		if ( lev == 0 && ( *p == '{' || *p == '[' || *p == ',' ) ) {
 			lev = 1;
-			for ( p; *p != '"' && *p != '\0'; p++ );
+			for ( p; *p != '"'; p++ );
 		
 		// Scan key
 		} else if ( lev == 1 ) {
 			json_parseString( p, key );
-			for ( p; *p != ':' && *p != '\0'; p++ );
+			for ( p; *p != ':'; p++ );
 			json_parseWhitespace( ++p );
 			// Temperature
 			if ( strcmp( key, "T" ) == 0 ) {
@@ -412,9 +412,9 @@ void json_parse( char *s ) {
 				json_parseString( p, model );
 			} else {
 				if ( *p == '"' )
-					for ( ++p; *p != '"' && *p != '\0'; p++ );
+					for ( ++p; *p != '"'; p++ );
 				else
-					for ( p; *p != '\0' && ( *p != '}' || *p != ']' || *p != ',' ); p++ );
+					for ( p; *p != '}' || *p != ']' || *p != ','; p++ );
 			}
 			lev = 0;
 		}
