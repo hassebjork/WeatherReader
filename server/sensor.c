@@ -619,33 +619,39 @@ char sensorDistance( sensor *s, int value ) {
 }
 
 char sensorBarometer( sensor *s, float value ) {
+	int val = (int) value;
 #if _DEBUG > 2
 	fprintf( stderr, "sensorBarometer: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->rain == NULL ) {
-		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
-		if ( !s->rain ) {
-			fprintf( stderr, "ERROR in sensorBarometer: Could not allocate memory for rain\n" );
+	if ( s->dataInt == NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
+			fprintf( stderr, "ERROR in sensorHumidity: Could not allocate memory for humidity\n" );
 			return 1;
 		}
-		s->rain->value  = -300.0;
-		s->rain->t_save = 0;
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
 	}
 	
-	if ( s->rain->value == value && ( configFile.saveTemperatureTime > 0 && now < s->rain->t_save ) )
+	if ( s->dataInt->value == val 
+			&& ( configFile.saveHumidityTime > 0 && now < s->dataInt->t_save ) )
 		return 0;
 	
 	// Save rain
-	char query[255] = "";
-	sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
-					"VALUES(%d,%f)", s->rowid, value );
-	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorBarometer: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
-		return 1;
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
+						"VALUES(%d,%d)", s->rowid, val );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in sensorBarometer: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Barometer change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", val, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->rain->value  = value;
-	s->rain->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
+	s->dataInt->value  = val;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
