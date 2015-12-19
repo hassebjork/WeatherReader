@@ -56,7 +56,7 @@ void *uart_receive( void *ptr ) {
 	
 	// Get communication flags
 	if ( tcgetattr( sDev->tty, &options ) < 0 ) {
-		fprintf( stderr, "ERROR in uart_receive #%d: Configuring device\n",  sDev->no );
+		fprintf( stderr, "ERROR in %s: Configuring device\n", __func__,  sDev->no );
 		close( sDev->tty );
 		return;
 	}
@@ -85,9 +85,9 @@ void *uart_receive( void *ptr ) {
 	while ( configFile.run && sDev->active ) {
 		rcount = read( sDev->tty, buffer, sizeof( buffer ) );
 		if ( rcount < 0 ) {
-			fprintf( stderr, "ERROR in uart_receive #%d: Read %d bytes\n", sDev->no, rcount );
+			fprintf( stderr, "ERROR in %s: Read %d bytes\n", __func__, sDev->no, rcount );
 		} else if ( rcount == 0 ) {
-			fprintf( stderr, "ERROR in uart_receive #%d: Timeout\n", sDev->no, rcount );
+			fprintf( stderr, "ERROR in %s: Timeout\n", __func__, sDev->no, rcount );
 		} else if ( rcount > 4 ) {
 			uart_handleData( sDev, buffer, rcount );
 		}
@@ -173,12 +173,12 @@ void uart_handleData( SerialDevice *sDev, char *s, int rcount ) {
 	// Send data through client thread to remote server
 	if ( configFile.is_client ) {
 		if ( ( rcount = write( pipeServer[1], s, rcount ) ) < 1 )
-			fprintf( stderr, "ERROR in uart_receive #%d: pipeServer error\n", sDev->no );
+			fprintf( stderr, "ERROR in %s: pipeServer error\n", __func__, sDev->no );
 	
 	// Send data to parser thread and database
 	} else {
 		if ( ( rcount = write( pipeParser[1], s, rcount ) ) < 1 )
-			fprintf( stderr, "ERROR in uart_receive #%d: pipeParser error\n", sDev->no );
+			fprintf( stderr, "ERROR in %s: pipeParser error\n", __func__, sDev->no );
 	}
 }
 
@@ -242,7 +242,7 @@ char ** uart_get_serial( void ) {
 	if ( array ) {
 		array[0] = NULL;
 	} else  {
-		fprintf( stderr, "ERROR in get_serial: Could not malloc\n" );
+		fprintf( stderr, "ERROR in %s: Could not malloc\n", __func__ );
 		return NULL;
 	}
 	
@@ -255,7 +255,7 @@ char ** uart_get_serial( void ) {
 				if ( temp ) {
 					array = temp;
 				} else {
-					fprintf( stderr, "ERROR in get_serial: Could not allocate array\n" );
+					fprintf( stderr, "ERROR in %s: Could not allocate array\n", __func__ );
 					elem--;
 				}
 				strcpy( str, dir_dev );
@@ -266,7 +266,7 @@ char ** uart_get_serial( void ) {
 		}
 		closedir(d);
 	} else {
-		fprintf( stderr, "ERROR in get_serial: Could not open directory /dev\n" );
+		fprintf( stderr, "ERROR in %s: Could not open directory /dev\n", __func__ );
 	}
 	return array;
 }

@@ -57,9 +57,9 @@ void *client_thread() {
 	}
 	
 	if ( rcount == 0 )
-		fprintf( stderr, "ERROR in client_thread: Pipe closed\n" );
+		fprintf( stderr, "ERROR in %s: Pipe closed\n", __func__ );
 	else
-		fprintf( stderr, "ERROR in client_thread: Pipe error %d\n", rcount );
+		fprintf( stderr, "ERROR in %s: Pipe error %d\n", __func__, rcount );
 	
 #if _DEBUG > 0
 	fprintf( stderr, "Client thread: Closing\n" );
@@ -75,13 +75,13 @@ int client_send( char * buffer ) {
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer == -1 ) {
-		fprintf( stderr, "ERROR in client_send: Could not create client socket\n" );
+		fprintf( stderr, "ERROR in %s: Could not create client socket\n", __func__ );
 		return 1;
 	}
 	
 	serv_host = gethostbyname( configFile.server );
 	if ( serv_host == NULL ) {
-		fprintf( stderr, "ERROR in client_send: Could not find hostname \"%s\"\n", configFile.server );
+		fprintf( stderr, "ERROR in %s: Could not find hostname \", __func__%s\"\n", configFile.server );
 		return 1;
 	}
 	
@@ -91,7 +91,7 @@ int client_send( char * buffer ) {
 	
 	// Send to remote server
 	if ( sendto( sockServer, buffer, strlen( buffer ), 0, (const struct sockaddr *) &server, length ) < 0 ) {
-		fprintf( stderr, "ERROR in client_send: sendto to server \"%s\" failed\n", buffer );
+		fprintf( stderr, "ERROR in %s: sendto to server \", __func__%s\" failed\n", buffer );
 		return 1;
 	}
 	
@@ -114,7 +114,7 @@ void *server_thread() {
 	// Create socket
 	sockServer = socket( AF_INET, SOCK_DGRAM, 0 );
 	if ( sockServer < 0 ) {
-		fprintf( stderr, "ERROR in server_thread: Could not create server socket\n" );
+		fprintf( stderr, "ERROR in %s: Could not create server socket\n", __func__ );
 		return;
 	}
 	
@@ -125,7 +125,7 @@ void *server_thread() {
 	
 	// Bind
 	if ( bind( sockServer,( struct sockaddr *) &server , sizeof( server ) ) < 0 ) {
-		fprintf( stderr, "ERROR in server_thread: Bind failed!\n" );
+		fprintf( stderr, "ERROR in %s: Bind failed!\n", __func__ );
 		return;
 	}
 	
@@ -133,13 +133,13 @@ void *server_thread() {
 		rcount = recvfrom( sockServer, buffer, BUFF_SIZE, 0, (struct sockaddr*) &client, &cs );
 		buffer[rcount++] = '\0';
 		if ( rcount < 0 )
-			fprintf( stderr, "ERROR in server_thread: recv from failed!\n" );
+			fprintf( stderr, "ERROR in %s: recv from failed!\n", __func__ );
 
 #if _DEBUG > 1
 		fprintf( stderr, "server_thread # (%d b): \"%s\" from %s\n", rcount - 1, buffer, inet_ntoa(client.sin_addr) );
 #endif
 		if ( write( pipeParser[1], &buffer, rcount ) < 1 )
-			fprintf( stderr, "ERROR in server_thread: pipeParser error\n" );
+			fprintf( stderr, "ERROR in %s: pipeParser error\n", __func__ );
 	}
 #if _DEBUG > 0
 	fprintf( stderr, "Server thread: Closing\n" );

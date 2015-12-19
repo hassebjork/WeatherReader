@@ -63,7 +63,7 @@ int main( int argc, char *argv[]) {
 
 	// Open pipes to communicate between uart-server, uart-parser & server-parser
 	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
-		fprintf( stderr, "ERROR in main: creating server pipe\n" );
+		fprintf( stderr, "ERROR in %s: creating server pipe\n", __func__ );
 		exit(EXIT_FAILURE);
 	}
 	
@@ -74,19 +74,19 @@ int main( int argc, char *argv[]) {
 	// Start client to send data to remote server
 	if ( configFile.is_client ) {
 		if ( pthread_create( &threadServer, NULL, client_thread, NULL ) < 0) {
-			fprintf( stderr, "ERROR in main: creating threadClient\n" );
+			fprintf( stderr, "ERROR in %s: creating threadClient\n", __func__ );
 			exit(EXIT_FAILURE);
 		}
 	} else {
 		// Start parser for local data processing
 		if ( pthread_create( &threadParser, NULL, parse_thread, NULL ) < 0 ) {
-			fprintf( stderr, "ERROR in main: creating threadParser\n" );
+			fprintf( stderr, "ERROR in %s: creating threadParser\n", __func__ );
 			exit(EXIT_FAILURE);
 		}
 		// Start server for remote data processing
 		if ( configFile.is_server ) {
 			if ( pthread_create( &threadServer, NULL, server_thread, NULL ) < 0) {
-				fprintf( stderr, "ERROR in main: creating threadServer\n" );
+				fprintf( stderr, "ERROR in %s: creating threadServer\n", __func__ );
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -109,7 +109,7 @@ int main( int argc, char *argv[]) {
 		sDev[i].tail   = 0;
  		free(serName[i]);
 		if ( pthread_create( &threadUart[i], NULL, uart_receive, (void *) &sDev[i] ) < 0 ) {
-			fprintf( stderr, "ERROR in main: creating threadUart %d\n", (i+1) );
+			fprintf( stderr, "ERROR in %s: creating threadUart %d\n", __func__, (i+1) );
 		}
 	}
  	free(serName);
@@ -119,7 +119,7 @@ int main( int argc, char *argv[]) {
 	timer.it_value.tv_usec = 0;
 	timer.it_interval      = timer.it_value;
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
-		fprintf( stderr, "ERROR in main: Could not set timer\n" );
+		fprintf( stderr, "ERROR in %s: Could not set timer\n", __func__ );
 
 	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Arduino
 	signal( SIGCHLD, SIG_IGN );						// 

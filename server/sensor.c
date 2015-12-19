@@ -59,7 +59,7 @@ char sensorInit() {
 	sensorListFree();
 	sensor_list = (sensor *) malloc( sizeof( sensor ) );
 	if ( !sensor_list ) {
-		fprintf( stderr, "ERROR in sensorInit: Could not allocate memory for sensor_list\n" );
+		fprintf( stderr, "ERROR in %s: Could not allocate memory for sensor_list\n", __func__ );
 		return 1;
 	}
 	
@@ -77,14 +77,14 @@ void sensorMysqlInit() {
 	
 	mysql = mysql_init( mysql );
 	if ( !mysql ) {
-		fprintf( stderr, "ERROR in sensorMysqlInit: Initiating MySQL database!\n%s\n", 
+		fprintf( stderr, "ERROR in %s: Initiating MySQL database!\n%s\n", __func__, 
 				 mysql_error( mysql ) );
 		exit(5);
 	}
 	
 	mysql_options( mysql, MYSQL_OPT_RECONNECT, &myb);
 	if ( mysql_real_connect( mysql, configFile.mysqlServer, configFile.mysqlUser, configFile.mysqlPass, configFile.mysqlDatabase, 0, NULL, 0 ) == NULL ) {
-		fprintf( stderr, "ERROR in sensorMysqlInit: Can not connect to MySQL database!\n%s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in %s: Can not connect to MySQL database!\n%s\n", __func__, mysql_error( mysql ) );
 		mysql_close( mysql );
 		configFile.mysql = !configFile.mysql;
 	} else {
@@ -93,7 +93,7 @@ void sensorMysqlInit() {
 		/* Create database tables, if not exits */
 		for ( i=0; CREATE_TABLE_MYSQL[i] != 0; i++ ) {
 			if ( mysql_query( mysql, CREATE_TABLE_MYSQL[i] ) ) {
-				fprintf( stderr, "ERROR in sensorMysqlInit: Could not create db-table!\n%s.\n%s\n", mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
+				fprintf( stderr, "ERROR in %s: Could not create db-table!\n%s.\n%s\n", __func__, mysql_error( mysql ), CREATE_TABLE_MYSQL[i] );
 				mysql_close( mysql );
 				exit( 7 );
 			}
@@ -108,14 +108,14 @@ int sensorListInit() {
 	const char query[] = "SELECT id,name,protocol,sensor_id,channel,rolling,battery,type "
 						 "FROM wr_sensors";
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorListInit: Selecting\n%s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in %s: Selecting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 		mysql_close( mysql );
 		return 1;
 	}
 	
 	result = mysql_store_result( mysql );
 	if ( result == NULL ) {
-		fprintf( stderr, "ERROR in sensorListInit: Storing result!\n%s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in %s: Storing result!\n%s\n", __func__, mysql_error( mysql ) );
 		return 1;
 	}
 	
@@ -188,7 +188,7 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
-		fprintf( stderr, "ERROR in sensorListAdd: Out of memory allocating sensor_list\n" );
+		fprintf( stderr, "ERROR in %s: Out of memory allocating sensor_list\n", __func__ );
 		return NULL;
 	}
 	sensor_list = ptr;
@@ -223,7 +223,7 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 			 	    s->name, s->protocol, s->sensor_id, s->channel, s->rolling, 
 				    s->battery, s->type );
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorMysqlInsert: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 		return NULL;
 	}
 	s->rowid = mysql_insert_id( mysql );
@@ -243,13 +243,13 @@ sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned c
 			"WHERE protocol='%s' AND sensor_id=%d AND channel=%d AND rolling=%d",
 			protocol, sensor_id, channel, rolling );
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorDbSearch: Selecting\n%s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in %s: Selecting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 		return NULL;
 	}
 	
 	result = mysql_store_result( mysql );
 	if ( result == NULL ) {
-		fprintf( stderr, "ERROR in sensorDbSearch: Storing result!\n%s\n", mysql_error( mysql ) );
+		fprintf( stderr, "ERROR in %s: Storing result!\n%s\n", __func__, mysql_error( mysql ) );
 		return NULL;
 	}
 	
@@ -265,7 +265,7 @@ char sensorUpdateBattery( sensor *s, unsigned char battery ) {
 		char query[255] = "";
 		sprintf( query, "UPDATE wr_sensors SET battery=%d WHERE id=%d", battery, s->rowid );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorUpdateBattery: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Updating\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -280,7 +280,7 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 		char query[255] = "";
 		sprintf( query, "UPDATE wr_sensors SET type=%d WHERE id=%d", ( s->type | type ), s->rowid );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorUpdateType: Updating\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Updating\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -298,7 +298,7 @@ char sensorTemperature( sensor *s, float value ) {
 	if ( s->temperature == NULL ) {
 		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
 		if ( !s->temperature ) {
-			fprintf( stderr, "ERROR in sensorTemperature: Could not allocate memory for temperature\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for temperature\n", __func__ );
 			return 1;
 		}
 		s->temperature->value  = -300.0;
@@ -314,7 +314,7 @@ char sensorTemperature( sensor *s, float value ) {
 		sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
 						"VALUES(%d,%f)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorTemperature: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -334,7 +334,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 	if ( s->dataInt == NULL ) {
 		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
 		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in sensorHumidity: Could not allocate memory for humidity\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for humidity\n", __func__ );
 			return 1;
 		}
 		s->dataInt->value  = -1;
@@ -351,7 +351,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 		sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
 						"VALUES(%d,%d)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorHumidity: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -370,7 +370,7 @@ char sensorRain( sensor *s, float total ) {
 	if ( s->rain == NULL ) {
 		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
 		if ( !s->rain ) {
-			fprintf( stderr, "ERROR in sensorRain: Could not allocate memory for rain\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for rain\n", __func__ );
 			return 1;
 		}
 		s->rain->value  = -1.0;
@@ -386,7 +386,7 @@ char sensorRain( sensor *s, float total ) {
 		sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
 						"VALUES (%d,%f)", s->rowid, total );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorRain: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -400,7 +400,7 @@ char sensorRain( sensor *s, float total ) {
 DataWind *sensorWindInit() {
 	DataWind *wind = (DataWind *) malloc( sizeof( DataWind ) );
 	if ( !wind ) {
-		fprintf( stderr, "ERROR in sensorWind: Could not allocate memory for wind\n" );
+		fprintf( stderr, "ERROR in %s: Could not allocate memory for wind\n", __func__ );
 		return NULL;
 	}
 	wind->save_time = 0;
@@ -539,7 +539,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	}
 	
 	if ( mysql_query( mysql, query ) ) {
-		fprintf( stderr, "ERROR in sensorWind: %s\n%s\n", mysql_error( mysql ), query );
+		fprintf( stderr, "ERROR in %s: %s\n%s\n", __func__, mysql_error( mysql ), query );
 		return 1;
 	} else if ( now > s->wind->save_time ) {
 		s->wind->rowid = mysql_insert_id( mysql );
@@ -557,7 +557,7 @@ char sensorSwitch( sensor *s, char value ) {
 	if ( s->dataInt== NULL ) {
 		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
 		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in sensorSwitch: Could not allocate memory for value\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
 			return 1;
 		}
 		s->dataInt->value  = -1;
@@ -572,7 +572,7 @@ char sensorSwitch( sensor *s, char value ) {
 		sprintf( query, "INSERT INTO wr_switch (sensor_id, value) "
 						"VALUES(%d,%d)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorSwitch: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -592,7 +592,7 @@ char sensorDistance( sensor *s, int value ) {
 	if ( s->dataInt== NULL ) {
 		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
 		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in sensorDistance: Could not allocate memory for value\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
 			return 1;
 		}
 		s->dataInt->value  = -1;
@@ -607,7 +607,7 @@ char sensorDistance( sensor *s, int value ) {
 		sprintf( query, "INSERT INTO wr_distance (sensor_id, value) "
 						"VALUES(%d,%d)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorDistance: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
@@ -627,7 +627,7 @@ char sensorBarometer( sensor *s, float value ) {
 	if ( s->dataInt == NULL ) {
 		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
 		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in sensorHumidity: Could not allocate memory for humidity\n" );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for humidity\n", __func__ );
 			return 1;
 		}
 		s->dataInt->value  = -1;
@@ -635,16 +635,16 @@ char sensorBarometer( sensor *s, float value ) {
 	}
 	
 	if ( s->dataInt->value == val 
-			&& ( configFile.saveHumidityTime > 0 && now < s->dataInt->t_save ) )
+			&& ( configFile.saveTemperatureTime > 0 && now < s->dataInt->t_save ) )
 		return 0;
 	
-	// Save rain
+	// Save barometer
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
 						"VALUES(%d,%d)", s->rowid, val );
 		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in sensorBarometer: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
