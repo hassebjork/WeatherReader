@@ -51,6 +51,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
+	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	0
 };
 
@@ -614,6 +615,37 @@ char sensorDistance( sensor *s, int value ) {
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	return 0;
+}
+
+char sensorBarometer( sensor *s, float value ) {
+#if _DEBUG > 2
+	fprintf( stderr, "sensorBarometer: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	time_t now = sensorTimeSync();
+	if ( s->rain == NULL ) {
+		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
+		if ( !s->rain ) {
+			fprintf( stderr, "ERROR in sensorBarometer: Could not allocate memory for rain\n" );
+			return 1;
+		}
+		s->rain->value  = -300.0;
+		s->rain->t_save = 0;
+	}
+	
+	if ( s->rain->value == value && ( configFile.saveTemperatureTime > 0 && now < s->rain->t_save ) )
+		return 0;
+	
+	// Save rain
+	char query[255] = "";
+	sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
+					"VALUES(%d,%f)", s->rowid, value );
+	if ( mysql_query( mysql, query ) ) {
+		fprintf( stderr, "ERROR in sensorBarometer: Inserting\n%s\n%s\n", mysql_error( mysql ), query );
+		return 1;
+	}
+	s->rain->value  = value;
+	s->rain->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
 	return 0;
 }
 
