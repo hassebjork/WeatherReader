@@ -126,6 +126,8 @@ int main( int argc, char *argv[]) {
 	signal( SIGCHLD, SIG_IGN );						// 
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
+	wire_main();
+	
 	// Wait for threads to complete
 	for ( ; SerDevNum > 0; SerDevNum-- )
 		pthread_join( threadUart[SerDevNum-1], NULL);

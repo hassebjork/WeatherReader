@@ -40,6 +40,15 @@
 #define I2CBus             "/dev/i2c-1"      //New Pi's
 //#define I2CBus             "/dev/i2c-0"    //Old,  but not stale Pi's
 
+#define BMP085_ADDR       0x77	// Barometric pressure sensor
+#define BMP085_REG_CTRL   0xF4	// BMP085 and BMP180 ar interchangable
+#define BMP085_REG_EEPROM 0xAA
+#define DS1621_ADDR       0x48	// Temperature sensor
+#define TSL2561_ADDR      0x39	// Luminosity/lux sensor
+#define HTU21D_ADDR       0x39	// Temperature / humidity sensor
+#define AM2320_ADDR       0xB8	// Temperature / humidity sensor
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <fcntl.h>
@@ -53,10 +62,7 @@
 
 static int i2c_read        (int file, uint8_t addr, uint8_t reg, uint8_t bytes, uint8_t *val );
 static int i2c_write       (int file, uint8_t addr, uint8_t reg, uint8_t value );
-int        i2c_bmp085      (int fd, double *temperature, double *pressure );
+int        i2c_bmp085      (int fd, char *str );
 int        i2c_bmp085_wait (int fd);
-// double     bmp_altitude    (double p);
-// double     bmp_qnh         (double p,double StationAlt);
-// double     ppl_DensityAlt  (double PAlt,double Temp);
 
 #endif

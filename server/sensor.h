@@ -120,6 +120,7 @@ char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, int value );
+char sensorBarometer( sensor *s, float value );
 
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );

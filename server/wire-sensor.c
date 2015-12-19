@@ -28,50 +28,35 @@
 *************************************************************************/
 
 #include "wire-sensor.h"
+#include "weather-reader.h"
 
 extern ConfigSettings configFile;
 extern int pipeServer[2];
-
-void *wire_thread() {
-	char buffer[254], *s;
-	int  rcount, fd;
-	double temperature, pressure;
-
-#if _DEBUG > 0
-	fprintf( stderr, "Wire thread:%16sRunning\n", "" );
-#endif
-	
-	if ( ( fd = open( I2CBus,  O_RDWR ) ) < 0 ) {
-		fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", __func__, I2CBus, errno );
-		exit( 1 );      //Use this line if the function must terminate on failure
-	}
-	
-	if ( i2c_bmp085( fd, &temperature, &pressure ) < 0 )
-		fprintf( stderr, "Combined reading failed\n" );
-	
-	printf ( "Temperature: %.1f C\n", temperature );
-	printf ( "Pressure: %.2f hPa\n", pressure );
-	close ( fd );
-	
-// 	if ( ( rcount = write( pipeServer[1], s, rcount ) ) < 1 )
-// 		fprintf( stderr, "ERROR in wire_thread: Sending data.\n" );
-}
+extern int pipeParser[2];
 
 void wire_main() {
 	int  rcount, fd;
 	double temperature, pressure;
+	char str[80];
 
 	if ( ( fd = open( I2CBus,  O_RDWR ) ) < 0 ) {
 		fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", __func__, I2CBus, errno );
+	
+	// I2C bus active
 	} else {
-		if ( i2c_bmp085( fd, &temperature, &pressure ) < 0 )
-			fprintf( stderr, "Combined reading failed\n" );
-		printf ( "Temperature: %.1f C\n", temperature );
-		printf ( "Pressure: %.2f hPa\n", pressure );
+		if ( i2c_bmp085( fd, str ) == 0 ) {
+			#if _DEBUG > 1
+				fprintf( stderr, "%s i2c_bmp085 (%d b): \"%s\"\n", __func__, strlen(str), str );
+			#endif
+			if ( configFile.is_client ) {
+				if ( ( rcount = write( pipeServer[1], str, strlen(str)+1 ) ) < 1 )
+					fprintf( stderr, "ERROR in %s: pipeServer error %d - %s\n", __func__, errno, str );
+			} else {
+				if ( ( rcount = write( pipeParser[1], str, strlen(str)+1 ) ) < 1 )
+					fprintf( stderr, "ERROR in %s: pipeParser error %d - %s\n", __func__, errno, str );
+			}
+		}
 	}
 	close ( fd );
-	
-// 	if ( ( rcount = write( pipeServer[1], s, rcount ) ) < 1 )
-// 		fprintf( stderr, "ERROR in wire_thread: Sending data.\n" );
 }
 

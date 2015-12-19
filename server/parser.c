@@ -428,6 +428,8 @@ void json_parse( char *s ) {
 			sensorSwitch( sptr, button );
 		if ( type & DISTANCE )
 			sensorDistance( sptr, distance );
+		if ( type & BAROMETER )
+			sensorBarometer( sptr, pressure );
 	}
 }
 
