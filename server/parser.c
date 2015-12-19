@@ -364,7 +364,7 @@ void wired_parse( char *s ) {
  **************************************************************************************************/
 
 void json_parse( char *s ) {
-	unsigned int  id = 0, channel = 0, button = 0, distance = 0;
+	unsigned int  id = 0, channel = 0, button = 0, distance = 0, rolling = 0;
 	float         temperature, humidity, pressure;
 	SensorType    type = UNDEFINED;
 	
@@ -375,12 +375,12 @@ void json_parse( char *s ) {
 	for ( p = s; *p != '\0'; p++ ) {
 		if ( lev == 0 && ( *p == '{' || *p == '[' || *p == ',' ) ) {
 			lev = 1;
-			for ( p; *p != '"' && *p != '\0'; p++ );
+			for ( p; *p != '"'; p++ );
 		
 		// Scan key
 		} else if ( lev == 1 ) {
 			json_parseString( p, key );
-			for ( p; *p != ':' && *p != '\0'; p++ );
+			for ( p; *p != ':'; p++ );
 			json_parseWhitespace( ++p );
 			// Temperature
 			if ( strcmp( key, "T" ) == 0 ) {
@@ -406,19 +406,21 @@ void json_parse( char *s ) {
 				json_parseInt( p, &id );
 			} else if ( strcmp( key, "ch" ) == 0 ) {
 				json_parseInt( p, &channel );
+			} else if ( strcmp( key, "roll" ) == 0 ) {
+				json_parseInt( p, &rolling );
 			} else if ( strcmp( key, "type" ) == 0 ) {
 				json_parseString( p, model );
 			} else {
 				if ( *p == '"' )
-					for ( ++p; *p != '"' && *p != '\0'; p++ );
+					for ( ++p; *p != '"'; p++ );
 				else
-					for ( p; *p != '\0' && ( *p != '}' || *p != ']' || *p != ',' ); p++ );
+					for ( p; *p != '}' || *p != ']' || *p != ','; p++ );
 			}
 			lev = 0;
 		}
 	}
 	
-	sensor *sptr = sensorListLookup( "WIRE", id, channel, 0, type, 1 );
+	sensor *sptr = sensorListLookup( "WIRE", id, channel, rolling, type, 1 );
 	if ( sptr ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
