@@ -43,6 +43,7 @@ typedef struct {
 	char  run;
 	char  daemon;
 	char  sensorAutoAdd;
+	char  *sensor_i2c;
 	
 	int   is_client;
 	char  server[16];

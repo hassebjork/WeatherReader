@@ -60,3 +60,25 @@ void wire_main() {
 	close ( fd );
 }
 
+void wire_test() {
+	wire_test_i2();
+}
+
+static int wire_test_i2() {
+	int fd;
+	configFile.sensor_i2c = "/dev/i2c-0";
+	if ( ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) > -1 ) {
+		close( fd );
+		return 1;
+	}
+	
+	configFile.sensor_i2c = "/dev/i2c-1";
+	if ( ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) > -1 ) {
+		close( fd );
+		return 1;
+	}
+	
+	configFile.sensor_i2c = "\0";
+	return -1;
+}
+

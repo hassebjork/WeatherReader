@@ -59,6 +59,7 @@
 #include <linux/i2c.h>
 #include <sys/ioctl.h>
 #include <math.h>
+#include "config.h"
 
 static int i2c_read        (int file, uint8_t addr, uint8_t reg, uint8_t bytes, uint8_t *val );
 static int i2c_write       (int file, uint8_t addr, uint8_t reg, uint8_t value );

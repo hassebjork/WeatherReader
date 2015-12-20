@@ -34,6 +34,7 @@
 *************************************************************************/
 #include "i2c-sensor.h"
 
+extern ConfigSettings configFile;
 
 static int i2c_read(int file, uint8_t addr, uint8_t reg, uint8_t bytes, uint8_t *val ) {
 	struct i2c_rdwr_ioctl_data packets;

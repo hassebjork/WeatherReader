@@ -41,6 +41,7 @@ char confReadFile( char *inFname, ConfigSettings *conf ) {
 	conf->run               = 1;
 	conf->daemon            = 0;
 	conf->sensorAutoAdd     = 1;
+	conf->sensor_i2c        = '\0';
 	
 	conf->is_client         = '\0';
 	conf->server[0]         = 0;

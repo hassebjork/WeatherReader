@@ -30,11 +30,15 @@
 #ifndef _WIRE_SENSOR_H_
 #define _WIRE_SENSOR_H_
 
+#include <fcntl.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include "config.h"
 #include "i2c-sensor.h"
 
 void wire_main();
+void wire_test();
+static int wire_test_i2();
 
 #endif
