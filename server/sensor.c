@@ -44,7 +44,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 // 	"DROP TABLE IF EXISTS wr_wind",
 // 	"DROP TABLE IF EXISTS wr_switch",
 #endif
-	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel TINYINT, rolling SMALLINT, battery TINYINT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel SMALLINT, rolling SMALLINT, battery TINYINT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_temperature( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id) )",
@@ -56,6 +56,9 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 };
 
 char sensorInit() {
+#if _DEBUG > 2
+	fprintf( stderr, "%s\n",__func__ );
+#endif
 	sensorListFree();
 	sensor_list = (sensor *) malloc( sizeof( sensor ) );
 	if ( !sensor_list ) {
@@ -72,6 +75,9 @@ char sensorInit() {
 }
 
 void sensorMysqlInit() {
+#if _DEBUG > 2
+	fprintf( stderr, "%s\n",__func__ );
+#endif
 	int i;
 	my_bool myb = 1;
 	
@@ -102,6 +108,9 @@ void sensorMysqlInit() {
 }
 
 int sensorListInit() {
+#if _DEBUG > 2
+	fprintf( stderr, "%s\n",__func__ );
+#endif
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
 	
@@ -129,6 +138,10 @@ int sensorListInit() {
 sensor *sensorListLookup( const char *protocol, unsigned int sensor_id, 
 					  unsigned char channel, unsigned char rolling, 
 					  SensorType type, unsigned char battery ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d \n", 
+			 __func__, protocol, sensor_id, channel, rolling, type );
+#endif
 	sensor *ptr;
 	int i;
 	for ( i = 0; i < sensor_list_no; i++ ) {
@@ -159,6 +172,9 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 }
 
 void sensorListFree() {
+#if _DEBUG > 2
+	fprintf( stderr, "%s\n",__func__ );
+#endif
 	int i;
 	for ( i = sensor_list_no - 1; i >= 0; i-- ) {
 		if ( sensor_list[i].name != NULL )
@@ -185,6 +201,10 @@ void sensorListFree() {
 sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
 					   unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
 					   unsigned char battery, SensorType type ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d Rowid: %d Name:%s \n", 
+			 __func__, protocol, sensor_id, channel, rolling, type, rowid, name );
+#endif
 	// http://stackoverflow.com/a/6170469/4405465
 	sensor *ptr = (sensor *) realloc( sensor_list, (sensor_list_no + 1) * sizeof( sensor ) );
 	if ( !ptr ) {
@@ -215,6 +235,10 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 	if ( !configFile.mysql || !configFile.sensorAutoAdd )
 		return NULL;
 	
+#if _DEBUG > 2
+	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d ", 
+			 __func__, protocol, sensor_id, channel, rolling, type );
+#endif
 	char query[256] = "";
 	sensor *s = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
 	
@@ -232,6 +256,10 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 
 sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, 
 					  unsigned char rolling, SensorType type, unsigned char battery ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d \n", 
+			 __func__, protocol, sensor_id, channel, rolling, type );
+#endif
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
 	char         query[256] = "";
@@ -292,7 +320,7 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 
 char sensorTemperature( sensor *s, float value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "sensorTemperature: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	if ( s->temperature == NULL ) {
@@ -327,7 +355,7 @@ char sensorTemperature( sensor *s, float value ) {
 
 char sensorHumidity( sensor *s, unsigned char value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "sensorHumidity: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
@@ -364,7 +392,7 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 
 char sensorRain( sensor *s, float total ) {
 #if _DEBUG > 2
-	fprintf( stderr, "sensorRain: \t\t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, total );
+	fprintf( stderr, "%s: \t\t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
 	if ( s->rain == NULL ) {
@@ -443,7 +471,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	struct DataSample *data;
 	
 #if _DEBUG > 2
-	fprintf( stderr, "sensorWind:\tspeed:%0.1f\tgust:%0.1f\tdir:%d\n", speed, gust, dir );
+	fprintf( stderr, "%s:\tspeed:%f\tgust:%f\tdir:%d\n", __func__, speed, gust, dir );
 #endif
 	// Initialize wind
 	if ( s->wind == NULL )
@@ -550,7 +578,7 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 
 char sensorSwitch( sensor *s, char value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "sensorSwitch: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
@@ -585,7 +613,7 @@ char sensorSwitch( sensor *s, char value ) {
 
 char sensorDistance( sensor *s, int value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "sensorDistance: \t%s [row:%d (%s) id:%d] = %d\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
@@ -621,7 +649,7 @@ char sensorDistance( sensor *s, int value ) {
 char sensorBarometer( sensor *s, float value ) {
 	int val = (int) value;
 #if _DEBUG > 2
-	fprintf( stderr, "sensorBarometer: \t%s [row:%d (%s) id:%d] = %.1f\n", s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	if ( s->dataInt == NULL ) {
