@@ -51,7 +51,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
 	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id) );",
-	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(4,1), time TIMESTAMP, PRIMARY KEY (id) )",
+	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id) )",
 	0
 };
 
