@@ -1,7 +1,22 @@
 <?php
-/*
+/*	
+	SVG:
+			http://tutorials.jenkov.com/svg
+			
 	JavaScript minify:
-	http://refresh-sf.com/
+			http://refresh-sf.com/
+	
+	MySQL Archive:
+			http://stackoverflow.com/a/7725900/4405465
+			
+	MySQL Median calc:
+			http://stackoverflow.com/a/16680264/4405465
+			http://stackoverflow.com/questions/6982808/mysql-median-value-per-month
+			http://stackoverflow.com/questions/1291152/simple-way-to-calculate-median-with-mysql
+			http://rpbouman.blogspot.se/2008/07/fast-single-pass-method-to-calculate.html
+					
+	TODO
+	Pellets days of equidistance
 */
 include_once( 'db.php' );
 
@@ -58,7 +73,7 @@ class Sensor {
 	static function &fetch_all( $days = 1 ) { 
 		$days = ( is_numeric( $days ) ? $days : 1 );
 		$sensors = Sensor::fetch_sensors();
-		$temp = $humid = $wind = $rain = $distance = false;
+		$temp = $humid = $wind = $rain = $distance = $barometer = false;
 		foreach ( $sensors as $sensor ) {
 			if ( $sensor->type & TEMPERATURE )
 				$temp = true;
@@ -70,6 +85,8 @@ class Sensor {
 				$rain = true;
 			if ( $sensor->type & DISTANCE )
 				$distance = true;
+			if ( $sensor->type & BAROMETER )
+				$barometer = true;
 		}
 		$data = array();
 		if ( $temp )
@@ -82,6 +99,8 @@ class Sensor {
 			$data = Sensor::fetch_rain( $data, $sensors, $days );
 		if ( $distance )
 			$data = Sensor::fetch_distance( $data, 8 );
+		if ( $barometer )
+			$data = Sensor::fetch_barometer( $data, $days );
 		foreach ( $data as $key=>$val ) {
 			// Skip sensors with team == 0
 			if ( !array_key_exists( $key, $sensors ) ) {
@@ -110,6 +129,9 @@ class Sensor {
 	}
 	static function fetch_humidity( $data, $days = 1 ) {
 		return Sensor::fetch_th( $data, $days, 'wr_humidity', 'h' );
+	}
+	static function fetch_barometer( $data, $days = 1 ) {
+		return Sensor::fetch_th( $data, $days, 'wr_barometer', 'b' );
 	}
 	static function &fetch_th( $data, $days = 1, $tbl, $var ) {
 		$sql   = 'SELECT `sensor_id`, '
@@ -236,7 +258,7 @@ class Sensor {
 				$data[$id] = array();
 			if ( !isset( $data[$id][$row->date] ) ) {
 				$data[$id][$row->date] = new stdClass;
-				$data[$id][$row->date]->d = $row->date;
+				$data[$id][$row->date]->d = $row->date . '.1';
 			}
 			$data[$id][$row->date]->v = intVal( $row->var );
 		}
@@ -271,6 +293,11 @@ class Sensor {
 	static function json_humidity( $days = 1 ) { 
 		$days = ( is_numeric( $days ) ? $days : 1 );
  		return '"humidity":' . Sensor::json_th( $days, 'wr_humidity' );
+	}
+	
+	static function json_barometer( $days = 1 ) { 
+		$days = ( is_numeric( $days ) ? $days : 1 );
+ 		return '"barometer":' . Sensor::json_th( $days, 'wr_barometer' );
 	}
 	
 	static function json_th( $days = 1, $tbl ) { 
@@ -420,6 +447,10 @@ if ( isset( $_REQUEST ) ) {
 		header( 'Content-Type: application/json' );
 		echo Sensor::json_humidity( $_REQUEST['humidity'] );
 		exit;
+	} else if ( isset( $_REQUEST['barometer'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_barometer( $_REQUEST['barometer'] );
+		exit;
 	} else if ( isset( $_REQUEST['rain'] ) ) {
 		header( 'Content-Type: application/json' );
 		echo Sensor::json_rain( $_REQUEST['rain'] );
@@ -437,6 +468,7 @@ if ( isset( $_REQUEST ) ) {
 		echo  Sensor::json_sensors() . ',' 
 			. Sensor::json_temperature( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_humidity( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_barometer( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_rain( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_wind( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_distance( $_REQUEST['total'] * 10 );
@@ -450,7 +482,7 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 <html>
 <head>
 	<meta charset="UTF-8"/>
-	<meta name="viewport" content="width=device-width, height=device-height, user-scalable=yes" />
+	<meta name="viewport" content="width=device-width, user-scalable=yes" />
 	
 	<title>Weather</title>
 	<link rel="shortcut icon" href="icon.ico">
@@ -462,12 +494,12 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		body	   { font-family: 'Droid Sans',Sans-serif; font-size: 14px; margin: 0px; padding: 0px; }
 		text.title { font-size: 26px; text-anchor: middle; }
 		svg        { float: left; }
-		.team1     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
-		.team2     { color: #5555cd; fill: #5555cd; stroke: #5555cd; }
-		.team3     { color: #5ba162; fill: #5ba162; stroke: #5ba162; }
-		.team4     { color: #b567d9; fill: #b567d9; stroke: #b567d9; }
-		.team5     { color: #cf696a; fill: #cf696a; stroke: #cf696a; }
-		.team6     { color: #606060; fill: #606060; stroke: #606060; }
+		.team1     { color: #4e608b; fill: #4e608b; stroke: #4e608b; }
+		.team2     { color: #4e608b; fill: #4e608b; stroke: #4e608b; }
+		.team3     { color: #852d5f; fill: #852d5f; stroke: #852d5f; }
+		.team4     { color: #136513; fill: #136513; stroke: #136513; }
+		.team5     { color: #7e1818; fill: #7e1818; stroke: #7e1818; }
+		.team6     { color: #7e4618; fill: #7e4618; stroke: #7e4618; }
 		/* svg */
 		text       { stroke-width: 0; }
 		#icon_bat  { stroke: black; fill: white; opacity: .75; }
@@ -503,6 +535,7 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		
 		/* Rain */
 		/* svg */
+		text.b_cur   { font-size: 18px; fill: green; text-anchor: middle; }
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
 		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
 		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
@@ -575,10 +608,12 @@ for ( $i = 1; $i <= 10; $i++ ) {
 			<g class="r_ruler_txt"></g>
 		</g>
 		<use x="50%" y="50%" class="w_arr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
+		<g id="baroSVG" style="opacity:.2"></g>
 		<text x="50%" y="30" class="w_spd"></text>
 		<text x="50%" y="50" class="w_dir"></text>
 		<text x="50%" y="70" class="w_gst"></text>
 		<text x="50%" y="100" class="r_cur"></text>
+		<text x="50%" y="120" class="b_cur"></text>
 		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <?php

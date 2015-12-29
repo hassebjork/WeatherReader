@@ -27,6 +27,8 @@ function updateSensors( sensors ) {
 			drawWind( sensors[sens] );
 		if ( sensors[sens].type & 32 )	// Rain
 			drawRain( sensors[sens] );
+		if ( sensors[sens].type & 128 )	// Barometer
+			drawBarometer( sensors[sens] );
 		if ( sensors[sens].type & 256 )	// Distance
 			drawDistance( sensors[sens] );
 	}
@@ -80,7 +82,6 @@ function drawTemp( sensor ) {
 		}
 		if ( typeof sensor.data[i].d !== "undefined" ) {
 			hr = sensor.data[i].d % 100;
-			console.log( hr + " " );
 			if ( hr % 3 == 0 ) {
 				ruler.appendChild( createText( x, node.clientHeight-2, hr ) );
 			}
@@ -188,11 +189,39 @@ function drawRain( sensor ) {
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 	graph.setAttribute("points",path);
-// 	debugger;
-// 	console.log( sensor.id + ": " + path + "\n" );
+}
+function drawBarometer( sensor ) {
+	// 950-1050
+	debugger;
+	var i, x, y, dh, t, dx, dy, path = "", node, baro;
+	node = $i("defsSVG");
+	baro = $i("baro_" + sensor.id);
+	if ( baro == null ) {
+		i = $i("baroSVG");
+		if ( !i ) return;
+		baro = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+		baro.setAttribute( "id", "baro_" + sensor.id );
+		baro.setAttribute( "style", "stroke:green;stroke-width:3;");
+		i.appendChild( baro );
+	}
+	
+	if ( typeof sensor.data[sensor.data.length-1].b !== "undefined" )
+		$c(node,"b_cur").textContent = sensor.data[sensor.data.length-1].b + " hPa";
+	
+	dh = node.clientHeight * .95;
+	dx = node.clientWidth / ( sensor.data.length - 1 );
+	dy = node.clientHeight / 100 * .9;
+	for ( i = 0; i < sensor.data.length; i++ ) {
+		x = Math.round(i*dx);
+		if ( typeof sensor.data[i].b !== "undefined" ) {
+			y = Math.round( dh - ( sensor.data[i].b - 950 ) * dy );
+			path += x + "," + ( y > 0 ? y : 0 ) + " ";
+		}
+	}
+	baro.setAttribute("points",path);
 }
 function drawDistance( sensor ) {
-	var depth = 104;
+	var depth = 94;
 	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
 	var hr   = -1;
 	node = $i("sDist" + sensor.id);
@@ -209,7 +238,10 @@ function drawDistance( sensor ) {
 	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].v !== "undefined" ) {
-			$c(node,"d_cur").textContent = Math.round( 100 - sensor.data[i].v / depth * 100 ) + " %";
+			t = Math.round( 100 - sensor.data[i].v / depth * 100 );
+			t = t < 0 ? 0 : t;
+			t = t > 100 ? 100 : t;
+			$c(node,"d_cur").textContent = t + " %";
 //  			$c(node,"d_cur").textContent = ( depth - sensor.data[i].v ) + " cm";
 			break;
 		}
