@@ -223,7 +223,7 @@ function drawBarometer( sensor ) {
 	baro.setAttribute("points",path);
 }
 function drawDistance( sensor ) {
-	var depth = 94;
+	var store = { max: 98, min: 4, level: 0, percent: 0 };
 	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
 	var hr   = -1;
 	node = $i("sDist" + sensor.id);
@@ -240,21 +240,21 @@ function drawDistance( sensor ) {
 	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 		if ( typeof sensor.data[i].v !== "undefined" ) {
-			t = Math.round( 100 - sensor.data[i].v / depth * 100 );
+			t = Math.round( 100 - ( sensor.data[i].v - store.min ) / ( store.max - store.min ) * 100 );
 			t = t < 0 ? 0 : t;
 			t = t > 100 ? 100 : t;
 			$c(node,"d_cur").textContent = t + " %";
-//  			$c(node,"d_cur").textContent = ( depth - sensor.data[i].v ) + " cm";
+			//  			$c(node,"d_cur").textContent = ( store.max - sensor.data[i].v ) + " cm";
 			break;
 		}
 	}
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
-	dy = node.clientHeight / depth * .9;
+	dy = node.clientHeight / store.max * .9;
 	for ( i = 0; i < sensor.data.length; i++ ) {
 		x = Math.round(i*dx);
 		if ( typeof sensor.data[i].v !== "undefined" ) {
-			y = Math.round( dh - ( depth - sensor.data[i].v ) * dy );
+			y = Math.round( dh - ( store.max - sensor.data[i].v ) * dy );
 			path += x + "," + ( y > 0 ? y : 0 ) + " ";
 		}
 		if ( typeof sensor.data[i].d !== "undefined" ) {
