@@ -8,6 +8,8 @@ function loadSensor( url ) {
 			var obj = JSON.parse( req.responseText );
 			if ( typeof obj.sensors !== 'undefined' )
 				updateSensors( obj.sensors );
+			if ( typeof obj.time !== 'undefined' )
+				$i("aTime").innerHTML = "Last update " + obj.time.substring(11, 16);
 		}
 	}
 	req.open( "GET", url, true );

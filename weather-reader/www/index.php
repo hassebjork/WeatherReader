@@ -258,7 +258,7 @@ class Sensor {
 				$data[$id] = array();
 			if ( !isset( $data[$id][$row->date] ) ) {
 				$data[$id][$row->date] = new stdClass;
-				$data[$id][$row->date]->d = $row->date . '.1';
+				$data[$id][$row->date]->d = $row->date;
 			}
 			$data[$id][$row->date]->v = intVal( $row->var );
 		}
@@ -432,8 +432,8 @@ class Sensor {
 if ( isset( $_REQUEST ) ) {
 	if ( isset( $_REQUEST['all'] ) ) {
 		header( 'Content-Type: application/json' );
-		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK )
-			. ',"time":"' . date('Y-m d H:i:s' ) . '"}';
+		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT )
+			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
 		exit;
 	} else if ( isset( $_REQUEST['sensors'] ) ) {
 		header( 'Content-Type: application/json' );
@@ -619,7 +619,7 @@ for ( $i = 1; $i <= 10; $i++ ) {
 <?php
 Sensor::draw_sensors();
 ?>
-	<a id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Update</a>
+	<div id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Time</div>
 	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
 		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
 	</a>
