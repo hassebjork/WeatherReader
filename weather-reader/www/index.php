@@ -435,6 +435,13 @@ if ( isset( $_REQUEST ) ) {
 		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT )
 			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
 		exit;
+	} else if ( isset( $_REQUEST['ftp'] ) ) {
+		$data = '{"sensors":' . json_encode( Sensor::fetch_all( 1 ), JSON_NUMERIC_CHECK  )
+			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
+		$host = 'ftp://' . FTP_USER . ':' . FTP_PASS . '@' . FTP_SERVER . FTP_DIR . 'all.js';
+		$stream = stream_context_create( array('ftp' => array('overwrite' => true ) ) );
+		echo file_put_contents( $host, $data, 0, $stream );
+		exit;
 	} else if ( isset( $_REQUEST['sensors'] ) ) {
 		header( 'Content-Type: application/json' );
 		echo Sensor::json_sensors();
