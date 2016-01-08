@@ -17,7 +17,7 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 		
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c
 	ulimit -c unlimited && gcc -o ../bin/weather-reader \
-		-D_DEBUG=2 -g -ggdb \
+		-D_DEBUG=3 -g -ggdb \
 		-pthread -lm \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \

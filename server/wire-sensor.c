@@ -39,14 +39,17 @@ void wire_main() {
 	double temperature, pressure;
 	char str[80];
 
-	if ( ( fd = open( I2CBus,  O_RDWR ) ) < 0 ) {
-		fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", __func__, I2CBus, errno );
+	if ( configFile.sensor_i2c == '\0' || ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) < 0 ) {
+		#if _DEBUG > 1
+			fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", 
+					__func__, configFile.sensor_i2c, errno );
+		#endif
 	
 	// I2C bus active
 	} else {
-		if ( i2c_bmp085( fd, str ) == 0 ) {
+		if ( i2c_bmp085( str ) == 0 ) {
 			#if _DEBUG > 1
-				fprintf( stderr, "%s i2c_bmp085 (%d b): \"%s\"\n", __func__, strlen(str), str );
+				fprintf( stderr, "%s: i2c_bmp085 data (%d b): \"%s\"\n", __func__, strlen(str), str );
 			#endif
 			if ( configFile.is_client ) {
 				if ( ( rcount = write( pipeServer[1], str, strlen(str)+1 ) ) < 1 )
@@ -68,17 +71,28 @@ static int wire_test_i2() {
 	int fd;
 	configFile.sensor_i2c = "/dev/i2c-0";
 	if ( ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) > -1 ) {
+		#if _DEBUG > 1
+			fprintf( stderr, "%s: sensor_i2c device=\"%s\"\n", __func__, configFile.sensor_i2c );
+		#endif
 		close( fd );
 		return 1;
 	}
+	fprintf( stderr, "%s: sensor_i2c device=\"%s (%d)\"\n", __func__, configFile.sensor_i2c, fd );
 	
 	configFile.sensor_i2c = "/dev/i2c-1";
 	if ( ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) > -1 ) {
+		#if _DEBUG > 1
+			fprintf( stderr, "%s: sensor_i2c device=\"%s\"\n", __func__, configFile.sensor_i2c );
+		#endif
 		close( fd );
 		return 1;
 	}
+	fprintf( stderr, "%s: sensor_i2c device=\"%s (%d)\"\n", __func__, configFile.sensor_i2c, fd );
 	
 	configFile.sensor_i2c = "\0";
+	#if _DEBUG > 1
+		fprintf( stderr, "%s: No sensor_i2c device!\n", __func__ );
+	#endif
 	return -1;
 }
 

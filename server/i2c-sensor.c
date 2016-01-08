@@ -90,7 +90,21 @@ static int i2c_write(int file, uint8_t addr, uint8_t reg, uint8_t value ) {
 
 // BMP085 & BMP180 Specific code
 
-int i2c_bmp085( int fd, char *str ) {
+int i2c_bmp085( char *str ) {
+	int fd;
+	if ( configFile.sensor_i2c == '\0' ) {
+		return -2;
+	} else if ( ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) < 0 ) {
+		#if _DEBUG > 1
+			fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", 
+					__func__, configFile.sensor_i2c, errno );
+		#endif
+		return -1;
+	}
+	return i2c_bmp085_data( fd, str );
+}
+
+int i2c_bmp085_data( int fd, char *str ) {
 	double temperature, pressure;
 	uint8_t rValue[21];
 	if ( i2c_read( fd, BMP085_ADDR, BMP085_REG_EEPROM, 22, rValue ) < 0 ) {

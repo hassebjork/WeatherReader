@@ -59,6 +59,7 @@ int main( int argc, char *argv[]) {
 	
 	// Read configuration file
 	confReadFile( CONFIG_FILE_NAME, &configFile );
+	configFile.sensor_i2c = '\0';
 	if ( daemon )
 		configFile.daemon = 1;
 
@@ -126,6 +127,7 @@ int main( int argc, char *argv[]) {
 	signal( SIGCHLD, SIG_IGN );						// 
 	signal( SIGINT, signal_interrupt );				// Program exit
 	
+	wire_test();
 	wire_main();
 	
 	// Wait for threads to complete

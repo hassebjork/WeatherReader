@@ -37,8 +37,6 @@
 #define _I2C_SENSORS_H_
 
 #define sleepms(ms)  usleep((ms)*1000)
-#define I2CBus             "/dev/i2c-1"      //New Pi's
-//#define I2CBus             "/dev/i2c-0"    //Old,  but not stale Pi's
 
 #define BMP085_ADDR       0x77	// Barometric pressure sensor
 #define BMP085_REG_CTRL   0xF4	// BMP085 and BMP180 ar interchangable
@@ -61,9 +59,10 @@
 #include <math.h>
 #include "config.h"
 
-static int i2c_read        (int file, uint8_t addr, uint8_t reg, uint8_t bytes, uint8_t *val );
-static int i2c_write       (int file, uint8_t addr, uint8_t reg, uint8_t value );
-int        i2c_bmp085      (int fd, char *str );
-int        i2c_bmp085_wait (int fd);
+static int i2c_read        ( int file, uint8_t addr, uint8_t reg, uint8_t bytes, uint8_t *val );
+static int i2c_write       ( int file, uint8_t addr, uint8_t reg, uint8_t value );
+int        i2c_bmp085      ( char *str );
+int        i2c_bmp085_data ( int fd, char *str );
+int        i2c_bmp085_wait ( int fd);
 
 #endif
