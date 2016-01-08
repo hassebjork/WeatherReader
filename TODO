@@ -5,6 +5,8 @@ TODO
 	- Install apache/lighttpd configuration
 - Deb package
 - Websocket server (http://ahoj.io/libwebsockets-simple-websocket-server)
+- Add CRC to WIRE sensors
+- Distance: Send median values to server every hour, instead of on-change
 
 Wish list
 

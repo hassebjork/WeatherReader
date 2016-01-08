@@ -5,7 +5,7 @@ MYSQL_LIBS=$(shell mysql_config --libs)
 
 all: weather-reader
 
-weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
+weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c i2c-sensor.c
 	gcc -o ../bin/weather-reader \
 		-D_DEBUG=0 \
 		-pthread -lm \
@@ -15,7 +15,7 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c
 		i2c-sensor.c
 	@echo
 		
-debug: weather-reader.c config.c parser.c sensor.c server.c uart.c
+debug: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c i2c-sensor.c
 	ulimit -c unlimited && gcc -o ../bin/weather-reader \
 		-D_DEBUG=3 -g -ggdb \
 		-pthread -lm \
