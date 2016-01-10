@@ -16,10 +16,7 @@ function loadSensor( url ) {
 	req.send();
 }
 function updateSensors( sensors ) {
-	var sens, head, h, m, d = new Date();
-	h = d.getHours();
-	m = d.getMinutes();
-	$i("aTime").innerHTML = ( h < 10 ? "0" : "" ) + h + ":" + ( m < 10 ? "0" : "" ) + m;
+	var sens;
 	for ( sens in sensors ) {
 		if ( sensors[sens].type & 1 )	// Temp
 			drawTemp( sensors[sens] );
@@ -207,8 +204,13 @@ function drawBarometer( sensor ) {
 		i.appendChild( baro );
 	}
 	
-	if ( typeof sensor.data[sensor.data.length-1].b !== "undefined" )
+	if ( typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
 		$c(node,"b_cur").textContent = sensor.data[sensor.data.length-1].b + " hPa";
+		if ( ( y = $i("baro_dial") ) ) 
+			y.setAttribute("transform", "rotate(" + ( ( sensor.data[sensor.data.length-1].b - 1010 ) * 3 ) + ", 187, 187)" );
+		if ( ( y = $i("baro_digit") ) ) 
+			y.textContent = sensor.data[sensor.data.length-1].b + " hPa";
+	}
 	
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
@@ -223,7 +225,7 @@ function drawBarometer( sensor ) {
 	baro.setAttribute("points",path);
 }
 function drawDistance( sensor ) {
-	var store = { max: 98, min: 4, level: 0, percent: 0 };
+	var store = { max: 90, min: 6, level: 0, percent: 0 };
 	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
 	var hr   = -1;
 	node = $i("sDist" + sensor.id);

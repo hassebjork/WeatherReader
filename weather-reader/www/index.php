@@ -624,9 +624,12 @@ for ( $i = 1; $i <= 10; $i++ ) {
 		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <?php
+include( 'barometer.svg' );
+// rotate(60, 187, 187)
 Sensor::draw_sensors();
 ?>
-	<div id="aTime" href="#" onclick="loadSensor('/weather/?all=1');return false;" style="clear:both; display:block;">Time</div>
+
+	<div id="aTime" onclick="loadSensor('/weather/all.js' );" style="clear:both; display:block;">Fetching data</div>
 	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
 		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
 	</a>
