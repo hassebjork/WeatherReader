@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="150" height="150" viewBox="0 0 378 378" id="barometer" version="1.1">
+	<style type="text/css" id="style3">
+		.dial      { fill:#ff9900 }
+		.dial_bg1  { fill:url(#lg_bg) }
+		.dial_bg2  { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
+		.dial_dig  { font-family:Ubuntu;fill:#cccccc }
+		.dial_glar { fill:url(#lg_glare1);opacity:0.7 }
+		.dial_tick { fill:none;stroke:#b3b3b3;stroke-width:3;stroke-linecap:round }
+		.dial_val  { font-family:Ubuntu;fill:#cccccc }
+	</style>
+	<defs>
+		<linearGradient id="lg_glare1" x1="10%" y1="10%" x2="60%" y2="100%">
+			<stop offset="0" style="stop-color:#ffffff;stop-opacity:0.6"/>
+			<stop offset="1" style="stop-opacity:0"/>
+		</linearGradient>
+		<linearGradient id="lg_bg" x1="50%" y1="133%" x2="50%" y2="-25%">
+			<stop offset="0"/>
+			<stop style="stop-color:#ffffff" offset="1"/>
+		</linearGradient>
+	</defs>
+	<circle r="188" cy="188" cx="188" class="dial_bg1"/>
+	<circle r="175" cx="188" cy="188" class="dial_bg2"/>
+	<g class="dial_dig" style="font-weight:500;font-size:50px;text-anchor:middle;">
+		<text style="fill:#ff2a2a" y="58" x="188">N</text>
+		<text x="188" y="351">S</text>
+		<text x="48" y="205">W</text>
+		<text x="334" y="205">E</text>
+	</g>
+	<g class="dial_tick">
+		<path d="M151,173l-16,-40l38,19l15,-71l15,71l38,-19l-16,40l69,15l-69,15l16,40l-38,-19l-15,71l-15,-71l-38,19l16,-40l-69,-15Z"/>
+		<path d="M144,164a18,18 0 1,1 -36,0a18,18 0 1,1 36,0Z" transform="matrix(1.571,0,0,1.604,-9.585,-74.933)"/>
+	</g>
+	<g class="dial_val" style="font-size:50px;text-anchor:middle">
+		<text x="187" y="110">Speed</text>
+		<text x="187" y="300">Gust</text>
+	</g>
+	<path class="dial_tick" d="M120,347l2,-5m131,-318l-2,5m97,223l-5,-2m-318,-131l5,2m34,188l4,-4m243,-244l-4,4m4,243l-4,-4m-244,-243l4,4m-41,187l5,-2m317,-133l-5,2m-89,226l-2,-5m-133,-317l2,5m-109,157h5m344,-1h-5m-169,175v-5m-1,-344v5"/>
+	<path class="dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21v27l-4,3l-4,-3v-27c-9,-4 -10,-16 0,-21l2,-150c1,-3 2,-2 2,0Z"/>
+	<path class="dial_glar" d="M189,19c-92,0 -167,77 -167,171c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-31,-41 -77,-68 -130,-68Z"/>
+</svg>
