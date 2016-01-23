@@ -368,20 +368,27 @@ void json_parse( char *s ) {
 	float         temperature, humidity, pressure;
 	SensorType    type = UNDEFINED;
 	
-	char *p, key[32], model[128], lev = 0;
+	char *p;			// Pointer
+	char  key[32];		// Scanned key
+	char  model[128];	// Sensor modell
+	char  mode = 0;		// Scan mode 0=obj/array 1=key&data
 	float f;
 	int i;
 	
 	for ( p = s; *p != '\0'; p++ ) {
-		if ( lev == 0 && ( *p == '{' || *p == '[' || *p == ',' ) ) {
-			lev = 1;
+		if ( mode == 0 && ( *p == '{' || *p == '[' || *p == ',' ) ) {
+			mode = 1;
 			for ( p; *p != '"' && *p != '\0'; p++ );
 		
 		// Scan key
-		} else if ( lev == 1 ) {
+		} else if ( mode == 1 ) {
+			// Read key name
 			json_parseString( p, key );
+			// Scan for colon & whitespace
 			for ( p; *p != ':' && *p != '\0'; p++ );
-			json_parseWhitespace( ++p );
+			for ( p; *p == ' ' || *p == '\t' || *p == '\f' || *p == '\n' || *p == '\r'; p++ );
+			if ( *p == '\0' ) continue;
+			
 			// Temperature
 			if ( strcmp( key, "T" ) == 0 ) {
 				json_parseFloat( p, &temperature );
@@ -416,7 +423,7 @@ void json_parse( char *s ) {
 				else
 					for ( p; *p != '\0' && ( *p != '}' || *p != ']' || *p != ',' ); p++ );
 			}
-			lev = 0;
+			mode = 0;
 		}
 	}
 	
@@ -459,7 +466,7 @@ void json_parseString( char *p, char *s ) {
 	char ptr = 0;
 	if ( *p == '"' )
 		p++;
-	for ( p; *p != '"'; p++ ) {
+	for ( p; *p != '"' && *p != '\0'; p++ ) {
 		if ( *p == '\\' ) {
 			p++;
 			if ( *p == '"' )
