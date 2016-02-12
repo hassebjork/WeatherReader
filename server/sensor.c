@@ -46,6 +46,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 // 	"DROP TABLE IF EXISTS wr_distance",
 // 	"DROP TABLE IF EXISTS wr_level",
 // 	"DROP TABLE IF EXISTS wr_barometer",
+// 	"DROP TABLE IF EXISTS wr_test",
 	#endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel SMALLINT, rolling SMALLINT, battery TINYINT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
 	"CREATE TABLE IF NOT EXISTS wr_rain( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, total FLOAT(10,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
@@ -56,6 +57,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
+	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 // 	"CREATE EVENT `archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
 	0
 };
@@ -695,7 +697,7 @@ char sensorBarometer( sensor *s, float value ) {
 	if ( s->dataInt == NULL ) {
 		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
 		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for humidity\n", __func__ );
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for barometer\n", __func__ );
 			return 1;
 		}
 		s->dataInt->value  = -1;
@@ -720,6 +722,38 @@ char sensorBarometer( sensor *s, float value ) {
 	}
 	s->dataInt->value  = val;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	return 0;
+}
+
+char sensorTest( sensor *s, int value ) {
+	int val = (int) value;
+#if _DEBUG > 2
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	time_t now = sensorTimeSync();
+	if ( s->dataInt == NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for test\n", __func__ );
+			return 1;
+		}
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
+	}
+	
+	// Save test
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_test (sensor_id,value) "
+						"VALUES(%d,%d)", s->rowid, val );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Test value [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", val, s->protocol, s->sensor_id, s->channel, s->rolling );
+	}
+	s->dataInt->value  = val;
 	return 0;
 }
 

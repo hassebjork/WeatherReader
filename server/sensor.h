@@ -50,7 +50,8 @@ typedef enum {
 	SWITCH      = 64,
 	BAROMETER   = 128,
 	DISTANCE    = 256,
-	LEVEL       = 512
+	LEVEL       = 512,
+	TEST        = 1024
 } SensorType;
 
 typedef struct {
@@ -123,6 +124,7 @@ char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, int value );
 char sensorLevel( sensor *s, int value );
 char sensorBarometer( sensor *s, float value );
+char sensorTest( sensor *s, int value );
 
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );

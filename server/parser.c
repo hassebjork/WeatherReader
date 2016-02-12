@@ -365,6 +365,7 @@ void wired_parse( char *s ) {
 
 void json_parse( char *s ) {
 	unsigned int  id = 0, channel = 0, button = 0, distance = 0, rolling = 0, level = 0;
+	int           test = 0;
 	float         temperature, humidity, pressure;
 	SensorType    type = UNDEFINED;
 	
@@ -413,6 +414,10 @@ void json_parse( char *s ) {
 			} else if ( strcmp( key, "D" ) == 0 ) {
 				json_parseInt( p, &distance );
 				type |= DISTANCE;
+			// Test
+			} else if ( strcmp( key, "Q" ) == 0 ) {
+				json_parseInt( p, &test );
+				type |= TEST;
 			} else if ( strcmp( key, "id" ) == 0 ) {
 				json_parseInt( p, &id );
 			} else if ( strcmp( key, "ch" ) == 0 ) {
@@ -445,6 +450,8 @@ void json_parse( char *s ) {
 			sensorDistance( sptr, distance );
 		if ( type & BAROMETER )
 			sensorBarometer( sptr, pressure );
+		if ( type & TEST )
+			sensorTest( sptr, test );
 	}
 }
 
