@@ -49,7 +49,8 @@ typedef enum {
 	RAINTOTAL   = 32,
 	SWITCH      = 64,
 	BAROMETER   = 128,
-	DISTANCE    = 256
+	DISTANCE    = 256,
+	LEVEL       = 512
 } SensorType;
 
 typedef struct {
@@ -67,7 +68,7 @@ struct DataSample {
 	float              gust;	// Wind gust
 	short              dir;		// Wind direction
 	time_t             time;	// Sample time
-	struct DataSample        *link;	// Next sample
+	struct DataSample *link;	// Next sample
 };
 
 typedef struct {
@@ -120,6 +121,7 @@ char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, int value );
+char sensorLevel( sensor *s, int value );
 char sensorBarometer( sensor *s, float value );
 
 DataWind *sensorWindInit();

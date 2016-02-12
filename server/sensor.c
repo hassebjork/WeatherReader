@@ -44,6 +44,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 // 	"DROP TABLE IF EXISTS wr_wind",
 // 	"DROP TABLE IF EXISTS wr_switch",
 // 	"DROP TABLE IF EXISTS wr_distance",
+// 	"DROP TABLE IF EXISTS wr_level",
 // 	"DROP TABLE IF EXISTS wr_barometer",
 	#endif
 	"CREATE TABLE IF NOT EXISTS wr_sensors( id INT NOT NULL AUTO_INCREMENT, name VARCHAR(64) NOT NULL, sensor_id INT, protocol CHAR(4), channel SMALLINT, rolling SMALLINT, battery TINYINT, team SMALLINT, type SMALLINT, PRIMARY KEY (id) )",
@@ -53,6 +54,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
+	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 // 	"CREATE EVENT `archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
 	0
@@ -643,6 +645,41 @@ char sensorDistance( sensor *s, int value ) {
 		}
 	} else {
 		printf( "Distance change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+	}
+	s->dataInt->value  = value;
+	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	return 0;
+}
+
+char sensorLevel( sensor *s, int value ) {
+	#if _DEBUG > 2
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+	#endif
+	time_t now = sensorTimeSync();
+	
+	if ( s->dataInt== NULL ) {
+		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
+		if ( !s->dataInt ) {
+			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
+			return 1;
+		}
+		s->dataInt->value  = -1;
+		s->dataInt->t_save = 0;
+	}
+	
+	if ( s->dataInt->value == value )
+		return 0;
+	
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_level (sensor_id, value) "
+		"VALUES(%d,%d)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
+			return 1;
+		}
+	} else {
+		printf( "Level change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->dataInt->value  = value;
 	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
