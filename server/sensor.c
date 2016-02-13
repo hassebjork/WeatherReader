@@ -58,7 +58,7 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
-// 	"CREATE EVENT `archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
+// 	"CREATE EVENT `wr_archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
 	0
 };
 
@@ -188,8 +188,18 @@ void sensorListFree() {
 			free( sensor_list[i].name );
 		if ( sensor_list[i].temperature != NULL )
 			free( sensor_list[i].temperature );
-		if ( sensor_list[i].dataInt != NULL )
-			free( sensor_list[i].dataInt );
+		if ( sensor_list[i].humidity != NULL )
+			free( sensor_list[i].humidity );
+		if ( sensor_list[i].distance != NULL )
+			free( sensor_list[i].distance );
+		if ( sensor_list[i].level != NULL )
+			free( sensor_list[i].level );
+		if ( sensor_list[i].barometer != NULL )
+			free( sensor_list[i].barometer );
+		if ( sensor_list[i].sw != NULL )
+			free( sensor_list[i].sw  );
+		if ( sensor_list[i].test != NULL )
+			free( sensor_list[i].test  );
 		if ( sensor_list[i].rain != NULL )
 			free( sensor_list[i].rain );
 		if ( sensor_list[i].wind != NULL ) {
@@ -230,7 +240,12 @@ sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protoco
 	sensor_list[sensor_list_no].battery     = battery;
 	sensor_list[sensor_list_no].type        = type;
 	sensor_list[sensor_list_no].temperature = NULL;
-	sensor_list[sensor_list_no].dataInt     = NULL;
+	sensor_list[sensor_list_no].humidity    = NULL;
+	sensor_list[sensor_list_no].distance    = NULL;
+	sensor_list[sensor_list_no].level       = NULL;
+	sensor_list[sensor_list_no].barometer   = NULL;
+	sensor_list[sensor_list_no].sw          = NULL;
+	sensor_list[sensor_list_no].test        = NULL;
 	sensor_list[sensor_list_no].rain        = NULL;
 	sensor_list[sensor_list_no].wind        = NULL;
 	sensor_list_no++;
@@ -243,7 +258,7 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 		return NULL;
 	
 #if _DEBUG > 2
-	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d ", 
+	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d\n", 
 			 __func__, protocol, sensor_id, channel, rolling, type );
 #endif
 	char query[256] = "";
@@ -330,15 +345,13 @@ char sensorTemperature( sensor *s, float value ) {
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->temperature == NULL ) {
-		s->temperature = (DataFloat *) malloc( sizeof( DataFloat ) );
-		if ( !s->temperature ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for temperature\n", __func__ );
-			return 1;
-		}
-		s->temperature->value  = -300.0;
-		s->temperature->t_save = 0;
-	}
+	if ( s->temperature == NULL && ( s->temperature = createDataFloat() ) == NULL )
+		return 1;
+	
+	printf( "%s: %f - %d", 
+			__func__, 
+		 s->temperature->value, 
+		 s->temperature->t_save );
 	
 	if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->t_save ) )
 		return 0;
@@ -366,18 +379,11 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->dataInt == NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for humidity\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
+	if ( s->humidity == NULL && ( s->humidity = createDataInt() ) == NULL )
+		return 1;
 	
-	if ( s->dataInt->value == value 
-			&& ( configFile.saveHumidityTime > 0 && now < s->dataInt->t_save ) )
+	if ( s->humidity->value == value 
+			&& ( configFile.saveHumidityTime > 0 && now < s->humidity->t_save ) )
 		return 0;
 	
 	// Save humidity
@@ -392,8 +398,8 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 	} else {
 		printf( "humidity change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->humidity->value  = value;
+	s->humidity->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -402,15 +408,8 @@ char sensorRain( sensor *s, float total ) {
 	fprintf( stderr, "%s: \t\t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->rain == NULL ) {
-		s->rain = (DataFloat *) malloc( sizeof( DataFloat ) );
-		if ( !s->rain ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for rain\n", __func__ );
-			return 1;
-		}
-		s->rain->value  = -1.0;
-		s->rain->t_save = 0;
-	}
+	if ( s->rain == NULL && ( s->rain = createDataFloat() ) == NULL )
+		return 1;
 	
 	if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->t_save ) )
 		return 0;
@@ -589,17 +588,10 @@ char sensorSwitch( sensor *s, char value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->dataInt== NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
+	if ( s->sw == NULL && ( s->sw = createDataInt() ) == NULL )
+		return 1;
 	
-	if ( s->dataInt->value == value )
+	if ( s->sw->value == value )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -613,8 +605,8 @@ char sensorSwitch( sensor *s, char value ) {
 	} else {
 		printf( "Switch change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->sw->value  = value;
+	s->sw->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -624,17 +616,10 @@ char sensorDistance( sensor *s, int value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->dataInt== NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
+	if ( s->distance == NULL && ( s->distance = createDataInt() ) == NULL )
+		return 1;
 	
-	if ( s->dataInt->value == value )
+	if ( s->distance->value == value )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -648,8 +633,8 @@ char sensorDistance( sensor *s, int value ) {
 	} else {
 		printf( "Distance change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	s->distance->value  = value;
+	s->distance->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
@@ -659,17 +644,10 @@ char sensorLevel( sensor *s, int value ) {
 	#endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->dataInt== NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for value\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
+	if ( s->level == NULL && ( s->level = createDataInt() ) == NULL )
+		return 1;
 	
-	if ( s->dataInt->value == value )
+	if ( s->level->value == value )
 		return 0;
 	
 	if ( configFile.mysql ) {
@@ -683,78 +661,86 @@ char sensorLevel( sensor *s, int value ) {
 	} else {
 		printf( "Level change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = value;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	s->level->value  = value;
+	s->level->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
-char sensorBarometer( sensor *s, float value ) {
-	int val = (int) value;
+char sensorBarometer( sensor *s, int value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->dataInt == NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for barometer\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
 	
-	if ( s->dataInt->value == val 
-			&& ( configFile.saveTemperatureTime > 0 && now < s->dataInt->t_save ) )
+	if ( s->barometer == NULL && ( s->barometer = createDataInt() ) == NULL )
+		return 1;
+	
+	if ( s->barometer->value == value 
+			&& ( configFile.saveTemperatureTime > 0 && now < s->barometer->t_save ) )
 		return 0;
 	
 	// Save barometer
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
-						"VALUES(%d,%d)", s->rowid, val );
+						"VALUES(%d,%d)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Barometer change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", val, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Barometer change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = val;
-	s->dataInt->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->barometer->value  = value;
+	s->barometer->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
 char sensorTest( sensor *s, int value ) {
-	int val = (int) value;
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->dataInt == NULL ) {
-		s->dataInt = (DataInt *) malloc( sizeof( DataInt ) );
-		if ( !s->dataInt ) {
-			fprintf( stderr, "ERROR in %s: Could not allocate memory for test\n", __func__ );
-			return 1;
-		}
-		s->dataInt->value  = -1;
-		s->dataInt->t_save = 0;
-	}
+	
+	if ( s->test == NULL && ( s->test = createDataInt() ) == NULL )
+		return 1;
 	
 	// Save test
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_test (sensor_id,value) "
-						"VALUES(%d,%d)", s->rowid, val );
+						"VALUES(%d,%d)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Test value [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", val, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Test value [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->dataInt->value  = val;
+	s->test->value  = value;
 	return 0;
+}
+
+DataInt *createDataInt() {
+	DataInt *d = (DataInt *) malloc( sizeof( DataInt ) );
+	if ( !d ) {
+		fprintf( stderr, "ERROR in %s: Could not allocate memory dataInt\n", __func__ );
+		return NULL;
+	}
+	d->value  = INT_MIN;
+	d->t_save = INT_MIN;
+	return d;
+}
+
+DataFloat *createDataFloat() {
+	DataFloat *d = (DataFloat *) malloc( sizeof( DataFloat ) );
+	if ( !d ) {
+		fprintf( stderr, "ERROR in %s: Could not allocate memory for DataFloat\n", __func__ );
+		return NULL;
+	}
+	d->value  = -300.0;
+	d->t_save = INT_MIN;
+	return d;
 }
 
 time_t sensorTimeSync() {

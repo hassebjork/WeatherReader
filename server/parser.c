@@ -441,7 +441,7 @@ void json_parse( char *s ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY )
-			sensorHumidity( sptr, humidity );
+			sensorHumidity( sptr, (unsigned char) humidity );
 		if ( type & SWITCH )
 			sensorSwitch( sptr, button );
 		if ( type & LEVEL )
@@ -449,7 +449,7 @@ void json_parse( char *s ) {
 		if ( type & DISTANCE )
 			sensorDistance( sptr, distance );
 		if ( type & BAROMETER )
-			sensorBarometer( sptr, pressure );
+			sensorBarometer( sptr, (int) pressure );
 		if ( type & TEST )
 			sensorTest( sptr, test );
 	}

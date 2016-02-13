@@ -35,6 +35,7 @@
 #include <mysql.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>			// INT_MIN / INT_MAX
 #include <float.h>
 #include <math.h>
 #include "config.h"
@@ -92,7 +93,12 @@ typedef struct {
 	unsigned char    battery;	// Sensor battery status Full = 1
 	SensorType       type;		// Type of sensor
 	DataFloat		*temperature;
-	DataInt			*dataInt;
+	DataInt			*humidity;
+	DataInt			*distance;
+	DataInt			*level;
+	DataInt			*barometer;
+	DataInt			*sw;
+	DataInt			*test;
 	DataFloat		*rain;
 	DataWind		*wind;
 } sensor;
@@ -123,11 +129,13 @@ char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, int value );
 char sensorLevel( sensor *s, int value );
-char sensorBarometer( sensor *s, float value );
+char sensorBarometer( sensor *s, int value );
 char sensorTest( sensor *s, int value );
 
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );
+DataInt *createDataInt();
+DataFloat *createDataFloat();
 time_t sensorTimeSync();
 
 #endif
