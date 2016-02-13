@@ -1,13 +1,15 @@
 PREFIX=/usr/
 MYSQL_CFLAGS=$(shell mysql_config --cflags)
 MYSQL_LIBS=$(shell mysql_config --libs)
-
+GIT_VERSION := $(shell git describe --dirty --always --tags)
+BUILD_DATE := $(shell date +%Y-%m-%d+%H:%M:%S )
 
 all: weather-reader
 
 weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c i2c-sensor.c
 	gcc -o ../bin/weather-reader \
 		-D_DEBUG=0 \
+		-DGITVERSION=\"$(GIT_VERSION)\" -DBUILDTIME=\"$(BUILD_DATE)\" \
 		-pthread -lm \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \
@@ -17,7 +19,8 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c wire
 		
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c i2c-sensor.c
 	ulimit -c unlimited && gcc -o ../bin/weather-reader \
-		-D_DEBUG=3 -g -ggdb \
+		-D_DEBUG=2 -g -ggdb -DVERSION=\"$(GIT_VERSION)\" \
+		-DGITVERSION=\"$(GIT_VERSION)\" -DBUILDTIME=\"$(BUILD_DATE)\" \
 		-pthread -lm \
 		$(MYSQL_CFLAGS) \
 		$(MYSQL_LIBS) \

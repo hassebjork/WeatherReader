@@ -14,14 +14,14 @@ int main( int argc, char *argv[]) {
 	int    i, opt, daemon = 0;
 	char **serName;
 	
-    while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
-        switch (opt) {
-        case 's':
-            daemon = 1;
-            break;
-		default:
-			usage();
-			break;
+	while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
+		switch (opt) {
+			case 's':
+				daemon = 1;
+				break;
+			default:
+				usage();
+				break;
 		}
 	}
 	
@@ -57,21 +57,23 @@ int main( int argc, char *argv[]) {
 		chdir( "/" );
 	}
 	
+	fprintf( stderr, "\nweather-reader version %s (%s)\n", GITVERSION, BUILDTIME );
+	
 	// Read configuration file
 	confReadFile( CONFIG_FILE_NAME, &configFile );
 	configFile.sensor_i2c = '\0';
 	if ( daemon )
 		configFile.daemon = 1;
-
+	
 	// Open pipes to communicate between uart-server, uart-parser & server-parser
 	if ( pipe( pipeParser ) < 0 || pipe( pipeServer ) < 0 ) {
 		fprintf( stderr, "ERROR in %s: creating server pipe\n", __func__ );
 		exit(EXIT_FAILURE);
 	}
 	
-#if _DEBUG > 0
+	#if _DEBUG > 0
 	fprintf( stderr, "Debug info: Level %d\n", _DEBUG );
-#endif
+	#endif
 	
 	// Start client to send data to remote server
 	if ( configFile.is_client ) {
@@ -109,12 +111,12 @@ int main( int argc, char *argv[]) {
 		sDev[i].type   = 0;
 		sDev[i].head   = 0;
 		sDev[i].tail   = 0;
- 		free(serName[i]);
+		free(serName[i]);
 		if ( pthread_create( &threadUart[i], NULL, uart_receive, (void *) &sDev[i] ) < 0 ) {
 			fprintf( stderr, "ERROR in %s: creating threadUart %d\n", __func__, (i+1) );
 		}
 	}
- 	free(serName);
+	free(serName);
 	
 	// Start timer
 	timer.it_value.tv_sec  = 60;
@@ -122,7 +124,7 @@ int main( int argc, char *argv[]) {
 	timer.it_interval      = timer.it_value;
 	if ( setitimer( ITIMER_REAL, &timer, NULL) == -1 )
 		fprintf( stderr, "ERROR in %s: Could not set timer\n", __func__ );
-
+	
 	signal( SIGALRM, (void(*)(int)) signal_alarm );	// Reset Arduino
 	signal( SIGCHLD, SIG_IGN );						// 
 	signal( SIGINT, signal_interrupt );				// Program exit
@@ -139,16 +141,16 @@ int main( int argc, char *argv[]) {
 		pthread_join( threadServer, NULL);
 		pthread_join( threadParser, NULL);
 	}
-
+	
 	fprintf( stderr, "Program terminated successfully!\n" );
 	exit(EXIT_SUCCESS);
 }
 
 void usage( void ) {
-    fprintf( stderr,
-        "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
-        "Usage:\t[-s Run program in daemon mode\n\n" );
-    exit(1);
+	fprintf( stderr,
+			 "weather-reader, a 433 MHz generic data receiver daemon for Weather Stations\n\n"
+			 "Usage:\t[-s Run program in daemon mode\n\n" );
+	exit(1);
 }
 
 /**
