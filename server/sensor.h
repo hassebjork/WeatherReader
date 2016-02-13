@@ -35,6 +35,7 @@
 #include <mysql.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>			// INT_MIN / INT_MAX
 #include <float.h>
 #include <math.h>
 #include "config.h"
@@ -49,7 +50,9 @@ typedef enum {
 	RAINTOTAL   = 32,
 	SWITCH      = 64,
 	BAROMETER   = 128,
-	DISTANCE    = 256
+	DISTANCE    = 256,
+	LEVEL       = 512,
+	TEST        = 1024
 } SensorType;
 
 typedef struct {
@@ -67,7 +70,7 @@ struct DataSample {
 	float              gust;	// Wind gust
 	short              dir;		// Wind direction
 	time_t             time;	// Sample time
-	struct DataSample        *link;	// Next sample
+	struct DataSample *link;	// Next sample
 };
 
 typedef struct {
@@ -90,7 +93,12 @@ typedef struct {
 	unsigned char    battery;	// Sensor battery status Full = 1
 	SensorType       type;		// Type of sensor
 	DataFloat		*temperature;
-	DataInt			*dataInt;
+	DataInt			*humidity;
+	DataInt			*distance;
+	DataInt			*level;
+	DataInt			*barometer;
+	DataInt			*sw;
+	DataInt			*test;
 	DataFloat		*rain;
 	DataWind		*wind;
 } sensor;
@@ -120,10 +128,14 @@ char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, int value );
-char sensorBarometer( sensor *s, float value );
+char sensorLevel( sensor *s, int value );
+char sensorBarometer( sensor *s, int value );
+char sensorTest( sensor *s, int value );
 
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );
+DataInt *createDataInt();
+DataFloat *createDataFloat();
 time_t sensorTimeSync();
 
 #endif

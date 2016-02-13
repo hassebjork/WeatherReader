@@ -364,7 +364,8 @@ void wired_parse( char *s ) {
  **************************************************************************************************/
 
 void json_parse( char *s ) {
-	unsigned int  id = 0, channel = 0, button = 0, distance = 0, rolling = 0;
+	unsigned int  id = 0, channel = 0, button = 0, distance = 0, rolling = 0, level = 0;
+	int           test = 0;
 	float         temperature, humidity, pressure;
 	SensorType    type = UNDEFINED;
 	
@@ -386,7 +387,7 @@ void json_parse( char *s ) {
 			json_parseString( p, key );
 			// Scan for colon & whitespace
 			for ( p; *p != ':' && *p != '\0'; p++ );
-			for ( p; *p == ' ' || *p == '\t' || *p == '\f' || *p == '\n' || *p == '\r'; p++ );
+			for ( ++p; *p == ' ' || *p == '\t' || *p == '\f' || *p == '\n' || *p == '\r'; p++ );
 			if ( *p == '\0' ) continue;
 			
 			// Temperature
@@ -405,10 +406,18 @@ void json_parse( char *s ) {
 			} else if ( strcmp( key, "S" ) == 0 ) {
 				json_parseInt( p, &button );
 				type |= SWITCH;
+			// Level
+			} else if ( strcmp( key, "L" ) == 0 ) {
+				json_parseInt( p, &level );
+				type |= LEVEL;
 			// Distance
 			} else if ( strcmp( key, "D" ) == 0 ) {
 				json_parseInt( p, &distance );
 				type |= DISTANCE;
+			// Test
+			} else if ( strcmp( key, "Q" ) == 0 ) {
+				json_parseInt( p, &test );
+				type |= TEST;
 			} else if ( strcmp( key, "id" ) == 0 ) {
 				json_parseInt( p, &id );
 			} else if ( strcmp( key, "ch" ) == 0 ) {
@@ -432,13 +441,17 @@ void json_parse( char *s ) {
 		if ( type & TEMPERATURE )
 			sensorTemperature( sptr, temperature );
 		if ( type & HUMIDITY )
-			sensorHumidity( sptr, humidity );
+			sensorHumidity( sptr, (unsigned char) humidity );
 		if ( type & SWITCH )
 			sensorSwitch( sptr, button );
+		if ( type & LEVEL )
+			sensorLevel( sptr, level );
 		if ( type & DISTANCE )
 			sensorDistance( sptr, distance );
 		if ( type & BAROMETER )
-			sensorBarometer( sptr, pressure );
+			sensorBarometer( sptr, (int) pressure );
+		if ( type & TEST )
+			sensorTest( sptr, test );
 	}
 }
 

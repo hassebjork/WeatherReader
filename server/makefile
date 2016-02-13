@@ -27,7 +27,19 @@ debug: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c
 		weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c \
 		i2c-sensor.c
 	@echo
-
+	
+test-server: test/test_server.c
+	gcc -o ../bin/test-server \
+		-pthread -g \
+		test/test_server.c
+	@echo
+	
+test-client: test/test_client.c
+	gcc -o ../bin/test-client \
+		-pthread -g \
+		test/test_client.c
+	@echo
+	
 clean:
 	- rm -f ../bin/weather-reader core
 

@@ -41,7 +41,7 @@ void wire_main() {
 
 	if ( configFile.sensor_i2c == '\0' || ( fd = open( configFile.sensor_i2c,  O_RDWR ) ) < 0 ) {
 		#if _DEBUG > 1
-			fprintf( stderr, "%s: Failed to open the i2c bus %s,  error : %d\n", 
+			fprintf( stderr, "%s: Failed to open the i2c bus %s,  error: %d\n", 
 					__func__, configFile.sensor_i2c, errno );
 		#endif
 	
