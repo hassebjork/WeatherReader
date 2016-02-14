@@ -743,6 +743,31 @@ DataFloat *createDataFloat() {
 	return d;
 }
 
+Kalman *createKalman(float slope, float error, float value ) {
+	Kalman *d = (Kalman *) malloc( sizeof( Kalman ) );
+	if ( !d ) {
+		fprintf( stderr, "ERROR in %s: Could not allocate memory for Kalman\n", __func__ );
+		return NULL;
+	}
+	d->a  = slope;
+	d->r  = error;
+	d->x  = value;
+	d->p  = 1.0;
+	return d;
+}
+
+float kalman_filter( Kalman *k, float value ) {
+	// Predict
+	k->x = k->x * k->a;
+	k->p = k->a * k->p * k->a;
+	
+	// Update
+	k->g = k->p == 0 ? 1 : k->p  / (k->p  + k->r);
+	k->x = k->x + k->g * (value - k->x);
+	k->p = (1 - k->g) * k->p;
+	return (float) k->x;
+}
+
 time_t sensorTimeSync() {
 	static time_t update = 0;
 	static int    correction = 0, syncTime = 3600;
