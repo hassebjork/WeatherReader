@@ -40,7 +40,7 @@ char confReadFile( char *inFname, ConfigSettings *conf ) {
 	/* Default Values */
 	conf->run               = 1;
 	conf->daemon            = 0;
-	conf->sensorAutoAdd     = 1;
+	conf->sensorAutoAdd     = 0;
 // 	conf->sensor_i2c        = '\0';		// Being reset when config file is re-read
 	
 	conf->is_client         = '\0';

@@ -19,7 +19,7 @@ weather-reader: weather-reader.c config.c parser.c sensor.c server.c uart.c wire
 		
 debug: weather-reader.c config.c parser.c sensor.c server.c uart.c wire-sensor.c i2c-sensor.c
 	ulimit -c unlimited && gcc -o ../bin/weather-reader \
-		-D_DEBUG=2 -g -ggdb -DVERSION=\"$(GIT_VERSION)\" \
+		-D_DEBUG=3 -g -ggdb -DVERSION=\"$(GIT_VERSION)\" \
 		-DGITVERSION=\"$(GIT_VERSION)\" -DBUILDTIME=\"$(BUILD_DATE)\" \
 		-pthread -lm \
 		$(MYSQL_CFLAGS) \

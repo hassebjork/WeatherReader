@@ -151,6 +151,8 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 #endif
 	sensor *ptr;
 	int i;
+	
+	// Search sensor list
 	for ( i = 0; i < sensor_list_no; i++ ) {
 		if ( sensor_list[i].sensor_id == sensor_id 
 				&& sensor_list[i].channel == channel 
@@ -160,18 +162,24 @@ sensor *sensorListLookup( const char *protocol, unsigned int sensor_id,
 			// Update battery status if changed
 			if ( sensor_list[i].battery != battery )
 				sensorUpdateBattery( &sensor_list[i], battery );
-
-			// Update type if incorrect
-			if ( sensor_list[i].type^type )
-				sensorUpdateType( &sensor_list[i], type );
 			
-			return &sensor_list[i];
+			// Check for compatible type of data
+			if ( sensor_list[i].type & type ) {
+				return &sensor_list[i];
+			} else if ( configFile.sensorAutoAdd > 0 ) {
+				sensorUpdateType( &sensor_list[i], type );
+				return &sensor_list[i];
+			} else {
+				return NULL;
+			}
 		}
 	}
+	
+	// Search database or add new sensor
 	if ( configFile.mysql )	{
-		ptr = sensorDbSearch( protocol, sensor_id, channel, rolling, type, battery );
+		ptr = sensorDbSearch( protocol, sensor_id, channel, rolling, battery );
 		if ( !ptr )
-			return sensorDbAdd( protocol, sensor_id, channel, rolling, type, battery );
+			ptr = sensorDbAdd( protocol, sensor_id, channel, rolling, type, battery );
 	} else {
 		ptr = sensorListAdd( 0, "", protocol, sensor_id, channel, rolling, battery, type );
 	}
@@ -277,10 +285,10 @@ sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char
 }
 
 sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, 
-					  unsigned char rolling, SensorType type, unsigned char battery ) {
+					  unsigned char rolling, unsigned char battery ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: Protocol: %s ID:%d Channel:%d Rolling:%d Type:%d \n", 
-			 __func__, protocol, sensor_id, channel, rolling, type );
+			 __func__, protocol, sensor_id, channel, rolling );
 #endif
 	MYSQL_RES   *result ;
 	MYSQL_ROW    row;
@@ -345,15 +353,11 @@ char sensorTemperature( sensor *s, float value ) {
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->temperature == NULL && ( s->temperature = createDataFloat() ) == NULL )
+	if ( ! ( s->type & TEMPERATURE ) )
+		return 0;
+	else if ( s->temperature == NULL && ( s->temperature = createDataFloat() ) == NULL )
 		return 1;
-	
-	printf( "%s: %f - %d", 
-			__func__, 
-		 s->temperature->value, 
-		 s->temperature->t_save );
-	
-	if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->t_save ) )
+	else if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->t_save ) )
 		return 0;
 	
 	// Save temperature
@@ -378,11 +382,11 @@ char sensorHumidity( sensor *s, unsigned char value ) {
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
-	
-	if ( s->humidity == NULL && ( s->humidity = createDataInt() ) == NULL )
+	if ( ! ( s->type & HUMIDITY ) )
+		return 0;
+	else if ( s->humidity == NULL && ( s->humidity = createDataInt() ) == NULL )
 		return 1;
-	
-	if ( s->humidity->value == value 
+	else if ( s->humidity->value == value 
 			&& ( configFile.saveHumidityTime > 0 && now < s->humidity->t_save ) )
 		return 0;
 	
@@ -408,10 +412,11 @@ char sensorRain( sensor *s, float total ) {
 	fprintf( stderr, "%s: \t\t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, total );
 #endif
 	time_t now = sensorTimeSync();
-	if ( s->rain == NULL && ( s->rain = createDataFloat() ) == NULL )
+	if ( ! ( s->type & RAINTOTAL ) )
+		return 0;
+	else if ( s->rain == NULL && ( s->rain = createDataFloat() ) == NULL )
 		return 1;
-	
-	if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->t_save ) )
+	else if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->t_save ) )
 		return 0;
 	
 	// Save rain
@@ -588,10 +593,11 @@ char sensorSwitch( sensor *s, char value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->sw == NULL && ( s->sw = createDataInt() ) == NULL )
+	if ( ! ( s->type & SWITCH ) )
+		return 0;
+	else if ( s->sw == NULL && ( s->sw = createDataInt() ) == NULL )
 		return 1;
-	
-	if ( s->sw->value == value )
+	else if ( s->sw->value == value )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -616,10 +622,11 @@ char sensorDistance( sensor *s, int value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->distance == NULL && ( s->distance = createDataInt() ) == NULL )
+	if ( ! ( s->type & DISTANCE ) )
+		return 0;
+	else if ( s->distance == NULL && ( s->distance = createDataInt() ) == NULL )
 		return 1;
-	
-	if ( s->distance->value == value )
+	else if ( s->distance->value == value )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -644,10 +651,11 @@ char sensorLevel( sensor *s, int value ) {
 	#endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->level == NULL && ( s->level = createDataInt() ) == NULL )
+	if ( ! ( s->type & LEVEL ) )
+		return 0;
+	else if ( s->level == NULL && ( s->level = createDataInt() ) == NULL )
 		return 1;
-	
-	if ( s->level->value == value )
+	else if ( s->level->value == value )
 		return 0;
 	
 	if ( configFile.mysql ) {
@@ -668,14 +676,15 @@ char sensorLevel( sensor *s, int value ) {
 
 char sensorBarometer( sensor *s, int value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->barometer == NULL && ( s->barometer = createDataInt() ) == NULL )
+	if ( ! ( s->type & BAROMETER ) )
+		return 0;
+	else if ( s->barometer == NULL && ( s->barometer = createDataInt() ) == NULL )
 		return 1;
-	
-	if ( s->barometer->value == value 
+	else if ( s->barometer->value == value 
 			&& ( configFile.saveTemperatureTime > 0 && now < s->barometer->t_save ) )
 		return 0;
 	
@@ -702,7 +711,9 @@ char sensorTest( sensor *s, int value ) {
 #endif
 	time_t now = sensorTimeSync();
 	
-	if ( s->test == NULL && ( s->test = createDataInt() ) == NULL )
+	if ( ! ( s->type & TEST ) )
+		return 0;
+	else if ( s->test == NULL && ( s->test = createDataInt() ) == NULL )
 		return 1;
 	
 	// Save test
@@ -762,9 +773,9 @@ float kalman_filter( Kalman *k, float value ) {
 	k->p = k->a * k->p * k->a;
 	
 	// Update
-	k->g = k->p == 0 ? 1 : k->p  / (k->p  + k->r);
-	k->x = k->x + k->g * (value - k->x);
-	k->p = (1 - k->g) * k->p;
+	float g = k->p == 0 ? 1 : k->p  / (k->p  + k->r);
+	k->x = k->x + g * (value - k->x);
+	k->p = (1 - g) * k->p;
 	return (float) k->x;
 }
 

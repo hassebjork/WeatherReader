@@ -45,6 +45,7 @@ void *parse_thread() {
 	fprintf( stderr, "Parser thread:%16sRunning\n", "" );
 #endif
 	sensorInit();
+	sensorTimeSync();
 	
 	while ( ( rcount = read( pipeParser[0], &buffer, 254 ) ) > 0 && configFile.run ) {
 		buffer[rcount-1] = '\0';
@@ -449,7 +450,7 @@ void json_parse( char *s ) {
 		if ( type & DISTANCE )
 			sensorDistance( sptr, distance );
 		if ( type & BAROMETER )
-			sensorBarometer( sptr, (int) pressure );
+			sensorBarometer( sptr, pressure );
 		if ( type & TEST )
 			sensorTest( sptr, test );
 	}
