@@ -26,6 +26,8 @@ int main( int argc, char *argv[] ) {
 	if ( argc < 2 ) {
 		printf( "Usage:\n  %s [ip-address] 'string-to-send'\n", argv[0] );
 		return 0;
+	} else {
+		fprintf( stderr, "\ntest-client version %s (%s)\n", GITVERSION, BUILDTIME );
 	}
 	
 	if ( ( s = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) == -1 )

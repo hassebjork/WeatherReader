@@ -24,6 +24,7 @@ int main(int argc , char *argv[]) {
 		return 1;
 	}
 	printTime();
+	fprintf( stderr, "\ntest-server version %s (%s)\n", GITVERSION, BUILDTIME );
 	puts("\nSocket created");
 		
 	// Prepare the sockaddr_in structure
