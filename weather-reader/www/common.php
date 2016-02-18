@@ -76,8 +76,8 @@ function graph( $data, $width=1000, $height=500 ) {
 	$dh = $height * .025;
 	$dw = $width  * .025;
 
-	$dy = $height / $sv * .95;
-	$dx = $width  / $su;
+	$dy = $sv == 0 ? 1 : $height / $sv * .95;
+	$dx = $su == 0 ? 1 : $width  / $su;
 
 	$graph = array();
 	
@@ -92,6 +92,7 @@ function graph( $data, $width=1000, $height=500 ) {
 	return $graph;
 }
 
+// https://github.com/emcconville/point-reduction-algorithms/blob/master/src/Algorithms/VisvalingamWhyatt.php
 function &whyatt( $points, $target ) {
 	$kill = count($points) - $target;
 	while ( $kill-- > 0 ) {
@@ -117,61 +118,58 @@ function &whyatt( $points, $target ) {
 	return $points;
 }
 
-// http://home.wlu.edu/~levys/kalman_tutorial/
-function &kalman( $initialValue, $slope, $noise ) {
+function &whyatt_qulity( $points, $maxArea ) {
+	if ( count( $points ) < 4 )
+		return $points;
+	do {
+		$idx = 1;
+		$minArea = Point::areaOfTriangle(
+			$points[0],
+			$points[1],
+			$points[2]
+		);
+		foreach (range(2, Point::lastKey( $points, -2)) as $segment) {
+			$area = Point::areaOfTriangle(
+				$points[$segment - 1],
+				$points[$segment],
+				$points[$segment + 1]// $sgrap  = slope_graph( $data, $a );
+// $graph  = graph( array( $data, $kg2, $kg1, array( $data[0], $data[$dl] ), $sgrap ) );
+
+			);
+			if ( $area < $minArea ) {
+				$minArea = $area;
+				$idx = $segment;
+			}
+		}
+		array_splice($points, $idx, 1);
+	} while( $minArea < $maxArea && count( $points ) > 3 );
+	return $points;
+}
+
+// https://www.youtube.com/watch?v=biY7F-tLwE8
+// https://gist.github.com/Zymotico/836c5d82d5b52a2a3695
+// http://www.magesblog.com/2014/12/measuring-temperature-with-my-arduino.html
+function &kalman( $initialValue, $process_noise, $sensor_noise ) {
 	$k = new stdClass;
-	$k->a = $slope;			// Slope of the curve for next prediction
-	$k->r = $noise;			// Sensor noise
-	$k->x = $initialValue;	// Initial value
-	$k->p = 1.0;			// Prediction error
-	$k->k = 0.0;			// Kalman gain
+	$k->r          = $sensor_noise;		// Sensor variance (0.3001871157)
+	$k->Pn         = $process_noise;	// Process noise (1e-8)
+	$k->P          = 1.0;				// Prediction error
+	$k->Xe         = $initialValue;		// Kalman estimate
 	return $k;
 }
 function kalman_filter( &$data, $value ) {
 	// Predict
-	$data->x = $data->x * $data->a;
-	$data->p = $data->a * $data->p * $data->a;
-	
+	$Pc = $data->P + $data->Pn;
 	// Update
-	$data->k = $data->p == 0 ? 1 : $data->p / ($data->p + $data->r);
-	$data->x = $data->x + $data->k * ($value - $data->x);
-	$data->p = (1.0 - $data->k) * $data->p;
-	
-	return $data->x;
+	$G  = $Pc == 0 ? 1 : $Pc / ( $Pc + $data->r );
+	$data->P  = ( 1 - $G ) * $Pc;
+	$data->Xe = $G * ( $value-$data->Xe ) + $data->Xe;
+	return $data->Xe;
 }
 function &kalman_graph( &$data, &$kalman ) {
 	$point = array();
 	foreach( $data as $row ) {
 		$point[] = new Point( $row->x, kalman_filter( $kalman, $row->y ) ); 
-	}
-	return $point;
-}
-
-// http://www.magesblog.com/2014/12/measuring-temperature-with-my-arduino.html
-// https://gist.github.com/Zymotico/836c5d82d5b52a2a3695
-function &kalman2( $initialValue, $process_noise, $sensor_noise ) {
-	$k = new stdClass;
-	$k->r          = $sensor_noise;		// Sensor variance (0.3001871157)
-	$k->Pn         = $process_noise;	// Process noise (1e-8)
-	$k->Pc         = 0.0;				// 
-	$k->G          = 0.0;				// Kalman gain
-	$k->P          = 1.0;				// Prediction error
-	$k->Xe         = $initialValue;		// Kalman estimate
-	return $k;
-}
-function kalman2_filter( &$data, $value ) {
-	// Predict
-	$data->Pc = $data->P + $data->Pn;
-	// Update
-	$data->G  = $data->Pc == 0 ? 1 : $data->Pc / ( $data->Pc + $data->r );
-	$data->P  = ( 1 - $data->G ) * $data->Pc;
-	$data->Xe = $data->G * ( $value-$data->Xe ) + $data->Xe;
-	return $data->Xe;
-}
-function &kalman2_graph( &$data, &$kalman ) {
-	$point = array();
-	foreach( $data as $row ) {
-		$point[] = new Point( $row->x, kalman2_filter( $kalman, $row->y ) ); 
 	}
 	return $point;
 }

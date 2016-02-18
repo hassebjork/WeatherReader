@@ -32,6 +32,8 @@ define( 'RAINTOTAL', 32 );
 define( 'SWITCH', 64 );
 define( 'BAROMETER', 128 );
 define( 'DISTANCE', 256 );
+define( 'LEVEL', 512 );
+define( 'TEST', 1024 );
 
 $mysqli = new mysqli( DB_HOST, DB_USER, DB_PASS, DB_DATABASE );
 $mysqli->set_charset( 'utf8' );
@@ -98,7 +100,7 @@ class Sensor {
 		if ( $rain )
 			$data = Sensor::fetch_rain( $data, $sensors, $days );
 		if ( $distance )
-			$data = Sensor::fetch_distance( $data, 8 );
+			$data = Sensor::fetch_distance( $data, 5 );
 		if ( $barometer )
 			$data = Sensor::fetch_barometer( $data, $days );
 		foreach ( $data as $key=>$val ) {
@@ -248,7 +250,7 @@ class Sensor {
 			. 'FROM  `wr_distance` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 // 			. 'GROUP BY `date`, `sensor_id` '
-			. 'GROUP BY DATE(`time`), FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
+			. 'GROUP BY DATE(`time`), HOUR(`time`), `sensor_id` '
 			. 'ORDER BY `time` ASC; ';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
 		while( $row = $res->fetch_object() ) {
@@ -376,7 +378,7 @@ class Sensor {
 			. 'FROM  `wr_distance` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 // 			. 'GROUP BY `date`, `sensor_id` '
-			. 'GROUP BY FLOOR( HOUR(`time`) / 3 ), `sensor_id` '
+			. 'GROUP BY HOUR(`time`), `sensor_id` '
 			. 'ORDER BY `date`, `sensor_id` ASC;';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
 		while( $row = $res->fetch_object() ) {
@@ -559,8 +561,8 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	<script>
 var tim1, tim2;
 function doLoad() {
-	loadSensor( "/weather/?all=1" );
-	tim1 = setInterval( function() { loadSensor( "/weather/?all=1" ); }, 600000 );
+	loadSensor();
+	tim1 = setInterval( function() { loadSensor(); }, 600000 );
 	tim2 = setTimeout( function() {
 		var yr = "http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png";
 		return setInterval( function() { 
@@ -576,7 +578,11 @@ window.onblur  = function() { clearInterval(tim1); clearInterval(tim2); };
 	</script>
 </head>
 
-<body><?php $width = 150; $height = 150; ?>
+<body><?php 
+$width = 150; 
+$height = 150; 
+include( 'barometer.svg' );
+?>
 	<svg id="defsSVG" class="chart" width="<?= $width ?>" height="<?= $height ?>" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<defs>
 			<linearGradient id="windGradArrow" x1="0%" y1="0%"   x2="0%" y2="100%">
@@ -624,12 +630,11 @@ for ( $i = 1; $i <= 10; $i++ ) {
 		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <?php
-include( 'barometer.svg' );
 // rotate(60, 187, 187)
 Sensor::draw_sensors();
 ?>
 
-	<div id="aTime" onclick="loadSensor('/weather/all.js' );" style="clear:both; display:block;">Fetching data</div>
+	<div id="aTime" onclick="loadSensor();" style="clear:both; display:block;">Fetching data</div>
 	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
 		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
 	</a>

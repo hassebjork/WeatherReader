@@ -1,31 +1,20 @@
 <?php
 include_once( 'common.php' );
 
-function &slope_graph( &$data, &$a ) {
-	$w = $data[0]->y;
-	$point = array();
-	foreach( $data as $row ) {
-		$w *= $a;
-		$point[] = new Point( $row->x, $w ); 
-	}
-	return $point;
-}
+$time  = mktime(0, 0, 0, 2, 15, 2016 );
+$data  = fetch_data( 'wr_test', 51, $time, mktime() );
 
+$k1    = kalman( $data[0]->y, .001, 10 );
+$k2    = kalman( $data[0]->y, .005, 20 );
+$k3    = kalman( $data[0]->y, .005, 10 );
+$k4    = kalman( $data[0]->y, .008, 40 );
 
-$a      = 1.00019;
-$time   = mktime(0, 0, 0, 2, 15, 2016 );
-$data   = fetch_data( 'wr_test', 51, $time, mktime() );
-$dl     = count( $data ) - 1;
+$kg1   = kalman_graph( $data, $k1 );
+$kg2   = kalman_graph( $data, $k2 );
+$kg3   = kalman_graph( $data, $k3 );
+$kg4   = kalman_graph( $data, $k4 );
 
-$k1     = kalman( $data[0]->y, $a, 15 );
-$kg1    = kalman_graph( $data, $k1 );
-
-$k2     = kalman2( $data[0]->y, .0005, 10 );
-$kg2    = kalman2_graph( $data, $k2 );
-// $kg2    = array();
-
-$sgrap  = slope_graph( $data, $a );
-$graph  = graph( array( $data, $kg1, $kg2, array( $data[0], $data[$dl] ), $sgrap ) );
+$graph = graph( array( $data, $kg1, $kg2, $kg3, $kg4 ) );
 
 ?>
 <!DOCTYPE html>
@@ -45,15 +34,23 @@ $graph  = graph( array( $data, $kg1, $kg2, array( $data[0], $data[$dl] ), $sgrap
 </head>
 
 <body>
-	<svg id="svgImg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="500" viewBox="0 0 1000 500">
+	<svg id="svgImg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="900" viewBox="0 0 1000 500">
 		<defs></defs>
 		<rect x="0" y="0" width="100%" height="100%" style="stroke:#000000; fill:#ffe0e0"/>
-		<polyline id="orig" points="<?= $graph[0] ?>" style="stroke:#ff0000;stroke-width:1;fill:none"/>
-		<polyline id="kal1" points="<?= $graph[1] ?>" style="stroke:#0000ff;stroke-width:2;fill:none"/>
-		<polyline id="kal2" points="<?= $graph[2] ?>" style="stroke:#ff00ff;stroke-width:1;fill:none"/>
-		<polyline id="strg" points="<?= $graph[3] ?>" style="stroke:#606060;stroke-width:1;fill:none"/>
-		<polyline id="slop" points="<?= $graph[4] ?>" style="stroke:#00ff00;stroke-width:1;fill:none"/>
+		<text x="5" y="15" style="fill:#ff0000;opacity:.5">Original data</text>
+		<text x="5" y="30" style="fill:#ff00ff">Kalman filter 1</text>
+		<text x="5" y="45" style="fill:#0000ff">Kalman filter 2</text>
+		<text x="5" y="60" style="fill:#606060">Kalman filter 3</text>
+		<text x="5" y="75" style="fill:#00ff00">Kalman filter 4</text>
+		<polyline id="orig" points="<?= $graph[0] ?>" style="stroke:#ff0000;stroke-width:1;stroke-opacity:.5;fill:none"/>
+		<polyline id="kal2" points="<?= $graph[1] ?>" style="stroke:#ff00ff;stroke-width:1;stroke-opacity:.75;fill:none"/>
+		<polyline id="kal1" points="<?= $graph[2] ?>" style="stroke:#0000ff;stroke-width:1;stroke-opacity:.75;fill:none"/>
+		<polyline id="strg" points="<?= $graph[3] ?>" style="stroke:#606060;stroke-width:1;stroke-opacity:.75;fill:none"/>
+		<polyline id="slop" points="<?= $graph[4] ?>" style="stroke:#00ff00;stroke-width:1;stroke-opacity:.75;fill:none"/>
+		<text x="5" y="480" style="fill:#404040"><?= date( 'Y-m-d', $data[0]->x ) ?></text>
+		<text x="5" y="495" style="fill:#404040"><?= date( 'H:i:s', $data[0]->x ) ?></text>
+		<text x="995" y="480" style="fill:#404040;text-anchor:end"><?= date( 'Y-m-d', $data[0]->x ) ?></text>
+		<text x="995" y="495" style="fill:#404040;text-anchor:end"><?= date( 'H:i:s', $data[count($data)-1]->x ) ?></text>
 	</svg>
-	<?= date( 'Y-m-d H:i:s', $data[0]->x ) . ' and ' . date( 'Y-m-d H:i:s', $data[$dl]->x ) ?>
 </body>
 </html>

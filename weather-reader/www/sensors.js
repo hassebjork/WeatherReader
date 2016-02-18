@@ -12,7 +12,8 @@ function loadSensor( url ) {
 				$i("aTime").innerHTML = "Last update " + obj.time.substring(11, 16);
 		}
 	}
-	req.open( "GET", url, true );
+	req.open( "GET", "/weather/?all=1" , true );
+// 	req.open( "GET", "/weather/all.js?r=" + Math.random(), true );
 	req.send();
 }
 function updateSensors( sensors ) {
@@ -204,10 +205,12 @@ function drawBarometer( sensor ) {
 		i.appendChild( baro );
 	}
 	
-	if ( typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
+	if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
 		$c(node,"b_cur").textContent = sensor.data[sensor.data.length-1].b + " hPa";
-		if ( ( y = $i("baro_dial") ) ) 
+		if ( ( y = $i("baro_dial") ) ) {
+			y.style.visibility = "visible";
 			y.setAttribute("transform", "rotate(" + ( ( sensor.data[sensor.data.length-1].b - 1010 ) * 3 ) + ", 187, 187)" );
+		}
 		if ( ( y = $i("baro_digit") ) ) 
 			y.textContent = sensor.data[sensor.data.length-1].b + " hPa";
 	}
@@ -225,7 +228,7 @@ function drawBarometer( sensor ) {
 	baro.setAttribute("points",path);
 }
 function drawDistance( sensor ) {
-	var store = { max: 90, min: 6, level: 0, percent: 0 };
+	var store = { max: 120, min: 4, level: 0, percent: 0 };
 	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
 	var hr   = -1;
 	node = $i("sDist" + sensor.id);
