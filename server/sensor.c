@@ -54,10 +54,10 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_humidity( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value TINYINT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
-	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
-	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
+	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
+	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
-	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
+	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 // 	"CREATE EVENT `wr_archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
 	0
 };
@@ -616,15 +616,15 @@ char sensorSwitch( sensor *s, char value ) {
 	return 0;
 }
 
-char sensorDistance( sensor *s, int value ) {
+char sensorDistance( sensor *s, float value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
 	if ( ! ( s->type & DISTANCE ) )
 		return 0;
-	else if ( s->distance == NULL && ( s->distance = createDataInt() ) == NULL )
+	else if ( s->distance == NULL && ( s->distance = createDataFloat() ) == NULL )
 		return 1;
 	else if ( s->distance->value == value )
 		return 0;
@@ -632,28 +632,28 @@ char sensorDistance( sensor *s, int value ) {
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_distance (sensor_id, value) "
-						"VALUES(%d,%d)", s->rowid, value );
+						"VALUES(%d,%f)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Distance change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Distance change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->distance->value  = value;
 	s->distance->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
-char sensorLevel( sensor *s, int value ) {
+char sensorLevel( sensor *s, float value ) {
 	#if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 	#endif
 	time_t now = sensorTimeSync();
 	
 	if ( ! ( s->type & LEVEL ) )
 		return 0;
-	else if ( s->level == NULL && ( s->level = createDataInt() ) == NULL )
+	else if ( s->level == NULL && ( s->level = createDataFloat() ) == NULL )
 		return 1;
 	else if ( s->level->value == value )
 		return 0;
@@ -661,28 +661,28 @@ char sensorLevel( sensor *s, int value ) {
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_level (sensor_id, value) "
-		"VALUES(%d,%d)", s->rowid, value );
+		"VALUES(%d,%f)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Level change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Level change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->level->value  = value;
 	s->level->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
-char sensorBarometer( sensor *s, int value ) {
+char sensorBarometer( sensor *s, float value ) {
 #if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
 	time_t now = sensorTimeSync();
 	
 	if ( ! ( s->type & BAROMETER ) )
 		return 0;
-	else if ( s->barometer == NULL && ( s->barometer = createDataInt() ) == NULL )
+	else if ( s->barometer == NULL && ( s->barometer = createDataFloat() ) == NULL )
 		return 1;
 	else if ( s->barometer->value == value 
 			&& ( configFile.saveTemperatureTime > 0 && now < s->barometer->t_save ) )
@@ -692,20 +692,20 @@ char sensorBarometer( sensor *s, int value ) {
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
-						"VALUES(%d,%d)", s->rowid, value );
+						"VALUES(%d,%f)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Barometer change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Barometer change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->barometer->value  = value;
 	s->barometer->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
-char sensorTest( sensor *s, int value ) {
+char sensorTest( sensor *s, float value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
@@ -713,20 +713,20 @@ char sensorTest( sensor *s, int value ) {
 	
 	if ( ! ( s->type & TEST ) )
 		return 0;
-	else if ( s->test == NULL && ( s->test = createDataInt() ) == NULL )
+	else if ( s->test == NULL && ( s->test = createDataFloat() ) == NULL )
 		return 1;
 	
 	// Save test
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_test (sensor_id,value) "
-						"VALUES(%d,%d)", s->rowid, value );
+						"VALUES(%d,%f)", s->rowid, value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
 	} else {
-		printf( "Test value [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+		printf( "Test value [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
 	s->test->value  = value;
 	return 0;
@@ -752,31 +752,6 @@ DataFloat *createDataFloat() {
 	d->value  = -300.0;
 	d->t_save = INT_MIN;
 	return d;
-}
-
-Kalman *createKalman(float slope, float error, float value ) {
-	Kalman *d = (Kalman *) malloc( sizeof( Kalman ) );
-	if ( !d ) {
-		fprintf( stderr, "ERROR in %s: Could not allocate memory for Kalman\n", __func__ );
-		return NULL;
-	}
-	d->a  = slope;
-	d->r  = error;
-	d->x  = value;
-	d->p  = 1.0;
-	return d;
-}
-
-float kalman_filter( Kalman *k, float value ) {
-	// Predict
-	k->x = k->x * k->a;
-	k->p = k->a * k->p * k->a;
-	
-	// Update
-	float g = k->p == 0 ? 1 : k->p  / (k->p  + k->r);
-	k->x = k->x + g * (value - k->x);
-	k->p = (1 - g) * k->p;
-	return (float) k->x;
 }
 
 time_t sensorTimeSync() {

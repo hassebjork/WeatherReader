@@ -84,13 +84,6 @@ typedef struct {
 } DataWind;
 
 typedef struct {
-	float   a;			// Slope preditction
-	float   r;			// Total measurement noise
-	double  p;			// Predicted error
-	double  x;			// Predicted value
-} Kalman;
-
-typedef struct {
 	unsigned int     rowid;		// Database row
 	char            *name;		// Name of sensor
 	unsigned int     sensor_id;	// Sensors own id
@@ -101,11 +94,11 @@ typedef struct {
 	SensorType       type;		// Type of sensor
 	DataFloat		*temperature;
 	DataInt			*humidity;
-	DataInt			*distance;
-	DataInt			*level;
-	DataInt			*barometer;
+	DataFloat		*distance;
+	DataFloat		*level;
+	DataFloat		*barometer;
 	DataInt			*sw;
-	DataInt			*test;
+	DataFloat		*test;
 	DataFloat		*rain;
 	DataWind		*wind;
 } sensor;
@@ -134,17 +127,16 @@ char sensorHumidity( sensor *s, unsigned char value );
 char sensorRain( sensor *s, float total );
 char sensorWind( sensor *s, float speed, float gust, int dir );
 char sensorSwitch( sensor *s, char value );
-char sensorDistance( sensor *s, int value );
-char sensorLevel( sensor *s, int value );
-char sensorBarometer( sensor *s, int value );
-char sensorTest( sensor *s, int value );
+char sensorDistance( sensor *s, float value );
+char sensorLevel( sensor *s, float value );
+char sensorBarometer( sensor *s, float value );
+char sensorTest( sensor *s, float value );
 
 DataWind *sensorWindInit();
 void sensorWindDataInit( sensor *s );
 DataInt *createDataInt();
 DataFloat *createDataFloat();
 
-float kalman_filter( Kalman *k, float value );
 time_t sensorTimeSync();
 
 #endif

@@ -365,9 +365,8 @@ void wired_parse( char *s ) {
  **************************************************************************************************/
 
 void json_parse( char *s ) {
-	unsigned int  id = 0, channel = 0, button = 0, distance = 0, rolling = 0, level = 0;
-	int           test = 0;
-	float         temperature, humidity, pressure;
+	unsigned int  id = 0, channel = 0, button = 0, rolling = 0;
+	float         temperature, humidity, pressure, distance, level, test;
 	SensorType    type = UNDEFINED;
 	
 	char *p;			// Pointer
@@ -409,15 +408,15 @@ void json_parse( char *s ) {
 				type |= SWITCH;
 			// Level
 			} else if ( strcmp( key, "L" ) == 0 ) {
-				json_parseInt( p, &level );
+				json_parseFloat( p, &level );
 				type |= LEVEL;
 			// Distance
 			} else if ( strcmp( key, "D" ) == 0 ) {
-				json_parseInt( p, &distance );
+				json_parseFloat( p, &distance );
 				type |= DISTANCE;
 			// Test
 			} else if ( strcmp( key, "Q" ) == 0 ) {
-				json_parseInt( p, &test );
+				json_parseFloat( p, &test );
 				type |= TEST;
 			} else if ( strcmp( key, "id" ) == 0 ) {
 				json_parseInt( p, &id );
