@@ -1,6 +1,7 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 #include <avr/wdt.h>
+#include <limits.h>
 
 #if ARDUINO < 100
 #include <WProgram.h>
@@ -11,7 +12,7 @@
 #define OK                0
 #define ERROR_CHECKSUM   -1
 #define ERROR_TIMEOUT    -2
-#define INVALID_VALUE    -999
+#define INVALID_VALUE    INT_MIN
 
 #define DHT21            21
 #define DHT22            22
@@ -68,7 +69,7 @@ public:
 class UltraSonic {
 public:
 	UltraSonic( uint8_t trigger, uint8_t echo );
-    int read();
+    float read();
     void print();
 	
 	uint8_t trig_pin;
@@ -218,7 +219,7 @@ UltraSonic::UltraSonic( uint8_t trigger, uint8_t echo ) {
 	pinMode( echo_pin, INPUT );
 }
 
-int UltraSonic::read() {
+float UltraSonic::read() {
 	unsigned int var[US_SAMPLES], i, j, k;
 	for ( i = 0; i < US_SAMPLES; i++ ) {
 		digitalWrite( trig_pin, LOW );
@@ -239,22 +240,24 @@ int UltraSonic::read() {
 			}
 		}
 	}
-	k = var[US_SAMPLES/2] / 58;			// Return median distance
-	if ( k < 2 || k > 400 )
+	k = var[US_SAMPLES/2];			// Return median distance
+	if ( k < 116 || k > 23200 )		// aprox. between 2 and 400 cm
 		return INVALID_VALUE;
-	return (int) k;
+	return (float) k / 58.0;
 	
 }
 
 void UltraSonic::print() {
-	int distance = read();
+	float distance = read();
 	Serial.print( "{\"type\":\"US\",\"id\":" );
 	Serial.print( echo_pin );
 	Serial.print( ",\"ch\":" );
 	Serial.print( CHANNEL );
 	if ( distance > 0 ) {
-		Serial.print( ",\"D\":" );
-		Serial.print( distance );
+		Serial.print( ",\"D\":" );		// Distance
+		Serial.print( distance, 1 );
+// 		Serial.print( ",\"Q\":" );		// Test data
+// 		Serial.print( distance, 1 );
 	}
 	Serial.println( "}" );
 }
