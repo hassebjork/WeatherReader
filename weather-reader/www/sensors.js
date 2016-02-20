@@ -38,6 +38,7 @@ function drawTemp( sensor ) {
 	node = $i("sTemp" + sensor.id);
 	if ( node == null )
 		return;
+	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"title").title       = sensor.protocol;
@@ -192,9 +193,9 @@ function drawRain( sensor ) {
 }
 function drawBarometer( sensor ) {
 	// 950-1050
-	debugger;
-	var i, x, y, dh, t, dx, dy, path = "", node, baro;
+	var i, x, y, dh, t, dx, dy, path = "", node, baro, y_max, y_min, data;
 	node = $i("defsSVG");
+	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
 	baro = $i("baro_" + sensor.id);
 	if ( baro == null ) {
 		i = $i("baroSVG");
@@ -226,6 +227,26 @@ function drawBarometer( sensor ) {
 		}
 	}
 	baro.setAttribute("points",path);
+	
+	data  = [];
+	node  = document.getElementById("baro_disp");
+	y_max = -9999; y_min = 9999;
+	for ( i = 0; i < sensor.data.length; i++ ) {
+		if ( sensor.data[i].b > y_max ) y_max = sensor.data[i].b;
+		if ( sensor.data[i].b < y_min ) y_min = sensor.data[i].b;
+	}
+	dx = sensor.data.length / 12;
+	dy = 4 / ( y_max - y_min );
+	t  = 0;
+	for ( i = 0; i < sensor.data.length; i += dx ) {
+		data[t++] = 4 - Math.floor( ( sensor.data[Math.floor(i)].b - y_min ) * dy );
+	}
+	t = 0;
+	for ( i = 0; i < 12; i++ ) {
+		for ( var j = 0; j < 5; j++) {
+			node.childNodes[t++].style.fill = ( data[i] <= j ? "#ffffff" : "#505050");
+		}
+	}
 }
 function drawDistance( sensor ) {
 	var store = { max: 120, min: 4, level: 0, percent: 0 };
