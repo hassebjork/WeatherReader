@@ -6,7 +6,11 @@ TODO
 - Deb package
 - Websocket server (http://ahoj.io/libwebsockets-simple-websocket-server)
 - Add CRC to WIRE sensors
-- Distance: Send median values to server every hour, instead of on-change
+- Distance: 
+	- Dynamic Kalman filter values
+- Level: 
+	- Dynamic Kalman filter values
+
 
 Wish list
 

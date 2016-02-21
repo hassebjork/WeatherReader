@@ -36,7 +36,7 @@ extern ConfigSettings configFile;
 unsigned int sensor_list_no = 0;
 
 static const char * CREATE_TABLE_MYSQL[] =  {
-#if _DEBUG > 4
+#if _DEBUG > 1
 // 	"DROP TABLE IF EXISTS wr_sensors",
 // 	"DROP TABLE IF EXISTS wr_rain",
 // 	"DROP TABLE IF EXISTS wr_temperature",
@@ -55,8 +55,8 @@ static const char * CREATE_TABLE_MYSQL[] =  {
 	"CREATE TABLE IF NOT EXISTS wr_wind( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, speed DECIMAL(3,1), gust DECIMAL(3,1), dir SMALLINT, samples INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_switch( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value INT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
 	"CREATE TABLE IF NOT EXISTS wr_distance( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
-	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
-	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,2), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
+	"CREATE TABLE IF NOT EXISTS wr_level( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,1), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) );",
+	"CREATE TABLE IF NOT EXISTS wr_barometer( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT(6,1), time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 	"CREATE TABLE IF NOT EXISTS wr_test( id INT NOT NULL AUTO_INCREMENT, sensor_id INT, value FLOAT, time TIMESTAMP, PRIMARY KEY (id), INDEX(time) )",
 // 	"CREATE EVENT `wr_archive` ON SCHEDULE EVERY 1 WEEK STARTS CURRENT_TIMESTAMP + INTERVAL 1 MONTH DO BEGIN END",
 	0
@@ -114,6 +114,11 @@ void sensorMysqlInit() {
 	}
 }
 
+/********************************************************************
+ * 
+ * Sensor List
+ * 
+ *******************************************************************/
 int sensorListInit() {
 #if _DEBUG > 2
 	fprintf( stderr, "%s\n",__func__ );
@@ -318,6 +323,11 @@ sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned c
 	return NULL;
 }
 
+/********************************************************************
+ * 
+ * Sensor update
+ * 
+ *******************************************************************/
 char sensorUpdateBattery( sensor *s, unsigned char battery ) {
 	if ( configFile.mysql ) {
 		char query[255] = "";
@@ -348,94 +358,11 @@ char sensorUpdateType( sensor *s, SensorType type ) {
 	return 0;
 }
 
-char sensorTemperature( sensor *s, float value ) {
-#if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
-#endif
-	time_t now = sensorTimeSync();
-	if ( ! ( s->type & TEMPERATURE ) )
-		return 0;
-	else if ( s->temperature == NULL && ( s->temperature = createDataFloat() ) == NULL )
-		return 1;
-	else if ( s->temperature->value == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->t_save ) )
-		return 0;
-	
-	// Save temperature
-	if ( configFile.mysql ) {
-		char query[255] = "";
-		sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
-						"VALUES(%d,%f)", s->rowid, value );
-		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
-			return 1;
-		}
-	} else {
-		printf( "Temperature change [%.2f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
-	}
-	s->temperature->value  = value;
-	s->temperature->t_save = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
-	return 0;
-}
-
-char sensorHumidity( sensor *s, unsigned char value ) {
-#if _DEBUG > 2
-	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
-#endif
-	time_t now = sensorTimeSync();
-	if ( ! ( s->type & HUMIDITY ) )
-		return 0;
-	else if ( s->humidity == NULL && ( s->humidity = createDataInt() ) == NULL )
-		return 1;
-	else if ( s->humidity->value == value 
-			&& ( configFile.saveHumidityTime > 0 && now < s->humidity->t_save ) )
-		return 0;
-	
-	// Save humidity
-	if ( configFile.mysql ) {
-		char query[255] = "";
-		sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
-						"VALUES(%d,%d)", s->rowid, value );
-		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
-			return 1;
-		}
-	} else {
-		printf( "humidity change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
-	}
-	s->humidity->value  = value;
-	s->humidity->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
-	return 0;
-}
-
-char sensorRain( sensor *s, float total ) {
-#if _DEBUG > 2
-	fprintf( stderr, "%s: \t\t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, total );
-#endif
-	time_t now = sensorTimeSync();
-	if ( ! ( s->type & RAINTOTAL ) )
-		return 0;
-	else if ( s->rain == NULL && ( s->rain = createDataFloat() ) == NULL )
-		return 1;
-	else if ( s->rain->value == total && ( configFile.saveRainTime > 0 && now < s->rain->t_save ) )
-		return 0;
-	
-	// Save rain
-	if ( configFile.mysql ) {
-		char query[255] = "";
-		sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
-						"VALUES (%d,%f)", s->rowid, total );
-		if ( mysql_query( mysql, query ) ) {
-			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
-			return 1;
-		}
-	} else {
-		printf( "Rain change [%.0f] on sensor (%s ID:%d CH:%d ROL:%d)\n", total, s->protocol, s->sensor_id, s->channel, s->rolling );
-	}
-	s->rain->value  = total;
-	s->rain->t_save = (time_t) ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
-	return 0;
-}
-
+/********************************************************************
+ * 
+ * Wind sensor 
+ * 
+ *******************************************************************/
 DataWind *sensorWindInit() {
 	DataWind *wind = (DataWind *) malloc( sizeof( DataWind ) );
 	if ( !wind ) {
@@ -587,17 +514,118 @@ char sensorWind( sensor *s, float speed, float gust, int dir ) {
 	return 0;
 }
 
+/********************************************************************
+ * 
+ * Sensor storage
+ * 
+ *******************************************************************/
+char sensorTemperature( sensor *s, float value ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	if ( ! ( s->type & TEMPERATURE ) || value > 300.0 || value < -200.0 )
+		return 0;
+	else if ( s->temperature == NULL && ( s->temperature = sensorDataInit( TEMPERATURE, value, .2, .01 ) ) == NULL )
+		return 1;
+	
+	value = roundf( sensorKalmanFilter( s->temperature, value ) * 10.0 ) / 10.0;
+	time_t now = sensorTimeSync();
+	if ( s->temperature->save_f == value && ( configFile.saveTemperatureTime > 0 && now < s->temperature->save_t ) )
+		return 0;
+	
+	// Save temperature
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_temperature (sensor_id,value) "
+						"VALUES(%d,%f)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
+			return 1;
+		}
+		s->temperature->db_row = mysql_insert_id( mysql );
+	} else {
+		printf( "Temperature change [%.2f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+	}
+	s->temperature->save_f = value;
+	s->temperature->save_t = (time_t) ( now / configFile.saveTemperatureTime + 1 ) * configFile.saveTemperatureTime;
+	return 0;
+}
+
+char sensorHumidity( sensor *s, float value ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	if ( ! ( s->type & HUMIDITY ) || value > 100.0 || value < 0.0 )
+		return 0;
+	else if ( s->humidity == NULL && ( s->humidity = sensorDataInit( HUMIDITY, value, 2.0, .05 ) ) == NULL )
+		return 1;
+	
+	value = sensorKalmanFilter( s->humidity, value );
+	time_t now = sensorTimeSync();
+	if ( s->humidity->save_i == (int) value && ( configFile.saveHumidityTime > 0 && now < s->humidity->save_t ) )
+		return 0;
+	
+	// Save humidity
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_humidity (sensor_id,value) "
+						"VALUES(%d,%d)", s->rowid, (int)value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
+			return 1;
+		}
+		s->humidity->db_row = mysql_insert_id( mysql );
+	} else {
+		printf( "humidity change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+	}
+	s->humidity->save_i = (int)value;
+	s->humidity->save_t = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	return 0;
+}
+
+char sensorRain( sensor *s, float value ) {
+#if _DEBUG > 2
+	fprintf( stderr, "%s: \t\t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
+#endif
+	if ( ! ( s->type & RAINTOTAL ) || value < 0.0 )
+		return 0;
+	else if ( s->rain == NULL && ( s->rain = sensorDataFloat() ) == NULL )
+		return 1;
+	
+	time_t now = sensorTimeSync();
+	if ( s->rain->save_f == value && ( configFile.saveRainTime > 0 && now < s->rain->save_t ) )
+		return 0;
+	
+	// Save rain
+	if ( configFile.mysql ) {
+		char query[255] = "";
+		sprintf( query, "INSERT INTO wr_rain (sensor_id,total) "
+						"VALUES (%d,%f)", s->rowid, value );
+		if ( mysql_query( mysql, query ) ) {
+			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
+			return 1;
+			s->rain->db_row = mysql_insert_id( mysql );
+		}
+	} else {
+		printf( "Rain change [%.0f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
+	}
+	s->rain->save_f  = value;
+	s->rain->save_t = (time_t) ( now / configFile.saveRainTime + 1 ) * configFile.saveRainTime;
+	return 0;
+}
+
 char sensorSwitch( sensor *s, char value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %d\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	time_t now = sensorTimeSync();
 	
-	if ( ! ( s->type & SWITCH ) )
+	if ( ! ( s->type & SWITCH ) || value < 0 )
 		return 0;
-	else if ( s->sw == NULL && ( s->sw = createDataInt() ) == NULL )
+	else if ( s->sw == NULL && ( s->sw = sensorDataInt() ) == NULL )
 		return 1;
-	else if ( s->sw->value == value )
+	
+	time_t now = sensorTimeSync();
+	if ( s->sw->save_i == value )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -608,11 +636,12 @@ char sensorSwitch( sensor *s, char value ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
+		s->sw->db_row = mysql_insert_id( mysql );
 	} else {
 		printf( "Switch change [%d] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->sw->value  = value;
-	s->sw->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->sw->save_i  = value;
+	s->sw->save_t = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -620,13 +649,14 @@ char sensorDistance( sensor *s, float value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	time_t now = sensorTimeSync();
 	
-	if ( ! ( s->type & DISTANCE ) )
+	if ( ! ( s->type & DISTANCE ) || value > 1000.0 || value < 0.0 )
 		return 0;
-	else if ( s->distance == NULL && ( s->distance = createDataFloat() ) == NULL )
+	else if ( s->distance == NULL && ( s->distance = sensorDataFloat() ) == NULL )
 		return 1;
-	else if ( s->distance->value == value )
+	
+	time_t now = sensorTimeSync();
+	if ( s->distance->save_f == value && ( configFile.saveDistanceTime > 0 && now < s->distance->save_t ) )
 		return 0;
 
 	if ( configFile.mysql ) {
@@ -637,40 +667,44 @@ char sensorDistance( sensor *s, float value ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
+		s->distance->db_row = mysql_insert_id( mysql );
 	} else {
 		printf( "Distance change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->distance->value  = value;
-	s->distance->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	s->distance->save_f = value;
+	s->distance->save_t = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
 char sensorLevel( sensor *s, float value ) {
-	#if _DEBUG > 2
+#if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
-	#endif
-	time_t now = sensorTimeSync();
+#endif
 	
-	if ( ! ( s->type & LEVEL ) )
+	if ( ! ( s->type & LEVEL ) || value > 500.0 || value < 0.0 )
 		return 0;
-	else if ( s->level == NULL && ( s->level = createDataFloat() ) == NULL )
+	else if ( s->level == NULL && ( s->level = sensorDataInit( LEVEL, value, 10.0, .005 ) ) == NULL )
 		return 1;
-	else if ( s->level->value == value )
+	
+	value = sensorKalmanFilter( s->level, value );
+	time_t now = sensorTimeSync();
+	if ( s->level->save_i == (int)value && ( configFile.saveDistanceTime > 0 && now < s->level->save_t ) )
 		return 0;
 	
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_level (sensor_id, value) "
-		"VALUES(%d,%f)", s->rowid, value );
+		"VALUES(%d,%d)", s->rowid, (int)value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
+		s->level->db_row = mysql_insert_id( mysql );
 	} else {
 		printf( "Level change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->level->value  = value;
-	s->level->t_save = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
+	s->level->save_i = (int)value;
+	s->level->save_t = (time_t) ( now / configFile.saveDistanceTime + 1 ) * configFile.saveDistanceTime;
 	return 0;
 }
 
@@ -678,30 +712,33 @@ char sensorBarometer( sensor *s, float value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	time_t now = sensorTimeSync();
 	
-	if ( ! ( s->type & BAROMETER ) )
+	if ( ! ( s->type & BAROMETER ) || value > 1100.0 || value < 900.0 )
 		return 0;
-	else if ( s->barometer == NULL && ( s->barometer = createDataFloat() ) == NULL )
+	else if ( s->barometer == NULL && ( s->barometer = sensorDataInit( BAROMETER, value, 2, .25 ) ) == NULL )
 		return 1;
-	else if ( s->barometer->value == value 
-			&& ( configFile.saveTemperatureTime > 0 && now < s->barometer->t_save ) )
+	
+	value = roundf( sensorKalmanFilter( s->barometer, value ) * 10.0 ) / 10.0;
+	time_t now = sensorTimeSync();
+	if ( s->barometer->save_i == (int)value 
+			&& ( configFile.saveTemperatureTime > 0 && now < s->barometer->save_t ) )
 		return 0;
 	
 	// Save barometer
 	if ( configFile.mysql ) {
 		char query[255] = "";
 		sprintf( query, "INSERT INTO wr_barometer (sensor_id,value) "
-						"VALUES(%d,%f)", s->rowid, value );
+						"VALUES(%d,%d)", s->rowid, (int)value );
 		if ( mysql_query( mysql, query ) ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
+		s->barometer->db_row = mysql_insert_id( mysql );
 	} else {
 		printf( "Barometer change [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->barometer->value  = value;
-	s->barometer->t_save = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
+	s->barometer->save_i = (int)value;
+	s->barometer->save_t = (time_t) ( now / configFile.saveHumidityTime + 1 ) * configFile.saveHumidityTime;
 	return 0;
 }
 
@@ -709,11 +746,10 @@ char sensorTest( sensor *s, float value ) {
 #if _DEBUG > 2
 	fprintf( stderr, "%s: \t%s [row:%d (%s) id:%d] = %f\n", __func__, s->name, s->rowid, s->protocol, s->sensor_id, value );
 #endif
-	time_t now = sensorTimeSync();
 	
 	if ( ! ( s->type & TEST ) )
 		return 0;
-	else if ( s->test == NULL && ( s->test = createDataFloat() ) == NULL )
+	else if ( s->test == NULL && ( s->test = sensorDataInit( TEST, value, 0.0, 0.0 ) ) == NULL )
 		return 1;
 	
 	// Save test
@@ -725,33 +761,79 @@ char sensorTest( sensor *s, float value ) {
 			fprintf( stderr, "ERROR in %s: Inserting\n%s\n%s\n", __func__, mysql_error( mysql ), query );
 			return 1;
 		}
+		s->test->db_row = mysql_insert_id( mysql );
 	} else {
 		printf( "Test value [%f] on sensor (%s ID:%d CH:%d ROL:%d)\n", value, s->protocol, s->sensor_id, s->channel, s->rolling );
 	}
-	s->test->value  = value;
+	s->test->save_f = value;
 	return 0;
 }
 
-DataInt *createDataInt() {
-	DataInt *d = (DataInt *) malloc( sizeof( DataInt ) );
+/********************************************************************
+ * 
+ * Data Initialization
+ * 
+ *******************************************************************/
+DataStore *sensorDataInit( int type, double last_value, double m_noise, double p_noise ) {
+	DataStore *d = (DataStore *) malloc( sizeof( DataStore ) );
 	if ( !d ) {
-		fprintf( stderr, "ERROR in %s: Could not allocate memory dataInt\n", __func__ );
+		fprintf( stderr, "ERROR in %s: Could not allocate memory for DataStore\n", __func__ );
 		return NULL;
 	}
-	d->value  = INT_MIN;
-	d->t_save = INT_MIN;
+	d->r      = m_noise;
+	d->pn     = p_noise;
+	d->p      = 1.0;
+	d->x      = last_value;
+	d->save_t = INT_MIN;
+	d->save_i = INT_MIN;
+	d->save_f = FLT_MIN;
+	d->db_row = -1;
+	d->type   = type;
 	return d;
 }
 
-DataFloat *createDataFloat() {
-	DataFloat *d = (DataFloat *) malloc( sizeof( DataFloat ) );
-	if ( !d ) {
-		fprintf( stderr, "ERROR in %s: Could not allocate memory for DataFloat\n", __func__ );
-		return NULL;
-	}
-	d->value  = -300.0;
-	d->t_save = INT_MIN;
-	return d;
+DataInt *sensorDataInt() {
+        DataInt *d = (DataInt *) malloc( sizeof( DataInt ) );
+        if ( !d ) {
+                fprintf( stderr, "ERROR in %s: Could not allocate memory dataInt\n", __func__ );
+                return NULL;
+        }
+        d->save_i = INT_MIN;
+        d->save_t = INT_MIN;
+		d->db_row = 0;
+        return d;
+}
+
+DataFloat *sensorDataFloat() {
+        DataFloat *d = (DataFloat *) malloc( sizeof( DataFloat ) );
+        if ( !d ) {
+                fprintf( stderr, "ERROR in %s: Could not allocate memory for DataFloat\n", __func__ );
+                return NULL;
+        }
+        d->save_f = FLT_MIN;
+        d->save_t = INT_MIN;
+		d->db_row = 0;
+        return d;
+}
+
+
+/********************************************************************
+ * 
+ * Filters
+ * 
+ *******************************************************************/
+// https://gist.github.com/Zymotico/836c5d82d5b52a2a3695
+float sensorKalmanFilter( DataStore *k, float value) {
+	// Predict
+	double pc = k->p + k->pn;
+	// Update
+	double g = pc == 0 ? 1 : pc / ( pc + k->r );	// Kalman gain
+	k->p  = ( 1 - g ) * pc;
+	k->x  = g * ( value - k->x ) + k->x;
+#if _DEBUG > 2
+	fprintf( stderr, "%s: \tIn:%.2f Out:%.2f Gain:%.4f Err:%.4f\n", __func__, value, k->x, g, k->p );
+#endif
+	return k->x;
 }
 
 time_t sensorTimeSync() {

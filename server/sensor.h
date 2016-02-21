@@ -55,14 +55,29 @@ typedef enum {
 	TEST        = 1024
 } SensorType;
 
+typedef struct {		//							Temp	Humid	Pellet	Baro
+	double  r;          // Sensor noise variance	 0.2	 2.0	 10		 2
+	double  pn;         // Process noise variance	 0.01	 0.05	 0.05	 0.25
+	double  p;          // Predicted error
+	double  x;          // Predicted value
+	
+	time_t  save_t;     // Next save time
+	int     db_row;     // Database row
+	int     save_i;     // Saved int value
+	float   save_f;     // Saved float value
+	int     type;       // Type of data
+} DataStore;
+
 typedef struct {
-	float  value;				// Float data
-	time_t t_save;				// Next save time
+	float   save_f;     // Saved float value
+	time_t  save_t;     // Next save time
+	int     db_row;     // Database row
 } DataFloat;
 
 typedef struct {
-	int    value;				// Integer data
-	time_t t_save;				// Next save time
+	int     save_i;     // Saved float value
+	time_t  save_t;     // Next save time
+	int     db_row;     // Database row
 } DataInt;
 
 struct DataSample {
@@ -92,13 +107,13 @@ typedef struct {
 	unsigned char    rolling;	// Random code
 	unsigned char    battery;	// Sensor battery status Full = 1
 	SensorType       type;		// Type of sensor
-	DataFloat		*temperature;
-	DataInt			*humidity;
+	DataStore		*temperature;
+	DataStore		*humidity;
 	DataFloat		*distance;
-	DataFloat		*level;
-	DataFloat		*barometer;
-	DataInt			*sw;
-	DataFloat		*test;
+	DataStore		*level;
+	DataStore		*barometer;
+	DataInt  		*sw;
+	DataStore		*test;
 	DataFloat		*rain;
 	DataWind		*wind;
 } sensor;
@@ -109,34 +124,45 @@ MYSQL   *mysql;
 char sensorInit();
 void sensorMysqlInit();
 
+// Sensor List
 int sensorListInit();
 sensor *sensorListLookup( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery  );
 void sensorListFree();
 sensor *sensorListAdd( unsigned int rowid, const char *name, const char *protocol, 
 		unsigned int sensor_id, unsigned char channel, unsigned char rolling, 
 		unsigned char battery, SensorType type );
-
-sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned char battery );
 sensor *sensorDbAdd( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, SensorType type, unsigned char battery );
+sensor *sensorDbSearch( const char *protocol, unsigned int sensor_id, unsigned char channel, unsigned char rolling, unsigned char battery );
+
 char sensorMysqlInsert( sensor *s );
+
+// Sensor update
 char sensorUpdateBattery( sensor *s, unsigned char battery );
 char sensorUpdateType( sensor *s, SensorType type );
 
-char sensorTemperature( sensor *s, float value );
-char sensorHumidity( sensor *s, unsigned char value );
-char sensorRain( sensor *s, float total );
+// Wind sensor
+DataWind *sensorWindInit();
+void sensorWindDataInit( sensor *s );
 char sensorWind( sensor *s, float speed, float gust, int dir );
+
+// Sensor storage
+char sensorTemperature( sensor *s, float value );
+char sensorHumidity( sensor *s, float value );
+char sensorRain( sensor *s, float total );
 char sensorSwitch( sensor *s, char value );
 char sensorDistance( sensor *s, float value );
 char sensorLevel( sensor *s, float value );
 char sensorBarometer( sensor *s, float value );
 char sensorTest( sensor *s, float value );
 
-DataWind *sensorWindInit();
-void sensorWindDataInit( sensor *s );
-DataInt *createDataInt();
-DataFloat *createDataFloat();
 
+// Data Initialization
+DataStore *sensorDataInit( int type, double last_value, double m_noise, double p_noise );
+DataInt   *sensorDataInt();
+DataFloat *sensorDataFloat();
+
+// Filters
+float sensorKalmanFilter( DataStore *k, float value);
 time_t sensorTimeSync();
 
 #endif
