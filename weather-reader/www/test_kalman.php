@@ -36,11 +36,11 @@ $graph = graph( array( $data, $kg1, $kg2, $kg3, $kg4 ) );
 		<defs></defs>
 		<rect x="0" y="0" width="100%" height="100%" style="stroke:#000000; fill:#ffe0e0" onmousemove="moveMouse(evt)"/>
 		<line x1="0" x2="0" y1="0" y2="500" id="ruler" style="stroke:#000000;stroke-width:1" />
-		<text x="5" y="15" style="fill:#ff0000;fill-opacity:.5;opacity:1" onclick="toggle('kal0', this)">Original data</text>
-		<text x="5" y="30" style="fill:#ff00ff" onclick="toggle('kal1', this)">Kalman filter 1</text>
-		<text x="5" y="45" style="fill:#0000ff" onclick="toggle('kal2', this)">Kalman filter 2</text>
-		<text x="5" y="60" style="fill:#606060" onclick="toggle('kal3', this)">Kalman filter 3</text>
-		<text x="5" y="75" style="fill:#00ff00" onclick="toggle('kal4', this)">Kalman filter 4</text>
+		<text x="5" y="15" style="fill:#ff0000;fill-opacity:.5;opacity:1" onclick="toggle('kal0', this)">Original data (<?= count( $data ) ?>)</text>
+		<text x="5" y="30" style="fill:#ff00ff" onclick="toggle('kal1', this)">Kalman filter 1 (<?= count( $kg1 ) ?>)</text>
+		<text x="5" y="45" style="fill:#0000ff" onclick="toggle('kal2', this)">Kalman filter 2 (<?= count( $kg2 ) ?>)</text>
+		<text x="5" y="60" style="fill:#606060" onclick="toggle('kal3', this)">Kalman filter 3 (<?= count( $kg3 ) ?>)</text>
+		<text x="5" y="75" style="fill:#00ff00" onclick="toggle('kal4', this)">Kalman filter 4 (<?= count( $kg4 ) ?>)</text>-->
 		<polyline id="kal0" points="<?= $graph[0] ?>" style="stroke:#ff0000;stroke-width:1;stroke-opacity:.5;fill:none;opacity:1"/>
 		<polyline id="kal1" points="<?= $graph[1] ?>" style="stroke:#ff00ff;stroke-width:1;stroke-opacity:.75;fill:none;opacity:1"/>
 		<polyline id="kal2" points="<?= $graph[2] ?>" style="stroke:#0000ff;stroke-width:1;stroke-opacity:.75;fill:none;opacity:1"/>

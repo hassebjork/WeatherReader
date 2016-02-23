@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="50" height="150" viewBox="0 0 128 378" id="barometer" version="1.1">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="50" height="150" viewBox="0 0 128 378" id="thermometer" version="1.1">
 	<style type="text/css">
-		.dial      { fill:#ff9900 }
+		#thermometer text { font-family:Ubuntu;fill:#cccccc;text-anchor:middle;}
+		#thermometer .dial_dig  { font-size:24px;text-anchor:end }
+		#thermometer .dial_val  { font-size:26px; }
 		.dial_bg1  { fill:url(#lg_bg) }
 		.dial_bg2  { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
-		.dial_dig  { font-family:Ubuntu;fill:#cccccc;font-weight:500 }
-		.dial_refl { opacity:0.3;fill:#ffffff }
 		.dial_glar { fill:url(#lg_glare1);opacity:0.7 }
 		.dial_tick { fill:none;stroke:#b3b3b3;stroke-width:3;stroke-linecap:round }
-		.dial_val  { font-family:Ubuntu;fill:#cccccc }
+		.dial_refl { opacity:0.3;fill:#ffffff }
 	</style>
 	<defs>
 		<linearGradient id="lg_bg" x1="50%" y1="133%" x2="50%" y2="-25%">
@@ -33,25 +33,36 @@
 	<rect class="dial_bg2" width="103" height="350" x="12" y="12" ry="36"/>
 	<g id="color" style="fill:#ff0000">
 		<path d="M62,345c47,0 50,-62 10,-74c-3,11 -17,10 -18,0c-38,7 -37,74 10,74Z"/>
-		<rect id="meter" width="20" height="150" x="53" y="138" ry="0"/>
+		<rect id="temp_dial" width="20" height="7" x="53" y="281" ry="0"/>
 	</g>
-	<text class="dial_val" x="63" y="314" style="font-size:26px;text-anchor:middle"></text>
 	<path style="fill:url(#rg86)" d="M62,345c47,0 50,-62 10,-74c-3,11 -17,10 -18,0c-38,7 -37,74 10,74Z"/>
 	<path style="fill:url(#lg62)" d="M62,37c-4,0 -9,3 -9,9v220c0,16 20,16 20,0v-220c0,-7 -6,-10 -11,-9Z"/>
 	<path class="dial_refl" d="M43,311c0,0 -4,0 -4,0c0,3 0,7 1,10l3,-1c0,-3 0,-6 0,-9Zm-11,0h6c0,3 1,7 3,10l-4,1c-1,-4 -3,-7 -4,-11Zm9,-11l6,3c-1,1 -3,4 -3,7h-6c0,-3 1,-7 3,-10Zm-7,-3l6,3c-1,3 -3,7 -1,10h-6c0,-3 0,-9 1,-13Z"/>
 	<path class="dial_refl" d="M78,280c17,4 23,27 14,40c3,-17 0,-31 -14,-40Z"/>
-	<g class="dial_dig" style="font-size:24px;text-anchor:end">
-		<text x="112" y="267">-30</text>
-		<text x="112" y="241">-20</text>
-		<text x="112" y="215">-10</text>
-		<text x="112" y="189">0</text>
-		<text x="112" y="163">10</text>
-		<text x="112" y="137">20</text>
-		<text x="112" y="111">30</text>
-		<text x="112" y="85">40</text>
-		<text x="112" y="59">50</text>
+	<g>
+		<text x="112" y="267" class="dial_dig">-30</text>
+		<text x="112" y="241" class="dial_dig">-20</text>
+		<text x="112" y="215" class="dial_dig">-10</text>
+		<text x="112" y="189" class="dial_dig">0</text>
+		<text x="112" y="163" class="dial_dig">10</text>
+		<text x="112" y="137" class="dial_dig">20</text>
+		<text x="112" y="111" class="dial_dig">30</text>
+		<text x="112" y="85" class="dial_dig">40</text>
+		<text x="112" y="59" class="dial_dig">50</text>
 	</g>
  	<path class="dial_tick" d="M81,61h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30m35,26h30m-95,0h30"/> 
 	<path style="fill:none;stroke:#ffffff;stroke-width:3" d="M54,270v-224c0,-11 20,-13 20,0v224c40,10 37,72 -10,72c-47,0 -48,-67 -10,-72Z"/> 
+	<text id="temp_digit" class="dial_val" x="63" y="314"></text>
 	<path class="dial_glar" d="M7,136v-101c6,-40 38,-30 85,-30c64,16 -28,24 -52,48c-24,24 -38,82 -38,82Z"/>
+	<script type="text/javascript"><![CDATA[
+		var temp_digit = document.getElementById("temp_digit");
+		var temp_dial  = document.getElementById("temp_dial");
+		// Min -32 to Max +55
+		function thermometer_update( temp ) {
+			var h = temp * 2.6;
+			temp_digit.textContent = temp + "°";
+			temp_dial.setAttribute("y", 190 - h );
+			temp_dial.setAttribute("height", h + 98 );
+		}
+	]]></script>
 </svg>

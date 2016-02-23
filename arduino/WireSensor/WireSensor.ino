@@ -254,9 +254,9 @@ void UltraSonic::print() {
 	Serial.print( ",\"ch\":" );
 	Serial.print( CHANNEL );
 	if ( distance > 0 ) {
-		Serial.print( ",\"D\":" );		// Distance
+		Serial.print( ",\"L\":" );		// Level
 		Serial.print( distance, 1 );
-// 		Serial.print( ",\"Q\":" );		// Test data
+// 		Serial.print( ",\"Q\":" );		// Test
 // 		Serial.print( distance, 1 );
 	}
 	Serial.println( "}" );
