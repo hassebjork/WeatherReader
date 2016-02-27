@@ -157,9 +157,9 @@ char sensorTest( sensor *s, float value );
 
 
 // Data Initialization
-DataStore *sensorDataInit( int type, double last_value, double m_noise, double p_noise );
-DataInt   *sensorDataInt();
-DataFloat *sensorDataFloat();
+DataStore   *sensorDataInit( int type, double last_value, double m_noise, double p_noise );
+DataInt     *sensorDataInt();
+DataFloat   *sensorDataFloat();
 
 // Filters
 float sensorKalmanFilter( DataStore *k, float value);

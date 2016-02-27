@@ -197,32 +197,35 @@ void sensorListFree() {
 #endif
 	int i;
 	for ( i = sensor_list_no - 1; i >= 0; i-- ) {
-		if ( sensor_list[i].name != NULL )
-			free( sensor_list[i].name );
-		if ( sensor_list[i].temperature != NULL )
-			free( sensor_list[i].temperature );
-		if ( sensor_list[i].humidity != NULL )
-			free( sensor_list[i].humidity );
-		if ( sensor_list[i].distance != NULL )
-			free( sensor_list[i].distance );
-		if ( sensor_list[i].level != NULL )
-			free( sensor_list[i].level );
-		if ( sensor_list[i].barometer != NULL )
-			free( sensor_list[i].barometer );
-		if ( sensor_list[i].sw != NULL )
-			free( sensor_list[i].sw  );
-		if ( sensor_list[i].test != NULL )
-			free( sensor_list[i].test  );
-		if ( sensor_list[i].rain != NULL )
-			free( sensor_list[i].rain );
-		if ( sensor_list[i].wind != NULL ) {
-			struct DataSample *data;
-			for( data = sensor_list[i].wind->head; data != NULL; data = data->link ) {
-				free( sensor_list[i].wind->head );
-				sensor_list[i].wind->head = data->link;
+		if ( sensor_list[i] != NULL ) {
+			if ( sensor_list[i].name != NULL )
+				free( sensor_list[i].name );
+			if ( sensor_list[i].temperature != NULL )
+				free( sensor_list[i].temperature );
+			if ( sensor_list[i].humidity != NULL )
+				free( sensor_list[i].humidity );
+			if ( sensor_list[i].distance != NULL )
+				free( sensor_list[i].distance );
+			if ( sensor_list[i].level != NULL )
+				free( sensor_list[i].level );
+			if ( sensor_list[i].barometer != NULL )
+				free( sensor_list[i].barometer );
+			if ( sensor_list[i].sw != NULL )
+				free( sensor_list[i].sw  );
+			if ( sensor_list[i].test != NULL )
+				free( sensor_list[i].test  );
+			if ( sensor_list[i].rain != NULL )
+				free( sensor_list[i].rain );
+			if ( sensor_list[i].wind != NULL ) {
+				struct DataSample *data;
+				for( data = sensor_list[i].wind->head; data != NULL; data = data->link ) {
+					free( sensor_list[i].wind->head );
+					sensor_list[i].wind->head = data->link;
+				}
+				free( sensor_list[i].wind );
 			}
-			free( sensor_list[i].wind );
 		}
+		free( sensor_list[i] );
 	}
 	free( sensor_list );
 	sensor_list_no = 0;
@@ -777,7 +780,7 @@ char sensorTest( sensor *s, float value ) {
 DataStore *sensorDataInit( int type, double last_value, double m_noise, double p_noise ) {
 	DataStore *d = (DataStore *) malloc( sizeof( DataStore ) );
 	if ( !d ) {
-		fprintf( stderr, "ERROR in %s: Could not allocate memory for DataStore\n", __func__ );
+		fprintf( stderr, "ERROR in %s: Allocating memory\n", __func__ );
 		return NULL;
 	}
 	d->r      = m_noise;
@@ -793,29 +796,28 @@ DataStore *sensorDataInit( int type, double last_value, double m_noise, double p
 }
 
 DataInt *sensorDataInt() {
-        DataInt *d = (DataInt *) malloc( sizeof( DataInt ) );
-        if ( !d ) {
-                fprintf( stderr, "ERROR in %s: Could not allocate memory dataInt\n", __func__ );
-                return NULL;
-        }
-        d->save_i = INT_MIN;
-        d->save_t = INT_MIN;
-		d->db_row = 0;
-        return d;
+	DataInt *d = (DataInt *) malloc( sizeof( DataInt ) );
+	if ( !d ) {
+		fprintf( stderr, "ERROR in %s: Allocating memory\n", __func__ );
+		return NULL;
+	}
+	d->save_i = INT_MIN;
+	d->save_t = INT_MIN;
+	d->db_row = 0;
+	return d;
 }
 
 DataFloat *sensorDataFloat() {
-        DataFloat *d = (DataFloat *) malloc( sizeof( DataFloat ) );
-        if ( !d ) {
-                fprintf( stderr, "ERROR in %s: Could not allocate memory for DataFloat\n", __func__ );
-                return NULL;
-        }
-        d->save_f = FLT_MIN;
-        d->save_t = INT_MIN;
-		d->db_row = 0;
-        return d;
+	DataFloat *d = (DataFloat *) malloc( sizeof( DataFloat ) );
+	if ( !d ) {
+		fprintf( stderr, "ERROR in %s: Allocating memory\n", __func__ );
+		return NULL;
+	}
+	d->save_f = FLT_MIN;
+	d->save_t = INT_MIN;
+	d->db_row = 0;
+	return d;
 }
-
 
 /********************************************************************
  * 
