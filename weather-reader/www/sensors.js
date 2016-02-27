@@ -31,6 +31,8 @@ function updateSensors( sensors ) {
 			drawBarometer( sensors[sens] );
 		if ( sensors[sens].type & 256 )	// Distance
 			drawDistance( sensors[sens] );
+		if ( sensors[sens].type & 512 )	// Level
+			drawLevel( sensors[sens] );
 	}
 }
 function drawTemp( sensor ) {
@@ -128,9 +130,14 @@ function drawWind( sensor ) {
 			$c(node,"w_spd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
 			$c(node,"w_dir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
 			$c(node,"w_gst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
+			aneometer_update( sensor.data[i].w.d, sensor.data[i].w.s, sensor.data[i].w.g );
 			break;
 		}
 	}
+	var node  = $i("defsSVG");
+	if ( node == null )
+		return;
+	checkBatt( node, sensor.bat == 0 );
 }
 function drawRain( sensor ) {
 	var x, y, x1, x2, dx, dy, dh, ruler, hr, path = "";
@@ -228,24 +235,11 @@ function drawBarometer( sensor ) {
 	}
 	baro.setAttribute("points",path);
 	
-	data  = [];
-	node  = document.getElementById("baro_disp");
-	y_max = -9999; y_min = 9999;
-	for ( i = 0; i < sensor.data.length; i++ ) {
-		if ( sensor.data[i].b > y_max ) y_max = sensor.data[i].b;
-		if ( sensor.data[i].b < y_min ) y_min = sensor.data[i].b;
-	}
-	dx = sensor.data.length / 12;
-	dy = 4 / ( y_max - y_min );
-	t  = 0;
-	for ( i = 0; i < sensor.data.length; i += dx ) {
-		data[t++] = 4 - Math.floor( ( sensor.data[Math.floor(i)].b - y_min ) * dy );
-	}
-	t = 0;
-	for ( i = 0; i < 12; i++ ) {
-		for ( var j = 0; j < 5; j++) {
-			node.childNodes[t++].style.fill = ( data[i] <= j ? "#ffffff" : "#505050");
-		}
+	var data = new Array();
+	if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
+		for ( var i = 0; i < sensor.data.length; i++ )
+			data.push( sensor.data[i].b );
+		barometer_update( data );
 	}
 }
 function drawDistance( sensor ) {
@@ -255,6 +249,7 @@ function drawDistance( sensor ) {
 	node = $i("sDist" + sensor.id);
 	if ( node == null )
 		return;
+	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"title").title       = sensor.protocol;
 	
@@ -281,6 +276,54 @@ function drawDistance( sensor ) {
 		x = Math.round(i*dx);
 		if ( typeof sensor.data[i].v !== "undefined" ) {
 			y = Math.round( dh - ( store.max - sensor.data[i].v ) * dy );
+			path += x + "," + ( y > 0 ? y : 0 ) + " ";
+		}
+		if ( typeof sensor.data[i].d !== "undefined" ) {
+			t = Math.floor( sensor.data[i].d / 100 ) % 100;
+			if ( t != hr ) {
+				hr = t;
+				ruler.appendChild( createLine( x, x, 0, node.clientHeight-10 ) );
+				ruler.appendChild( createText( x, node.clientHeight-2, hr ) );
+			}
+		}
+	}
+	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
+	$c(node,"d_graph").setAttribute("points", path);
+}
+function drawLevel( sensor ) {
+	var store = { max: 120, min: 4, level: 0, percent: 0 };
+	var i, x, y, dh, t, dx, dy, path = "", node, ruler;
+	var hr   = -1;
+	node = $i("sLevl" + sensor.id);
+	if ( node == null )
+		return;
+	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
+	$c(node,"title").textContent = sensor.name;
+	$c(node,"title").title       = sensor.protocol;
+	
+	// Remove ruler
+	ruler = $c(node,"d_ruler");
+	while( ruler.firstChild )
+		ruler.removeChild(ruler.firstChild);
+	
+	// Set current
+	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
+		if ( typeof sensor.data[i].l !== "undefined" ) {
+			t = Math.round( 100 - ( sensor.data[i].l - store.min ) / ( store.max - store.min ) * 100 );
+			t = t < 0 ? 0 : t;
+			t = t > 100 ? 100 : t;
+			$c(node,"d_cur").textContent = t + " %";
+			//  			$c(node,"d_cur").textContent = ( store.max - sensor.data[i].l ) + " cm";
+			break;
+		}
+	}
+	dh = node.clientHeight * .95;
+	dx = node.clientWidth / ( sensor.data.length - 1 );
+	dy = node.clientHeight / store.max * .9;
+	for ( i = 0; i < sensor.data.length; i++ ) {
+		x = Math.round(i*dx);
+		if ( typeof sensor.data[i].l !== "undefined" ) {
+			y = Math.round( dh - ( store.max - sensor.data[i].l ) * dy );
 			path += x + "," + ( y > 0 ? y : 0 ) + " ";
 		}
 		if ( typeof sensor.data[i].d !== "undefined" ) {

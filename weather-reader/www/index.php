@@ -579,24 +579,11 @@ window.onblur  = function() { clearInterval(tim1); clearInterval(tim2); };
 </head>
 
 <body><?php 
-$width = 150; 
+$width  = 150; 
 $height = 150; 
 include( 'barometer.svg' );
+include( 'aneometer.svg' );
 ?>
-	<script>
-		var box;
-		var d = document.getElementById("baro_disp");
-		for ( var i = 0; i < 108; i+=9 ) {
-			for ( var j = 0; j < 35; j+=7 ) {
-				box = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-				box.setAttribute("x", i);
-				box.setAttribute("y", j);
-				box.setAttribute("width", 6);
-				box.setAttribute("height",5);
-				d.appendChild(box);
-			}
-		}
-	</script>
 	<svg id="defsSVG" class="chart" width="<?= $width ?>" height="<?= $height ?>" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<defs>
 			<linearGradient id="windGradArrow" x1="0%" y1="0%"   x2="0%" y2="100%">
