@@ -58,45 +58,4 @@
 	<text id="baro_digit" class="dial_val" x="187" y="270"></text>
 	<path id="baro_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21v27l-4,3l-4,-3v-27c-9,-4 -10,-16 0,-21l2,-150c1,-3 2,-2 2,0Z"/>
 	<path class="dial_glar" d="M189,19c-92,0 -167,77 -167,171c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-31,-41 -77,-68 -130,-68Z"/>
-	<script type="text/javascript"><![CDATA[
-		var baro_dial  = document.getElementById("baro_dial");
-		var baro_digit = document.getElementById("baro_digit");
-		var baro_disp  = document.getElementById("baro_disp");
-		
-		for ( var i = 0; i < 12; i++ ) {
-			for ( var j = 0; j < 5; j++ ) {
-				var box = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-				box.setAttribute("x", ( i * 9 ) );
-				box.setAttribute("y", ( j * 7 ) );
-				box.setAttribute("width", 6);
-				box.setAttribute("height",5);
-				box.setAttribute("class","baro_doff")
-				baro_disp.appendChild(box);
-			}
-		}
-		// Min 950 to Max 1050
-		function barometer_update( data ) {
-			var l = data.length - 1;
-			baro_dial.setAttribute("transform", "rotate(" + ( ( data[l] - 1010 ) * 3 ) + ", 187, 187)" );
-			baro_digit.textContent = data[l] + " hPa";
-			
-			var y_max = -9999, y_min = 9999, disp = [];
-			for ( var i = 0; i < data.length; i++ ) {
-				if ( data[i] > y_max ) y_max = data[i];
-				if ( data[i] < y_min ) y_min = data[i];
-			}
-			var dx = data.length / 12;
-			var dy = 4 / ( y_max - y_min );
-			var t  = 0;
-			for ( i = 0; i < data.length; i += dx ) {
-				disp[t++] = 4 - Math.floor( ( data[Math.floor(i)] - y_min ) * dy );
-			}
-			t = 0;
-			for ( i = 0; i < 12; i++ ) {
-				for ( var j = 0; j < 5; j++) {
-					baro_disp.childNodes[t++].setAttribute( "class", disp[i] <= j ? "baro_don" : "baro_doff" );
-				}
-			}
-		}
-	]]></script>
 </svg>

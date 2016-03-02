@@ -42,14 +42,4 @@
 	<path class="dial_tick" d="M120,347l2,-5m131,-318l-2,5m97,223l-5,-2m-318,-131l5,2m34,188l4,-4m243,-244l-4,4m4,243l-4,-4m-244,-243l4,4m-41,187l5,-2m317,-133l-5,2m-89,226l-2,-5m-133,-317l2,5m-109,157h5m344,-1h-5m-169,175v-5m-1,-344v5"/>
 	<path id="aneo_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21v27l-4,3l-4,-3v-27c-9,-4 -10,-16 0,-21l2,-150c1,-3 2,-2 2,0Z"/>
 	<path class="dial_glar" d="M189,19c-92,0 -167,77 -167,171c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-31,-41 -77,-68 -130,-68Z"/>
-	<script type="text/javascript"><![CDATA[
-		var aneo_dial  = document.getElementById("aneo_dial");
-		var aneo_speed = document.getElementById("aneo_speed");
-		var aneo_gust  = document.getElementById("aneo_gust");
-		function aneometer_update( dir, speed, gust ) {
-			aneo_dial.setAttribute("transform", "rotate(" + dir + ", 187, 187)" );
-			aneo_speed.textContent = speed + " m/s";
-			aneo_gust.textContent  = gust + " m/s";
-		}
-	]]></script>
 </svg>

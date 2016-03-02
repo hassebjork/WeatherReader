@@ -85,10 +85,12 @@ class Sensor {
 				$wind = true;
 			if ( $sensor->type & RAINTOTAL )
 				$rain = true;
-			if ( $sensor->type & DISTANCE )
-				$distance = true;
 			if ( $sensor->type & BAROMETER )
 				$barometer = true;
+			if ( $sensor->type & DISTANCE )
+				$distance = true;
+			if ( $sensor->type & LEVEL )
+				$level = true;
 		}
 		$data = array();
 		if ( $temp )
@@ -99,10 +101,12 @@ class Sensor {
 			$data = Sensor::fetch_wind( $data, $days );
 		if ( $rain )
 			$data = Sensor::fetch_rain( $data, $sensors, $days );
-		if ( $distance )
-			$data = Sensor::fetch_distance( $data, 5 );
 		if ( $barometer )
 			$data = Sensor::fetch_barometer( $data, $days );
+		if ( $distance )
+			$data = Sensor::fetch_distance( $data, $days );
+		if ( $level )
+			$data = Sensor::fetch_level( $data, 5 );
 		foreach ( $data as $key=>$val ) {
 			// Skip sensors with team == 0
 			if ( !array_key_exists( $key, $sensors ) ) {
@@ -249,7 +253,6 @@ class Sensor {
 			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_distance` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
-// 			. 'GROUP BY `date`, `sensor_id` '
 			. 'GROUP BY DATE(`time`), HOUR(`time`), `sensor_id` '
 			. 'ORDER BY `time` ASC; ';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
@@ -264,7 +267,29 @@ class Sensor {
 			}
 			$data[$id][$row->date]->v = intVal( $row->var );
 		}
-// 		$data[$id]['sql'] = $sql;
+		return $data;
+	}
+	
+	static function fetch_level( $data, $days = 8 ) {
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 0 ) AS `var`, ' 
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+			. 'FROM  `wr_level` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY DATE(`time`), HOUR(`time`), `sensor_id` '
+			. 'ORDER BY `time` ASC; ';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$id = $row->sensor_id;
+			unset( $row->sensor_id );
+			if ( !isset( $data[$id] ) )
+				$data[$id] = array();
+			if ( !isset( $data[$id][$row->date] ) ) {
+				$data[$id][$row->date] = new stdClass;
+				$data[$id][$row->date]->d = $row->date;
+			}
+			$data[$id][$row->date]->l = intVal( $row->var );
+		}
 		return $data;
 	}
 	
@@ -377,7 +402,6 @@ class Sensor {
 			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
 			. 'FROM  `wr_distance` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
-// 			. 'GROUP BY `date`, `sensor_id` '
 			. 'GROUP BY HOUR(`time`), `sensor_id` '
 			. 'ORDER BY `date`, `sensor_id` ASC;';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
@@ -387,48 +411,23 @@ class Sensor {
  		return '"distance":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
-	static function draw_sensors() { 
-		$sensors = Sensor::fetch_sensors();
-		foreach ( $sensors as $sensor ) {
-			// Skip sensors with team == 0
-			if ( $sensor->team > 0 )
-				$sensor->svg_head();
+	static function json_level( $days = 8 ) {
+		$days = ( is_numeric( $days ) ? $days : 8 );
+		$sensors = array();
+		$sql   = 'SELECT `sensor_id`, '
+			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
+			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+			. 'FROM  `wr_level` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'GROUP BY HOUR(`time`), `sensor_id` '
+			. 'ORDER BY `date`, `sensor_id` ASC;';
+		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		while( $row = $res->fetch_object() ) {
+			$sensors[$row->date][$row->sensor_id] = intVal( $row->var );
 		}
+ 		return '"level":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
-	function svg_head() {
-		static $switch = 0;
-		if ( $this->type & TEMPERATURE || $this->type & HUMIDITY ) {
-			echo '<div id="sTemp' . $this->id .'" class="t_widget team' . $this->team . '">'
-				.'<svg width="100%" height="100%" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-				.'<use xlink:href="#svgBg" class="widgetBg"/>'
-				.'<polygon class="t_graph"/>'
-				.'<use x="5" y="8" class="batt" style="visibility:hidden" xlink:href="#icon_bat"/>'
-				.'<g class="t_ruler"/>'
-				.'</svg>'
-				.'<div class="title">' . $this->name . '</div>'
-				.'<div class="t_cur"></div>'
-				.'<div class="t_max"></div>'
-				.'<div class="t_min"></div>'
-				.'<div class="h_cur"></div>'
-				.'<div class="h_max"></div>'
-				.'<div class="h_min"></div>'
-				.'</div>' . "\n";
-		}
-		if ( $this->type & DISTANCE ) {
-			echo '<div id="sDist' . $this->id .'" class="d_widget team' . $this->team . '">'
-				.'<svg width="100%" height="100%" '
-				.'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-				.'<use xlink:href="#svgBg" class="widgetBg"/>'
-				.'<polygon class="d_graph"/>'
-				.'<g class="d_ruler"/>'
-				.'</svg>'
-				.'<div class="title">' . $this->name . '</div>'
-				.'<div class="d_cur"></div>'
-				.'</div>' . "\n";
-		}
-	}
 }
 
 if ( isset( $_REQUEST ) ) {
@@ -472,6 +471,10 @@ if ( isset( $_REQUEST ) ) {
 		header( 'Content-Type: application/json' );
 		echo Sensor::json_distance( $_REQUEST['distance'] );
 		exit;
+	} else if ( isset( $_REQUEST['level'] ) ) {
+		header( 'Content-Type: application/json' );
+		echo Sensor::json_distance( $_REQUEST['level'] );
+		exit;
 	} else if ( isset( $_REQUEST['total'] ) ) {
 		header( 'Content-Type: application/json' );
 		echo  Sensor::json_sensors() . ',' 
@@ -480,7 +483,8 @@ if ( isset( $_REQUEST ) ) {
 			. Sensor::json_barometer( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_rain( $_REQUEST['total'] ) . ',' 
 			. Sensor::json_wind( $_REQUEST['total'] ) . ',' 
-			. Sensor::json_distance( $_REQUEST['total'] * 10 );
+			. Sensor::json_distance( $_REQUEST['total'] ) . ',' 
+			. Sensor::json_level( $_REQUEST['total'] * 10 );
 		exit;
 	}
 }
@@ -494,8 +498,8 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	<meta name="viewport" content="width=device-width, user-scalable=yes" />
 	
 	<title>Weather</title>
-	<link rel="shortcut icon" href="icon.ico">
-	<link rel="icon" href="icon.ico">
+	<link rel="shortcut icon" href="../favicon.ico">
+	<link rel="icon" href="../favicon.ico">
 
 	<style type="text/css" media="all">
 		/* Global and common */
@@ -551,10 +555,10 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		polygon.r_graph { stroke: none; opacity: .25; }
 		
 		/* Distance */
+		div.d_cur { color: #666666; top: 30px; text-align: center; left: 0px;  width: 100%; font-size: 22px; }
 		div.d_widget        { width: 150px; height: 75px; font-weight: bold; position: relative; display: inline-block; } 
 		div.d_widget > *    { position: absolute; display: inline; }
 		div.d_widget .title { font-size: 24px; font-weight: normal; text-align: center; top: 5px; left: 0px; width: 100%; }
-		.d_cur { color: #666666; top: 30px; text-align: center; left: 0px;  width: 100%; font-size: 22px; }
 		polygon.d_graph { opacity: .25; }
 		g.d_ruler       { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
 	</style>
@@ -578,7 +582,9 @@ window.onblur  = function() { clearInterval(tim1); clearInterval(tim2); };
 	</script>
 </head>
 
-<body><?php 
+<body>
+	<div id="aTime" onclick="loadSensor();" style="clear:both; display:block;">Fetching data</div>
+<?php 
 $width  = 150; 
 $height = 150; 
 include( 'barometer.svg' );
@@ -627,17 +633,10 @@ for ( $i = 1; $i <= 10; $i++ ) {
 		<text x="50%" y="50" class="w_dir"></text>
 		<text x="50%" y="70" class="w_gst"></text>
 		<text x="50%" y="100" class="r_cur"></text>
-		<text x="50%" y="120" class="b_cur"></text>
 		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
-<?php
-// rotate(60, 187, 187)
-Sensor::draw_sensors();
-?>
-
-	<div id="aTime" onclick="loadSensor();" style="clear:both; display:block;">Fetching data</div>
-	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
+<!--	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
 		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
-	</a>
+	</a>-->
 </body>
 </html>

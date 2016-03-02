@@ -9,7 +9,7 @@ function loadSensor( url ) {
 			if ( typeof obj.sensors !== 'undefined' )
 				updateSensors( obj.sensors );
 			if ( typeof obj.time !== 'undefined' )
-				$i("aTime").innerHTML = "Last update " + obj.time.substring(11, 16);
+				$i("aTime").innerHTML = "Updated " + obj.time.substring(11, 16);
 		}
 	}
 	req.open( "GET", "/weather/?all=1" , true );
@@ -35,11 +35,70 @@ function updateSensors( sensors ) {
 			drawLevel( sensors[sens] );
 	}
 }
+function makeTemp( sensor ) {
+	var div = document.createElement( 'div' );
+	div.setAttribute( 'id', 'sTemp' + sensor.id );
+	div.setAttribute( 'class', 't_widget team' + sensor.team );
+	div.setAttribute( 'style', 'display:none' );
+	div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+		+ '<use xlink:href="#svgBg" class="widgetBg"/>'
+		+ '<polygon class="t_graph"/>'
+		+ '<use x="5" y="8" class="batt" style="visibility:hidden" xlink:href="#icon_bat"/>'
+		+ '<g class="t_ruler"/>'
+		+ '</svg>'
+		+ '<div class="title">' + sensor.name + '</div>'
+		+ '<div class="t_cur"></div>'
+		+ '<div class="t_max"></div>'
+		+ '<div class="t_min"></div>'
+		+ '<div class="h_cur"></div>'
+		+ '<div class="h_max"></div>'
+		+ '<div class="h_min"></div>'
+		+ '</div>' + "\n";
+	document.body.appendChild( div );
+	return div;
+}
+function makeDist( sensor ) {
+	var div = document.createElement( 'div' );
+	div.setAttribute( 'id', 'sDist' + sensor.id );
+	div.setAttribute( 'class', 't_widget team' + sensor.team );
+	div.setAttribute( 'style', 'display:none' );
+	div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+		+ '<svg width="100%" height="100%" '
+		+ 'xmlns="http://www+ w3+ org/2000/svg" xmlns:xlink="http://www+ w3+ org/1999/xlink">'
+		+ '<use xlink:href="#svgBg" class="widgetBg"/>'
+		+ '<polygon class="d_graph"/>'
+		+ '<g class="d_ruler"/>'
+		+ '</svg>'
+		+ '<div class="title">' + sensor.name + '</div>'
+		+ '<div class="d_cur"></div>'
+		+ '</div>' + "\n";
+	document.body.appendChild( div );
+	return div;
+}
+function makeLevel( sensor ) {
+	var div = document.createElement( 'div' );
+	div.setAttribute( 'id', 'sLevl' + sensor.id );
+	div.setAttribute( 'class', 't_widget team' + sensor.team );
+	div.setAttribute( 'style', 'display:none' );
+	div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+		+ '<svg width="100%" height="100%" '
+		+ 'xmlns="http://www+ w3+ org/2000/svg" xmlns:xlink="http://www+ w3+ org/1999/xlink">'
+		+ '<use xlink:href="#svgBg" class="widgetBg"/>'
+		+ '<polygon class="d_graph"/>'
+		+ '<g class="d_ruler"/>'
+		+ '</svg>'
+		+ '<div class="title">' + sensor.name + '</div>'
+		+ '<div class="d_cur"></div>'
+		+ '</div>' + "\n";
+	document.body.appendChild( div );
+	return div;
+}
+
 function drawTemp( sensor ) {
 	var i, t, x, dh, dx, dy, path = "", node, ruler;
 	node = $i("sTemp" + sensor.id);
 	if ( node == null )
-		return;
+		node = makeTemp( sensor );
 	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
@@ -93,11 +152,11 @@ function drawTemp( sensor ) {
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 	$c(node,"t_graph").setAttribute("points", path);
 }
-function drawHumidity( sensor, node ) {
+function drawHumidity( sensor ) {
 	var i, node;
 	node = $i("sTemp" + sensor.id);
 	if ( node == null )
-		return;
+		node = makeTemp( sensor );
 	checkBatt( node, sensor.bat == 0 );
 	$c(node,"title").textContent = sensor.name;
 	if ( sensor.data.length < 4 ) {
@@ -209,12 +268,11 @@ function drawBarometer( sensor ) {
 		if ( !i ) return;
 		baro = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
 		baro.setAttribute( "id", "baro_" + sensor.id );
-		baro.setAttribute( "style", "stroke:green;stroke-width:3;");
+		baro.setAttribute( "style", "stroke:green;stroke-width:3;fill:none;");
 		i.appendChild( baro );
 	}
 	
 	if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
-		$c(node,"b_cur").textContent = sensor.data[sensor.data.length-1].b + " hPa";
 		if ( ( y = $i("baro_dial") ) ) {
 			y.style.visibility = "visible";
 			y.setAttribute("transform", "rotate(" + ( ( sensor.data[sensor.data.length-1].b - 1010 ) * 3 ) + ", 187, 187)" );
@@ -296,7 +354,7 @@ function drawLevel( sensor ) {
 	var hr   = -1;
 	node = $i("sLevl" + sensor.id);
 	if ( node == null )
-		return;
+		node = makeLevel( sensor );
 	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"title").title       = sensor.protocol;
@@ -337,6 +395,50 @@ function drawLevel( sensor ) {
 	}
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 	$c(node,"d_graph").setAttribute("points", path);
+}
+function aneometer_update( dir, speed, gust ) {
+	$i('aneo_dial').setAttribute("transform", "rotate(" + dir + ", 187, 187)" );
+	$i('aneo_speed').textContent = speed + " m/s";
+	$i('aneo_gust').textContent  = gust + " m/s";
+}
+function barometer_update( data ) {
+	// Min 950 to Max 1050
+	var l = data.length - 1, i, j;
+	var baro_disp = $i("baro_disp");
+	$i("baro_dial").setAttribute("transform", "rotate(" + ( ( data[l] - 1010 ) * 3 ) + ", 187, 187)" );
+	$i("baro_digit").textContent = data[l] + " hPa";
+	
+	var y_max = -9999, y_min = 9999, disp = [];
+	for ( i = 0; i < data.length; i++ ) {
+		if ( data[i] > y_max ) y_max = data[i];
+		if ( data[i] < y_min ) y_min = data[i];
+	}
+	var dx = data.length / 12;
+	var dy = 4 / ( y_max - y_min );
+	var t  = 0;
+	for ( i = 0; i < data.length; i += dx ) {
+		disp[t++] = 4 - Math.floor( ( data[Math.floor(i)] - y_min ) * dy );
+	}
+	
+	if ( baro_disp.childNodes.length < 1 ) {
+		for ( i = 0; i < 12; i++ ) {
+			for ( j = 0; j < 5; j++ ) {
+				var box = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+				box.setAttribute("x", ( i * 9 ) );
+				box.setAttribute("y", ( j * 7 ) );
+				box.setAttribute("width", 6);
+				box.setAttribute("height",5);
+				box.setAttribute("class","baro_doff")
+				baro_disp.appendChild(box);
+			}
+		}
+	}
+	t = 0;
+	for ( i = 0; i < 12; i++ ) {
+		for ( j = 0; j < 5; j++) {
+			baro_disp.childNodes[t++].setAttribute( "class", disp[i] <= j ? "baro_don" : "baro_doff" );
+		}
+	}
 }
 function createLine( x1, x2, y1, y2 ) {
 	var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
