@@ -564,13 +564,14 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 	</style>
 	<script>
 var tim1, tim2;
+
 function doLoad() {
 	loadSensor();
 	tim1 = setInterval( function() { loadSensor(); }, 600000 );
 	tim2 = setTimeout( function() {
 		var yr = "http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png";
 		return setInterval( function() { 
-			document.getElementById("yr").src = yr + "?r=" + Math.random() 
+			document.getElementById("yr").src = yr + "?r=" + Date.now() 
 		}, 3600000 );
 	}, ( 60 - (new Date()).getMinutes() ) * 60000 );
 	

@@ -1,6 +1,14 @@
 
 var teams;
 
+// Get by class name
+function $c( node, id ) {
+	return node.getElementsByClassName( id )[0];
+}
+// Get by id
+function $i( id ) {
+	return document.getElementById( id );
+}
 function loadSensor( url ) {
 	var req = new XMLHttpRequest();
 	req.onreadystatechange = function() {
@@ -13,7 +21,7 @@ function loadSensor( url ) {
 		}
 	}
 	req.open( "GET", "/weather/?all=1" , true );
-// 	req.open( "GET", "/weather/all.js?r=" + Math.random(), true );
+// 	req.open( "GET", "/weather/all.js?ckattempt=1&r=" + Date.now(), true );
 	req.send();
 }
 function updateSensors( sensors ) {
@@ -189,7 +197,10 @@ function drawWind( sensor ) {
 			$c(node,"w_spd").textContent = "Wind: " + sensor.data[i].w.s + " m/s";
 			$c(node,"w_dir").textContent = "Dir: "   + sensor.data[i].w.d + "°";
 			$c(node,"w_gst").textContent = "Gust: "  + sensor.data[i].w.g + " m/s";
-			aneometer_update( sensor.data[i].w.d, sensor.data[i].w.s, sensor.data[i].w.g );
+			
+			$i('aneo_dial').setAttribute("transform", "rotate(" + sensor.data[i].w.d + ", 187, 187)" );
+			$i('aneo_speed').textContent = sensor.data[i].w.s + " m/s";
+			$i('aneo_gust').textContent  = sensor.data[i].w.g + " m/s";
 			break;
 		}
 	}
@@ -205,6 +216,7 @@ function drawRain( sensor ) {
 		return;
 	checkBatt( node, sensor.bat == 0 );
 	
+	// Create graph
 	var rain = $i("rainSVG");
 	if ( rain != null ) {
 		var graph = $i("rainGraph" + sensor.id);
@@ -258,10 +270,16 @@ function drawRain( sensor ) {
 	graph.setAttribute("points",path);
 }
 function drawBarometer( sensor ) {
-	// 950-1050
-	var i, x, y, dh, t, dx, dy, path = "", node, baro, y_max, y_min, data;
+	// Normal display 950-1050. Graph range is >= 7 mmHg
+	var x, y, dh, dx, dy, node, baro, path = "";	// Old
+	var i, j, dv, dx, dy, y_max = -9999, y_min = 9999, data = [], disp = [];
+	var DISPLAY_WIDTH = 12, DISPLAY_HEIGHT = 5;
+	
+	// Show old graph
 	node = $i("defsSVG");
 	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
+	
+	// Create old graph
 	baro = $i("baro_" + sensor.id);
 	if ( baro == null ) {
 		i = $i("baroSVG");
@@ -272,15 +290,7 @@ function drawBarometer( sensor ) {
 		i.appendChild( baro );
 	}
 	
-	if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
-		if ( ( y = $i("baro_dial") ) ) {
-			y.style.visibility = "visible";
-			y.setAttribute("transform", "rotate(" + ( ( sensor.data[sensor.data.length-1].b - 1010 ) * 3 ) + ", 187, 187)" );
-		}
-		if ( ( y = $i("baro_digit") ) ) 
-			y.textContent = sensor.data[sensor.data.length-1].b + " hPa";
-	}
-	
+	// Draw old graph
 	dh = node.clientHeight * .95;
 	dx = node.clientWidth / ( sensor.data.length - 1 );
 	dy = node.clientHeight / 100 * .9;
@@ -293,11 +303,56 @@ function drawBarometer( sensor ) {
 	}
 	baro.setAttribute("points",path);
 	
-	var data = new Array();
+	// Barometer dial and text
 	if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
-		for ( var i = 0; i < sensor.data.length; i++ )
-			data.push( sensor.data[i].b );
-		barometer_update( data );
+		if ( ( node = $i("baro_dial") ) ) {
+			node.style.visibility = "visible";
+			node.setAttribute("transform", "rotate(" + ( ( sensor.data[sensor.data.length-1].b - 1010 ) * 3 ) + ", 187, 187)" );
+		}
+		if ( ( node = $i("baro_digit") ) ) 
+			node.textContent = sensor.data[sensor.data.length-1].b + " hPa";
+	}
+	
+	// Create display grid
+	node = $i("baro_disp");
+	if ( node.childNodes.length < 1 ) {
+		for ( i = 0; i < DISPLAY_WIDTH; i++ ) {
+			for ( j = 0; j < DISPLAY_HEIGHT; j++ ) {
+				var box = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+				box.setAttribute("x", ( i * 9 ) );
+				box.setAttribute("y", ( j * 7 ) );
+				box.setAttribute("width",  6);
+				box.setAttribute("height", 5);
+				box.setAttribute("class","baro_doff")
+				node.appendChild(box);
+			}
+		}
+	}
+	
+	// Display grid
+	if ( sensor.data.length > 1 ) {
+		for ( var i = 0; i < sensor.data.length; i++ ) {
+			if ( typeof sensor.data[i].b !== "undefined" ) {
+				data.push( sensor.data[i].b );
+				if ( sensor.data[i].b > y_max ) y_max = sensor.data[i].b;
+				if ( sensor.data[i].b < y_min ) y_min = sensor.data[i].b;
+			}
+		}
+		
+		dv = y_max - y_min;
+		dv = ( dv > 7 ? dv : 7 );
+		dx = data.length / DISPLAY_WIDTH;
+		dy = (DISPLAY_HEIGHT-1) / dv;
+		for ( i = 0; i < data.length; i += dx ) {
+			disp.push( DISPLAY_HEIGHT - 1 - Math.round( ( data[Math.floor(i)] - y_min + dv/2 ) * dy ) );
+		}
+		
+		dv = 0;
+		for ( i = 0; i < DISPLAY_WIDTH; i++ ) {
+			for ( j = 0; j < DISPLAY_HEIGHT; j++) {
+				node.childNodes[dv++].setAttribute( "class", disp[i] <= j ? "baro_don" : "baro_doff" );
+			}
+		}
 	}
 }
 function drawDistance( sensor ) {
@@ -396,50 +451,6 @@ function drawLevel( sensor ) {
 	path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 	$c(node,"d_graph").setAttribute("points", path);
 }
-function aneometer_update( dir, speed, gust ) {
-	$i('aneo_dial').setAttribute("transform", "rotate(" + dir + ", 187, 187)" );
-	$i('aneo_speed').textContent = speed + " m/s";
-	$i('aneo_gust').textContent  = gust + " m/s";
-}
-function barometer_update( data ) {
-	// Min 950 to Max 1050
-	var l = data.length - 1, i, j;
-	var baro_disp = $i("baro_disp");
-	$i("baro_dial").setAttribute("transform", "rotate(" + ( ( data[l] - 1010 ) * 3 ) + ", 187, 187)" );
-	$i("baro_digit").textContent = data[l] + " hPa";
-	
-	var y_max = -9999, y_min = 9999, disp = [];
-	for ( i = 0; i < data.length; i++ ) {
-		if ( data[i] > y_max ) y_max = data[i];
-		if ( data[i] < y_min ) y_min = data[i];
-	}
-	var dx = data.length / 12;
-	var dy = 4 / ( y_max - y_min );
-	var t  = 0;
-	for ( i = 0; i < data.length; i += dx ) {
-		disp[t++] = 4 - Math.floor( ( data[Math.floor(i)] - y_min ) * dy );
-	}
-	
-	if ( baro_disp.childNodes.length < 1 ) {
-		for ( i = 0; i < 12; i++ ) {
-			for ( j = 0; j < 5; j++ ) {
-				var box = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-				box.setAttribute("x", ( i * 9 ) );
-				box.setAttribute("y", ( j * 7 ) );
-				box.setAttribute("width", 6);
-				box.setAttribute("height",5);
-				box.setAttribute("class","baro_doff")
-				baro_disp.appendChild(box);
-			}
-		}
-	}
-	t = 0;
-	for ( i = 0; i < 12; i++ ) {
-		for ( j = 0; j < 5; j++) {
-			baro_disp.childNodes[t++].setAttribute( "class", disp[i] <= j ? "baro_don" : "baro_doff" );
-		}
-	}
-}
 function createLine( x1, x2, y1, y2 ) {
 	var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 	line.setAttribute("x1",x1);
@@ -457,62 +468,4 @@ function createText( x, y, txt ) {
 }
 function checkBatt( node, value ) {
 	$c(node,"batt").style.visibility = ( value ? "visible" : "hidden" );
-}
-// Get by class name
-function $c( node, id ) {
-	return node.getElementsByClassName( id )[0];
-}
-// Get by id
-function $i( id ) {
-	return document.getElementById( id );
-}
-
-// http://codereview.stackexchange.com/a/40324
-function test() {
-	var svg = new SVGGraph();
-}
-
-/* Skicka först sensor objekten
- * Skicka sensor data sorterat efter klockslag, senaste värdet först
- * Sätt en variabel för "Senaste klockslag" på x-axeln
- * Sätt en variabel för antal dagar som ska visas
- */
-function SVGGraph( team, sensors ) {
-	
-	this.canvas = null;
-	
-	function createCanvas( w, h, id ) {
-		this.canvas = document.createElementNS( "http://www.w3.org/2000/svg", "svg" );
-		document.body.appendChild( canvas );
-		canvas.setAttribute( "id", id );
-		canvas.setAttribute( "width",  w + "px" );
-		canvas.setAttribute( "height", h + "px" );
-	}
-	function createGraph( sensor, property ) {
-		var max = Number.MIN_VALUE;
-		var min = Number.MAX_VALUE;
-		var i, dy;
-		var dh  = this.canvas.clientHeight * 0.95;
-		var dx  = this.canvas.clientWidth / ( sensor.data.length - 1 );
-		
-		for ( i = 0; i < sensor.data.length; i++ ) {
-			if ( max < sensor.data[i][property] )
-				max = sensor.data[i][property];
-			if ( min > sensor.data[i][property] )
-				min = sensor.data[i][property];
-		}
-		dy  = this.canvas.clientHeight * 0.9 / ( max - min );
-		
-		for ( i = 0; i < sensor.data.length; i++ ) {
-		}
-	}
-	function createRect( x, y, w, h, fill, stroke ) {
-		var rect = document.createElementNS( "http://www.w3.org/2000/svg", "rect" );
-		rect.setAttribute( "x", x );
-		rect.setAttribute( "y", y );
-		rect.setAttribute( "width",  w );
-		rect.setAttribute( "height", h );
-		rect.setAttribute( "style", "fill:" + fill + ";stroke:" + stroke );
-		this.canvas.appendChild( rect );
-	}
 }
