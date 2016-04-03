@@ -1,4 +1,4 @@
-
+var BJORK = BJORK || ( window.location.href.indexOf( 'bjork.es' ) > 1 );
 var teams;
 
 // Get by class name
@@ -20,8 +20,7 @@ function loadSensor( url ) {
 				$i("aTime").innerHTML = "Updated " + obj.time.substring(11, 16);
 		}
 	}
-	req.open( "GET", "/weather/?all=1" , true );
-// 	req.open( "GET", "/weather/all.js?ckattempt=1&r=" + Date.now(), true );
+	req.open( "GET", ( BJORK ? "/weather/all.js?ckattempt=1&r=" : "/weather/?all=1&r=" ) + Date.now(), true );
 	req.send();
 }
 function updateSensors( sensors ) {
@@ -107,18 +106,14 @@ function drawTemp( sensor ) {
 	node = $i("sTemp" + sensor.id);
 	if ( node == null )
 		node = makeTemp( sensor );
-	node.style.display = ( sensor.data.length > 2 ?  "inline-block" : "none" );
+	if ( sensor.data.length < 6 ) {
+		node.style.display = "none";
+		return;
+	}
+	node.style.display = "inline-block"
 	$c(node,"batt").style.visibility = ( sensor.bat == 0 ? "visible" : "hidden" );
 	$c(node,"title").textContent = sensor.name;
 	$c(node,"title").title       = sensor.protocol;
-	
-	// Check minimum values
-	if ( sensor.data.length < 4 ) {
-		$c(node,"t_cur").textContent = "---°";
-		$c(node,"t_min").textContent = "---°";
-		$c(node,"t_max").textContent = "---°";
-		return;
-	}
 	
 	// Set current
 	for ( i = sensor.data.length - 1; i >= 0; i-- ) {
@@ -467,5 +462,5 @@ function createText( x, y, txt ) {
 	return 	text;
 }
 function checkBatt( node, value ) {
-	$c(node,"batt").style.visibility = ( value ? "visible" : "hidden" );
+	$c(node,"batt").style.visibility = ( value == 0 ? "visible" : "hidden" );
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="150" height="150" viewBox="0 0 378 378" id="barometer" version="1.1">
 	<style type="text/css">
-		#barometer text { font-family:Ubuntu;fill:#cccccc;text-anchor:middle;}
-		#barometer .dial_dig  { font-size:30px; }
-		#barometer .dial_val  { font-size:30px; }
+		#barometer text { fill:#cccccc;text-anchor:middle;}
+		#barometer .dial_dig  { font-size:28px; }
+		#barometer .dial_val  { font-size:28px; }
 		.dial_bg1   { fill:url(#lg_bg) }
 		.dial_bg2   { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
 		.dial_glar  { fill:url(#lg_glare1);opacity:0.7 }
@@ -57,5 +57,5 @@
 	</g>
 	<text id="baro_digit" class="dial_val" x="187" y="270"></text>
 	<path id="baro_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21v27l-4,3l-4,-3v-27c-9,-4 -10,-16 0,-21l2,-150c1,-3 2,-2 2,0Z"/>
-	<path class="dial_glar" d="M189,19c-92,0 -167,77 -167,171c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-31,-41 -77,-68 -130,-68Z"/>
+	<path class="dial_glar" d="M187,22c-92,0 -165,74 -165,168c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-38,-39 -80,-65 -132,-66Z"/>
 </svg>

@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="150" height="150" viewBox="0 0 378 378" id="clock" style="display:none" version="1.1">
+	<style type="text/css">
+		#clock text { fill:#cccccc;text-anchor:middle;}
+		#clock .dial_dig  { font-size:45px; }
+		#clock .dial_val  { font-size:28px; }
+		.dial_bg1  { fill:url(#lg_bg) }
+		.dial_bg2  { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
+		.dial_glar { fill:url(#lg_glare1);opacity:0.7 }
+		.dial_tick { fill:none;stroke:#b3b3b3;stroke-width:3;stroke-linecap:round }
+		.clock_dial { fill:#ff9900 }
+		.ico_star  { fill:none;stroke:#b3b3b3;stroke-width:3;opacity:.5 }
+	</style>
+	<defs>
+		<linearGradient id="lg_glare1" x1="10%" y1="10%" x2="60%" y2="100%">
+			<stop offset="0" style="stop-color:#ffffff;stop-opacity:0.6"/>
+			<stop offset="1" style="stop-opacity:0"/>
+		</linearGradient>
+		<linearGradient id="lg_bg" x1="50%" y1="133%" x2="50%" y2="-25%">
+			<stop offset="0"/>
+			<stop style="stop-color:#ffffff" offset="1"/>
+		</linearGradient>
+	</defs>
+	<circle r="188" cy="188" cx="188" class="dial_bg1"/>
+	<circle r="175" cx="188" cy="188" class="dial_bg2"/>
+	<g class="dial_dig">
+		<text x="188" y="65">12</text>
+		<text x="188" y="344">6</text>
+		<text x="53" y="205">9</text>
+		<text x="329" y="205">3</text>
+	</g>
+	<path class="dial_tick" d="M35,98l4,2m298,171l-4,-3m-60,-236l-2,4m-171,298l3,-4m-3,-298l2,4m173,297l-2,-4m66,-234l-4,2m-297,173l4,-2m146,-260v5m1,344v-5m174,-170h-5m-344,1h5"/>
+	<path id="dial_long" class="clock_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21l0,7l-4,3l-4,-3l0,-7c-9,-4 -10,-16 0,-21l2,-150l2,-2Z"/>
+	<path id="dial_short" class="clock_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-131l2,124c11,5 10,17 0,21v8l-4,3l-4,-3v-8c-9,-4 -10,-16 0,-21l2,-124l2,-3Z"/>
+	<path id="dial_fast" class="clock_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm0,-157l1,149c16,3 12,22 -1,22c-13,0 -17,-19 -1,-22l0,-149l1,-2Z"/>
+	<path class="dial_glar" d="M187,22c-92,0 -165,74 -165,168c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-38,-39 -80,-65 -132,-66Z"/>
+	<script type="text/ecmascript"><![CDATA[
+
+/* element: SVG-element or SVG.DocumentElement */
+function Clock( element, offset ) {
+	var self  = this;
+	element.style.display = 'inline-block';
+	var nodes = element.getElementsByTagName( "path" );
+	this.dial_fast  = nodes.item( nodes.length - 2 );
+	this.dial_long  = nodes.item( nodes.length - 4 );
+	this.dial_short = nodes.item( nodes.length - 3 );
+	this.offset = 0;
+	
+	this.draw = function() {
+		var time = new Date( (new Date()).getTime() + self.offset );
+		var clock_hrs = time.getHours();
+		var clock_min = time.getMinutes();
+		var clock_sec = time.getSeconds();
+		self.dial_long.setAttribute("transform", "rotate(" + ( clock_min * 6 ) + ", 187, 187)" );
+		self.dial_short.setAttribute("transform", "rotate(" + ( clock_hrs % 12 * 30 + clock_min / 2 ) + ", 187, 187)" );
+		self.dial_fast.setAttribute("transform", "rotate(" + ( clock_sec * 6 ) + ", 187, 187)" );
+	}
+	
+	/* clock.set( new Date( "2016-03-31 23:21:00" ) ); */
+	this.set = function( time ) {
+		this.offset = time.getTime() - (new Date()).getTime();
+	}
+	
+	if ( offset )
+		this.set( offset );
+	
+	this.timer = setInterval( this.draw, 1000 );
+	this.draw();
+	return self;
+}
+var clock = new Clock( document.getElementById("clock") );
+<!-- clock.set( new Date( "2016-03-31 23:21:00" ) ); -->
+	]]></script>
+</svg>

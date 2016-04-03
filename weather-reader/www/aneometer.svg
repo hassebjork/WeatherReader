@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="150" height="150" viewBox="0 0 378 378" id="aneometer" version="1.1">
 	<style type="text/css">
-		#aneometer text { font-family:Ubuntu;fill:#cccccc;text-anchor:middle;}
-		#aneometer .dial_dig  { font-size:50px; }
-		#aneometer .dial_val  { font-size:30px; }
+		#aneometer text { fill:#cccccc;text-anchor:middle;}
+		#aneometer .dial_dig  { font-size:45px; }
+		#aneometer .dial_val  { font-size:28px; }
 		.dial_bg1  { fill:url(#lg_bg) }
 		.dial_bg2  { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
 		.dial_glar { fill:url(#lg_glare1);opacity:0.7 }
@@ -41,5 +41,5 @@
 	</g>
 	<path class="dial_tick" d="M120,347l2,-5m131,-318l-2,5m97,223l-5,-2m-318,-131l5,2m34,188l4,-4m243,-244l-4,4m4,243l-4,-4m-244,-243l4,4m-41,187l5,-2m317,-133l-5,2m-89,226l-2,-5m-133,-317l2,5m-109,157h5m344,-1h-5m-169,175v-5m-1,-344v5"/>
 	<path id="aneo_dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21v27l-4,3l-4,-3v-27c-9,-4 -10,-16 0,-21l2,-150c1,-3 2,-2 2,0Z"/>
-	<path class="dial_glar" d="M189,19c-92,0 -167,77 -167,171c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-31,-41 -77,-68 -130,-68Z"/>
+	<path class="dial_glar" d="M187,22c-92,0 -165,74 -165,168c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-38,-39 -80,-65 -132,-66Z"/>
 </svg>
