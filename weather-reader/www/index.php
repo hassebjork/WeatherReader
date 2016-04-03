@@ -434,7 +434,11 @@ if ( isset( $_REQUEST ) ) {
 	if ( isset( $_REQUEST['all'] ) ) {
 		header( 'Content-Type: application/json' );
 		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT )
-			. ',"time":"' . date('Y-m-d H:i:s' ) . '"}';
+			. ',"time":"' . date('Y-m-d H:i:s' ) . '"'
+			. ',"Clock":['
+			. '{"id":1,"time":"' . date('Y-m-d H:i:s' ) . '","title":"Stockholm"}'
+// 			. '{"id":2,"time":"' . date('Y-m-d H:i:s', mktime( date('H') + 1 ) ) . '","title":"Helsinki"}'
+			. ']}';
 		exit;
 	} else if ( isset( $_REQUEST['ftp'] ) ) {
 		$data = '{"sensors":' . json_encode( Sensor::fetch_all( 1 ), JSON_NUMERIC_CHECK  )
@@ -561,20 +565,37 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		div.d_widget .title { font-size: 24px; font-weight: normal; text-align: center; top: 5px; left: 0px; width: 100%; }
 		polygon.d_graph { opacity: .25; }
 		g.d_ruler       { stroke-width:1; opacity: .75; text-anchor: middle; font-size: 8px }
+		
+		.dial_bg1  { fill:url(#lg_bg) }
+		.dial_bg2  { fill:black;opacity:0.8;fill-opacity:0.7;stroke:black;stroke-width:8 }
+		.dial_glar { fill:url(#lg_glare1);opacity:0.7 }
+		.dial_tick { fill:none;stroke:#b3b3b3;stroke-width:3;stroke-linecap:round }
+		.dial      { fill:#ff9900 }
+		.baro_doff  { fill:#404040 }
+		.baro_don   { fill:#808080 }
+		.ico_sun    { fill:#f0c40f }
+		.ico_lgh    { fill:#f0c40f }
+		.ico_cloud  { fill:#94a4a6 }
+		.ico_rain   { fill:#3497db }
+		.ico_star   { fill:none;stroke:#b3b3b3;stroke-width:3;opacity:.5 }
+		.baro_dial_dig  { font-size:28px;fill:#cccccc;text-anchor:middle; }
+		.dial_val       { font-size:28px;fill:#cccccc;text-anchor:middle; }
+		.ano_dial_dig   { font-size:45px;fill:#cccccc;text-anchor:middle; }
+		.clock_dial_dig {  font-size:45px;fill:#cccccc;text-anchor:middle; }
+		
 	</style>
 	<script>
 var tim1, tim2;
 
 function doLoad() {
-	loadSensor();
-	tim1 = setInterval( function() { loadSensor(); }, 600000 );
-	tim2 = setTimeout( function() {
-		var yr = "http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png";
-		return setInterval( function() { 
-			document.getElementById("yr").src = yr + "?r=" + Date.now() 
-		}, 3600000 );
-	}, ( 60 - (new Date()).getMinutes() ) * 60000 );
-	
+	Sensor.load();
+	tim1 = setInterval( function() { Sensor.load(); }, 600000 );
+// 	tim2 = setTimeout( function() {
+// 		var yr = "http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png";
+// 		return setInterval( function() { 
+// 			document.getElementById("yr").src = yr + "?r=" + Date.now() 
+// 		}, 3600000 );
+// 	}, ( 60 - (new Date()).getMinutes() ) * 60000 );
 }
 <?php readfile( 'sensors.js' ) ?>
 window.onload  = doLoad;
@@ -584,14 +605,12 @@ window.onblur  = function() { clearInterval(tim1); clearInterval(tim2); };
 </head>
 
 <body>
-	<div id="aTime" onclick="loadSensor();" style="clear:both; display:block;">Fetching data</div>
+	<div id="aTime" onclick="Sensor.load();" style="clear:both; display:block;">Fetching data</div>
 <?php 
 $width  = 150; 
 $height = 150; 
-include( 'barometer.svg' );
-include( 'aneometer.svg' );
 ?>
-	<svg id="defsSVG" class="chart" width="<?= $width ?>" height="<?= $height ?>" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<svg id="defsSVG" width="0" height="0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<defs>
 			<linearGradient id="windGradArrow" x1="0%" y1="0%"   x2="0%" y2="100%">
 				<stop offset="0%" class="wArr1" />
@@ -601,6 +620,68 @@ include( 'aneometer.svg' );
 				<stop offset="0%" class="bg1" />
 				<stop offset="100%" class="bg2" />
 			</linearGradient>
+			
+			<linearGradient id="lg_glare1" x1="10%" y1="10%" x2="60%" y2="100%">
+				<stop offset="0" style="stop-color:#ffffff;stop-opacity:0.6"/>
+				<stop offset="1" style="stop-opacity:0"/>
+			</linearGradient>
+			<linearGradient id="lg_bg" x1="50%" y1="133%" x2="50%" y2="-25%">
+				<stop offset="0"/>
+				<stop style="stop-color:#ffffff" offset="1"/>
+			</linearGradient>
+			<g id="dial_bg">
+				<circle r="188" cy="188" cx="188" class="dial_bg1"/>
+				<circle r="175" cx="188" cy="188" class="dial_bg2"/>
+			</g>
+			<path id="dial_glare" class="dial_glar" d="M187,22c-92,0 -165,74 -165,168c0,45 18,86 46,117c15,-124 117,-220 241,-220c3,0 6,1 10,1c-38,-39 -80,-65 -132,-66Z"/>
+			<path id="dial_normal" class="dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-157l2,150c11,5 10,17 0,21l0,7l-4,3l-4,-3l0,-7c-9,-4 -10,-16 0,-21l2,-150l2,-2Z"/>
+			<path id="dial_short" class="dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm1,-131l2,124c11,5 10,17 0,21v8l-4,3l-4,-3v-8c-9,-4 -10,-16 0,-21l2,-124l2,-3Z"/>
+			<path id="dial_thin" class="dial" d="M188,185c-4,0 -5,6 0,6c4,0 4,-6 0,-6Zm0,-157l1,149c16,3 12,22 -1,22c-13,0 -17,-19 -1,-22l0,-149l1,-2Z"/>
+			<g id="dial_icon_star" class="ico_star">
+				<path d="M151,173l-16,-40l38,19l15,-71l15,71l38,-19l-16,40l69,15l-69,15l16,40l-38,-19l-15,71l-15,-71l-38,19l16,-40l-69,-15Z"/>
+				<path d="M144,164a18,18 0 1,1 -36,0a18,18 0 1,1 36,0Z" transform="matrix(1.571,0,0,1.604,-9.585,-74.933)"/>
+			</g>
+			<g id="dial_icon_weather">
+				<path class="ico_cloud" d="M208,89c10,-5 4,-23 -10,-16c-5,-16 -24,-13 -27,0c-3,12 7,16 7,16Zm-31,5c0,0 -12,-5 -12,-19c0,-18 26,-25 35,-8c18,-3 23,20 9,27Z"/>
+				<path class="ico_cloud" d="M119,113c-9,-17 -35,-10 -35,8c0,14 12,19 12,19l1,-5c0,0 -10,-4 -7,-17c3,-12 22,-15 27,0c14,-7 20,12 10,16l1,5c14,-7 9,-31 -9,-27Z"/>
+				<path class="ico_rain" d="M118,134c0,0 7,9 0,9c-7,0 0,-9 0,-9Z"/>
+				<path class="ico_rain" d="M104,135c0,0 7,9 0,9c-7,0 0,-9 0,-9Z"/>
+				<path class="ico_rain" d="M111,145c0,0 7,9 0,9c-7,0 0,-9 0,-9Z"/>
+				<path class="ico_cloud" d="M101,214c-9,-17 -35,-10 -35,8c0,14 12,19 12,19l1,-5c0,0 -10,-4 -7,-17c3,-12 22,-15 27,0c14,-7 20,11 10,16l-6,7c26,-3 17,-32 -1,-28Z"/>
+				<path class="ico_lgh" d="M89,225h12l-7,11h8l-14,16l2,-12h-8Z"/>
+				<path class="ico_cloud" d="M249,153c0,0 -12,-5 -11,-18c1,-18 26,-24 34,-8c17,-3 22,20 8,26Zm30,-5c10,-5 4,-22 -10,-16c-5,-15 -24,-12 -26,-1c-3,12 7,16 7,16Z"/>
+				<path class="ico_sun" d="M270,103c0,-3 6,-2 6,0v6c0,3 -6,3 -6,0Zm22,28c-3,0 -2,-6 0,-6h6c3,0 3,6 0,6Zm-4,-14c-2,2 -6,-2 -4,-4l5,-5c2,-2 6,3 4,4Zm-31,0c2,2 6,-2 4,-4l-5,-5c-2,-2 -6,3 -4,4Zm29,22c1,3 1,5 0,7l2,2c2,2 6,-2 4,-4l-5,-5c0,0 -1,-1 -2,-1Zm-20,-16c2,-2 4,-3 6,-3c6,0 9,5 8,10l5,5c4,-8 -1,-20 -13,-20c-5,0 -9,2 -11,5Z"/>
+				<path class="ico_sun" d="M262,216c2,2 6,-2 4,-4l-4,-4c-2,-2 -6,2 -4,4Zm32,32c2,2 6,-2 4,-4l-4,-4c-2,-2 -6,2 -4,4Zm0,-32c-2,2 -6,-2 -4,-4l4,-4c2,-2 6,2 4,4Zm-32,32c-2,2 -6,-2 -4,-4l4,-4c2,-2 6,2 4,4Zm35,-17c-3,0 -2,-6 0,-6h6c3,0 2,6 0,6Zm-45,0c-3,0 -2,-6 0,-6h6c3,0 2,6 0,6Zm23,16c0,-3 6,-2 6,0v6c0,3 -6,2 -6,0Zm0,-45c0,-3 6,-2 6,0v6c0,3 -6,2 -6,0Zm3,17c-11,0 -11,18 0,18c11,0 11,-18 0,-18Zm0,-5c19,0 19,28 0,28c-19,0 -19,-28 0,-28Z"/>
+			</g>
+			<g id="dial_dig_compass" class="ano_dial_dig">
+				<path class="dial_tick" d="M120,347l2,-5m131,-318l-2,5m97,223l-5,-2m-318,-131l5,2m34,188l4,-4m243,-244l-4,4m4,243l-4,-4m-244,-243l4,4m-41,187l5,-2m317,-133l-5,2m-89,226l-2,-5m-133,-317l2,5m-109,157h5m344,-1h-5m-169,175v-5m-1,-344v5"/>
+				<text style="fill:#ff2a2a" y="65" x="188">N</text>
+				<text x="188" y="344">S</text>
+				<text x="53" y="205">W</text>
+				<text x="329" y="205">E</text>
+			</g>
+			<g id="dial_dig_baro" class="baro_dial_dig">
+				<path class="dial_tick" d="M206,14l-1,5m19,-3l-1,5m19,-1l-2,5m19,1l-2,5m-87,-19l1,5m-19,-2l1,5m-19,-1l2,5m-19,1l2,5m-34,13l3,4m203,278l-3,-4m-241,-34l4,-3m278,-203l-4,3m-310,119l5,-1m342,-37l-5,1m-328,-52l5,2m315,139l-5,-2m-272,-198l4,4m231,255l-4,-4m-243,-8l4,-4m255,-231l-4,4m-296,150l5,-1m336,-72l-5,1m-332,-18l5,2m327,105l-5,-2m-291,-168l4,4m256,229l-4,-4m-243,17l4,-4m229,-256l-4,4m-279,181l5,-2m327,-107l-5,2m-332,17l5,1m337,71l-5,-1m-307,-137l4,3m279,201l-4,-3m-240,43l3,-4m201,-279l-3,4m-259,209l5,-2m314,-141l-5,2m-328,52l5,1m342,35l-5,-1m-256,-168l3,5m173,297l-3,-5m-237,-233l5,3m298,171l-5,-3m-234,67l3,-5m171,-298l-3,5m-235,235l5,-3m297,-173l-5,3m-147,-90v5m-174,170h5m344,-1h-5"/>
+				<text x="188" y="42">1010</text>
+				<text y="-401" x="-68" transform="matrix(-0.866,0.5,-0.5,-0.866,0,0)">1060</text>
+				<text y="-214" x="-255" transform="matrix(-0.866,-0.5,0.5,-0.866,0,0)">960</text>
+				<text y="111" x="70" transform="matrix(0.866,-0.5,0.5,0.866,0,0)">1000</text>
+				<text transform="matrix(0.5,-0.866,0.866,0.5,0,0)" x="-68" y="111">990</text>
+				<text y="42" x="-186" transform="matrix(0,-1,1,0,0,0)">980</text>
+				<text transform="matrix(-0.5,-0.866,0.866,-0.5,0,0)" x="-255" y="-77">970</text>
+				<text transform="matrix(-0.5,0.866,-0.866,-0.5,0,0)" x="70" y="-401">1050</text>
+				<text y="-333" x="188" transform="matrix(0,1,-1,0,0,0)">1040</text>
+				<text transform="matrix(0.5,0.866,-0.866,0.5,0,0)" x="257" y="-214">1030</text>
+				<text y="-77" x="257" transform="matrix(0.866,0.5,-0.5,0.866,0,0)">1020</text>
+			</g>
+			<g id="dial_dig_clock" class="clock_dial_dig">
+				<path class="dial_tick" d="M35,98l4,2m298,171l-4,-3m-60,-236l-2,4m-171,298l3,-4m-3,-298l2,4m173,297l-2,-4m66,-234l-4,2m-297,173l4,-2m146,-260v5m1,344v-5m174,-170h-5m-344,1h5"/>
+				<text x="188" y="65">12</text>
+				<text x="188" y="344">6</text>
+				<text x="53" y="205">9</text>
+				<text x="329" y="205">3</text>
+			</g>
+			
 			<g id="icon_bat">
 				<polygon points="0,20 0,2 2.5,2 2.5,0 7.5,0 7.5,2 10,2 10,20 0,20"/>
 				<polygon points="2,18 2,15 8,13 8,18 2,18" style="fill:#b30000; stroke:none;"/>
@@ -608,33 +689,7 @@ include( 'aneometer.svg' );
 			<g id="svgBg">
  				<rect x="0" y="0" width="100%" height="100%" rx="10" ry="10" /> 
 			</g>
-			<g id="sArrow">
-				<polygon points="0,-65 -25,-15 -5,-20 -20,65 0,60 20,65 5,-20 25,-15 0,-65" transform="rotate(0)" />
-			</g>
 		</defs>
-		<use xlink:href="#svgBg" class="widgetBg" />
-		<g id="rainSVG">
-			<g class="r_graph"></g>
-			<g class="r_ruler">
-<?php
-// Calculations based on sensors.js function drawRain
-$dy = $height / 10;
-$dh = $height - 10;
-for ( $i = 1; $i <= 10; $i++ ) {
-	echo "\t\t\t\t" . '<path d="M0 ' . intval( $dh - $i * $dy ) . ' L' . $width .' ' . intval( $dh - $i * $dy ) . '" '
-		. ( $i%5 == 0 ? 'style="stroke-width: 1.3" 	' : '' ) . '/>' . "\n";
-}
-?>
-			</g>
-			<g class="r_ruler_txt"></g>
-		</g>
-		<use x="50%" y="50%" class="w_arr" xlink:href="#sArrow" transform="rotate(0 0,0)"/>
-		<g id="baroSVG" style="opacity:.2"></g>
-		<text x="50%" y="30" class="w_spd"></text>
-		<text x="50%" y="50" class="w_dir"></text>
-		<text x="50%" y="70" class="w_gst"></text>
-		<text x="50%" y="100" class="r_cur"></text>
-		<use x="10" y="10" class="batt" xlink:href="#icon_bat" />
 	</svg>
 <!--	<a href="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/long.html" style="">
 		<img src="http://www.yr.no/place/Sweden/V%C3%A4stra_G%C3%B6taland/Fritsla~2713656/avansert_meteogram.png" id="yr" />
