@@ -93,6 +93,7 @@ var Sensor = Sensor || {
 		data: [],
 		
 		make: function( sensor ) {
+			var i;
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sTemp' + sensor.id );
 			div.setAttribute( 'class', 't_widget team' + sensor.team );
@@ -113,11 +114,17 @@ var Sensor = Sensor || {
 			+ '<div class="h_max"></div>'
 			+ '<div class="h_min"></div>'
 			+ '</div>' + "\n";
-			document.body.appendChild( div );
+			for ( i = 2; i < document.body.children.length 
+					&& document.body.children[i].hasAttribute( 'data-team' )
+					&& document.body.children[i].dataset.team < sensor.team; i++ );
+			if ( i == document.body.children.length )
+				document.body.appendChild( div );
+			else
+				document.body.insertBefore( div, document.body.children[i] );
+			
 			var divs = div.getElementsByTagName( "div" );
 			this.data[sensor.id] = {
 				div:   div,
-				title: divs[divs.length-7],
 				t_cur: divs[divs.length-6],
 				t_max: divs[divs.length-5],
 				t_min: divs[divs.length-4],
@@ -132,49 +139,54 @@ var Sensor = Sensor || {
 		},
 		
 		draw: function( sensor ) {
-			var i, t, x, dh, dx, dy, path = "", node, ruler;
-			node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Temp.make( sensor ) );
-			if ( sensor.data.length < 6 ) {
+			var i, x, y, dh, t, dx, dy, path = "", node, ruler;
+			var max = Number.MIN_SAFE_INTEGER;
+			var min = Number.MAX_SAFE_INTEGER;
+			var cur = null;
+			
+			node = ( this.data[sensor.id] ? this.data[sensor.id].div : this.make( sensor ) );
+			if ( !sensor.temp || sensor.temp.length < 6 ) {
 				node.style.display = "none";
 				return;
 			}
 			node.style.display = "inline-block"
 			Sensor.batt( this.data[sensor.id].batt, sensor.bat );
-			this.data[sensor.id].title.textContent = sensor.name;
-			this.data[sensor.id].title.title       = sensor.protocol;
 			
-			// Set current
-			for ( i = sensor.data.length - 1; i >= 0; i-- ) {
-				if ( typeof sensor.data[i].t !== "undefined" ) {
-					this.data[sensor.id].t_cur.textContent = sensor.data[i].t;
-					break;
+			// Set values
+			for ( i = sensor.temp.length - 1; i > 0; i-=2 ) {
+				if ( typeof sensor.temp[i] !== "undefined" ) {
+					if ( cur == null )
+						cur = sensor.temp[i];
+					if ( max < sensor.temp[i] )
+						max = sensor.temp[i];
+					if ( min > sensor.temp[i])
+						min = sensor.temp[i];
 				}
 			}
+			this.data[sensor.id].t_cur.textContent = cur;
+			this.data[sensor.id].t_min.textContent = min;
+			this.data[sensor.id].t_max.textContent = max;
 			
-			// Set Min/Max
-			if ( typeof sensor.min.t !== "undefined" )
-				this.data[sensor.id].t_min.textContent = sensor.min.t;
-			if ( typeof sensor.max.t !== "undefined" )
-				this.data[sensor.id].t_max.textContent = sensor.max.t;
-			
-			// Draw graph
+			// Remove ruler
 			ruler = Sensor.emptyRuler( this.data[sensor.id].ruler );
-			t  = sensor.max.t - sensor.min.t;
+			
+			t  = max - min;
 			dh = node.clientHeight * .95;
-			dx = node.clientWidth / ( sensor.data.length - 1 );
-			dy = ( t == 0 ? 1 : node.clientHeight / t * .9 );
-			for ( i = 0; i < sensor.data.length; i++ ) {
-				x = Math.round(i*dx);
-				if ( typeof sensor.data[i].t !== "undefined" ) {
-					t = Math.round( dh - ( sensor.data[i].t - sensor.min.t ) * dy );
-					path += x + "," + t + " ";
+			dx = node.clientWidth  / sensor.temp[sensor.temp.length - 2];
+ 			dy = ( t == 0 ? 1 : node.clientHeight / t * .9 );
+			for ( i = 0; i < sensor.temp.length; i+=2 ) {
+				x = ( i == 0 ? 0 : Math.round( sensor.temp[i] * dx ) );
+				if ( typeof sensor.temp[i+1] !== "undefined" ) {
+					y = Math.round( dh - ( sensor.temp[i+1] - min ) * dy );
+					path += x + "," + y + " ";
 				}
-				if ( typeof sensor.data[i].d !== "undefined" ) {
-					hr = sensor.data[i].d % 100;
-					if ( hr % 3 == 0 ) {
-						ruler.appendChild( Sensor.svgText( x, node.clientHeight-2, hr ) );
-					}
-				}
+			}
+			var time = sensor.temp[0] + sensor.temp[sensor.temp.length - 2];
+			for ( ; time > sensor.temp[0]; time -= 10800 ) {
+				x = Math.round( ( time - ( time % 10800 ) - sensor.temp[0] ) * dx );
+				t = Math.round( time / 3600 ) % 24;
+// 				ruler.appendChild( Sensor.svgLine( x, x, 0, node.clientHeight-10 ) );
+				ruler.appendChild( Sensor.svgText( x, node.clientHeight-2, t ) );
 			}
 			path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 			this.data[sensor.id].graph.setAttribute("points", path);
@@ -184,27 +196,34 @@ var Sensor = Sensor || {
 	Humid: {
 		draw: function ( sensor ) {
 			var i, node;
-			node = ( Sensor.Temp.data[sensor.id] ? Sensor.Temp.data[sensor.id].div : Sensor.Temp.make( sensor ) );
+			var max = Number.MIN_SAFE_INTEGER;
+			var min = Number.MAX_SAFE_INTEGER;
+			var cur = null;
+			
+			node = ( sensor.id in Sensor.Temp.data ? Sensor.Temp.data[sensor.id].div : Sensor.Temp.make( sensor ) );
 			Sensor.batt( Sensor.Temp.data[sensor.id].batt, sensor.bat );
-			Sensor.Temp.data[sensor.id].title.textContent = sensor.name;
-			if ( sensor.data.length < 4 ) {
+			
+			if ( !sensor.hum || sensor.hum.length < 4 ) {
 				Sensor.Temp.data[sensor.id].h_cur.textContent = "---";
 				Sensor.Temp.data[sensor.id].h_min.textContent = "---";
 				Sensor.Temp.data[sensor.id].h_max.textContent = "---";
 				return;
 			}
 			
-			if ( typeof sensor.max.h !== "undefined" )
-				Sensor.Temp.data[sensor.id].h_max.textContent = sensor.max.h;
-			if ( typeof sensor.min.h !== "undefined" )
-				Sensor.Temp.data[sensor.id].h_min.textContent = sensor.min.h;
-			for ( i = sensor.data.length - 1; i >= 0; i-- ) {
-				if ( typeof sensor.data[i].h !== "undefined" ) {
-					Sensor.Temp.data[sensor.id].h_cur.textContent = sensor.data[i].h + "%";
-					break;
+			for ( i = sensor.hum.length - 1; i > 0; i-=2 ) {
+				if ( typeof sensor.hum[i] !== "undefined" ) {
+					if ( cur == null )
+						cur = sensor.hum[i];
+					if ( max < sensor.hum[i] )
+						max = sensor.hum[i];
+					if ( min > sensor.hum[i])
+						min = sensor.hum[i];
 				}
 			}
-		}
+			Sensor.Temp.data[sensor.id].h_cur.textContent = cur + "%";
+			Sensor.Temp.data[sensor.id].h_min.textContent = min;
+			Sensor.Temp.data[sensor.id].h_max.textContent = max;
+		},
 	},
 	
 	Wind: {
@@ -529,24 +548,20 @@ var Sensor = Sensor || {
 		draw: function( sensor ) {
 			var store = { max: 120, min: 4, level: 0, percent: 0 };
 			var i, x, y, dh, t, dx, dy, path = "", node, ruler;
-			var hr   = -1;
-			node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Level.make( sensor ) );
-			if ( sensor.data.length < 6 ) {
+			node = ( this.data[sensor.id] ? this.data[sensor.id].div : this.make( sensor ) );
+			if ( sensor.level.length < 6 ) {
 				node.style.display = "none";
 				return;
 			}
 			node.style.display = "inline-block"
-// 			Sensor.batt( this.data[sensor.id].batt, sensor.bat );
-			this.data[sensor.id].title.textContent = sensor.name;
-			this.data[sensor.id].title.title       = sensor.protocol;
 			
 			// Remove ruler
 			ruler = Sensor.emptyRuler( this.data[sensor.id].ruler );
 			
 			// Set current
-			for ( i = sensor.data.length - 1; i >= 0; i-- ) {
-				if ( typeof sensor.data[i].l !== "undefined" ) {
-					t = Math.round( 100 - ( sensor.data[i].l - store.min ) / ( store.max - store.min ) * 100 );
+			for ( i = sensor.level.length - 1; i > 0; i-=2 ) {
+				if ( typeof sensor.level[i] !== "undefined" ) {
+					t = Math.round( 100 - ( sensor.level[i] - store.min ) / ( store.max - store.min ) * 100 );
 					t = t < 0 ? 0 : t;
 					t = t > 100 ? 100 : t;
 					this.data[sensor.id].d_cur.textContent = t + " %";
@@ -554,26 +569,24 @@ var Sensor = Sensor || {
 				}
 			}
 			dh = node.clientHeight;
-			dx = node.clientWidth / ( sensor.data.length - 1 );
+			dx = node.clientWidth  / sensor.level[sensor.level.length - 2];
 			dy = node.clientHeight / store.max;
-			for ( i = 0; i < sensor.data.length; i++ ) {
-				x = Math.round(i*dx);
-				if ( typeof sensor.data[i].l !== "undefined" ) {
-					y = Math.round( dh - ( store.max - sensor.data[i].l ) * dy );
+			for ( i = 0; i < sensor.level.length; i+=2 ) {
+				x = ( i == 0 ? 0 : Math.round( sensor.level[i] * dx ) );
+				if ( typeof sensor.level[i+1] !== "undefined" ) {
+					y = Math.round( dh - ( store.max - sensor.level[i+1] ) * dy );
 					path += x + "," + ( y > 0 ? y : 0 ) + " ";
 				}
-				if ( typeof sensor.data[i].d !== "undefined" ) {
-					t = Math.floor( sensor.data[i].d / 100 ) % 100;
-					if ( t != hr ) {
-						hr = t;
-						ruler.appendChild( Sensor.svgLine( x, x, 0, node.clientHeight-10 ) );
-						ruler.appendChild( Sensor.svgText( x, node.clientHeight-2, hr ) );
-					}
-				}
+			}
+			var time = sensor.level[0] + sensor.level[sensor.level.length - 2];
+			for ( ; time > sensor.level[0]; time -= 86400 ) {
+				x = Math.round( ( time - ( time % 86400 ) - sensor.level[0] ) * dx );
+				ruler.appendChild( Sensor.svgLine( x, x, 0, node.clientHeight-10 ) );
+				ruler.appendChild( Sensor.svgText( x, node.clientHeight-2, ( new Date( time * 1000 ) ).getDate() ) );
 			}
 			path += node.clientWidth + "," + node.clientHeight + " " + "0," + node.clientHeight;
 			this.data[sensor.id].graph.setAttribute("points", path);
-		}
+		},
 	},
 	
 	Rain: {

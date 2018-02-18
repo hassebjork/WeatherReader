@@ -3,9 +3,6 @@
 	SVG:
 			http://tutorials.jenkov.com/svg
 			
-	JavaScript minify:
-			http://refresh-sf.com/
-	
 	MySQL Archive:
 			http://stackoverflow.com/a/7725900/4405465
 			
@@ -94,9 +91,9 @@ class Sensor {
 		}
 		$data = array();
 		if ( $temp )
-			$data = Sensor::fetch_temperature( $data, $days );
+			Sensor::fetch_temperature( $sensors, $days );
 		if ( $humid )
-			$data = Sensor::fetch_humidity( $data, $days );
+			Sensor::fetch_humidity( $sensors, $days );
 		if ( $wind )
 			$data = Sensor::fetch_wind( $data, $days );
 		if ( $rain )
@@ -106,7 +103,7 @@ class Sensor {
 		if ( $distance )
 			$data = Sensor::fetch_distance( $data, $days );
 		if ( $level )
-			$data = Sensor::fetch_level( $data, 5 );
+			Sensor::fetch_level( $sensors, 5 );
 		foreach ( $data as $key=>$val ) {
 			// Skip sensors with team == 0
 			if ( !array_key_exists( $key, $sensors ) ) {
@@ -130,20 +127,55 @@ class Sensor {
 		return $sensors;
 	}
 
-	static function &fetch_temperature( $data, $days = 1 ) {
-		return Sensor::fetch_th( $data, $days, 'wr_temperature', 't' );
+	static function fetch_temperature( &$sensors, $days = 1 ) {
+		$sql = 'SELECT `sensor_id`, `value`, UNIX_TIMESTAMP( `time` ) AS `date` '
+			. 'FROM  `wr_temperature` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'ORDER BY `sensor_id`, `time` ASC;';
+		$res = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		$ids = array();
+		while( $row = $res->fetch_object() ) {
+			if ( array_key_exists( $row->sensor_id, $sensors ) ) {
+				$ids[$row->sensor_id] = true;
+				if ( isset( $sensors[$row->sensor_id]->temp ) )
+					$sensors[$row->sensor_id]->temp[] = $row->date - $sensors[$row->sensor_id]->temp[0];
+				else {
+					$sensors[$row->sensor_id]->temp = array();
+					$sensors[$row->sensor_id]->temp[] = $row->date;
+				}
+				$sensors[$row->sensor_id]->temp[] = $row->value;
+			}
+		}
+		foreach( $ids as $k => $v )
+			$sensors[$k]->temp = Sensor::simplify( $sensors[$k]->temp, 1000 );
 	}
-	static function fetch_humidity( $data, $days = 1 ) {
-		return Sensor::fetch_th( $data, $days, 'wr_humidity', 'h' );
+	static function fetch_humidity( &$sensors, $days = 1 ) {
+		$sql = 'SELECT `sensor_id`, `value`, UNIX_TIMESTAMP( `time` ) AS `date` '
+			. 'FROM  `wr_humidity` '
+			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
+			. 'ORDER BY `sensor_id`, `time` ASC;';
+		$res = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		$ids = array();
+		while( $row = $res->fetch_object() ) {
+			if ( array_key_exists( $row->sensor_id, $sensors ) ) {
+				$ids[$row->sensor_id] = true;
+				if ( isset( $sensors[$row->sensor_id]->hum ) )
+					$sensors[$row->sensor_id]->hum[] = $row->date - $sensors[$row->sensor_id]->hum[0];
+				else {
+					$sensors[$row->sensor_id]->hum = array();
+					$sensors[$row->sensor_id]->hum[] = $row->date;
+				}
+				$sensors[$row->sensor_id]->hum[] = $row->value;
+			}
+		}
+		foreach( $ids as $k => $v )
+			$sensors[$k]->hum = Sensor::simplify( $sensors[$k]->hum, 1000 );
 	}
 	static function fetch_barometer( $data, $days = 1 ) {
-		return Sensor::fetch_th( $data, $days, 'wr_barometer', 'b' );
-	}
-	static function &fetch_th( $data, $days = 1, $tbl, $var ) {
 		$sql   = 'SELECT `sensor_id`, '
 			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
 			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
-			. 'FROM  `' . $tbl . '` '
+			. 'FROM  `wr_barometer` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
 			. 'GROUP BY `date`, `sensor_id` '
 			. 'ORDER BY `time` ASC; ';
@@ -157,7 +189,7 @@ class Sensor {
 				$data[$id][$row->date] = new stdClass;
 				$data[$id][$row->date]->d = $row->date;
 			}
-			$data[$id][$row->date]->$var = floatVal( $row->var );
+			$data[$id][$row->date]->b = floatVal( $row->var );
 		}
 		
 		$sql   = 'SELECT `sensor_id`, '
@@ -173,8 +205,8 @@ class Sensor {
 				$data[$id]['max'] = new stdClass;
 			if ( !isset($data[$id]['min'] ) )
 				$data[$id]['min'] = new stdClass;
-			$data[$id]['max']->$var = $row->max;
-			$data[$id]['min']->$var = $row->min;
+			$data[$id]['max']->b = $row->max;
+			$data[$id]['min']->b = $row->min;
 		}
 		return $data;
 	}
@@ -270,27 +302,27 @@ class Sensor {
 		return $data;
 	}
 	
-	static function fetch_level( $data, $days = 8 ) {
-		$sql   = 'SELECT `sensor_id`, '
-			. 'ROUND( AVG( `value` ), 0 ) AS `var`, ' 
-			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+	static function fetch_level( &$sensors, $days = 8 ) {
+		$sql = 'SELECT `sensor_id`, `value`, UNIX_TIMESTAMP( `time` ) AS `date` '
 			. 'FROM  `wr_level` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
-			. 'GROUP BY DATE(`time`), HOUR(`time`), `sensor_id` '
-			. 'ORDER BY `time` ASC; ';
-		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+			. 'ORDER BY `sensor_id`, `time` ASC;';
+		$res = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
+		$ids = array();
 		while( $row = $res->fetch_object() ) {
-			$id = $row->sensor_id;
-			unset( $row->sensor_id );
-			if ( !isset( $data[$id] ) )
-				$data[$id] = array();
-			if ( !isset( $data[$id][$row->date] ) ) {
-				$data[$id][$row->date] = new stdClass;
-				$data[$id][$row->date]->d = $row->date;
+			if ( array_key_exists( $row->sensor_id, $sensors ) ) {
+				$ids[$row->sensor_id] = true;
+				if ( isset( $sensors[$row->sensor_id]->level ) )
+					$sensors[$row->sensor_id]->level[] = $row->date - $sensors[$row->sensor_id]->level[0];
+				else {
+					$sensors[$row->sensor_id]->level = array();
+					$sensors[$row->sensor_id]->level[] = $row->date;
+				}
+				$sensors[$row->sensor_id]->level[] = $row->value;
 			}
-			$data[$id][$row->date]->l = intVal( $row->var );
 		}
-		return $data;
+		foreach( $ids as $k => $v )
+			$sensors[$k]->level = Sensor::simplify( $sensors[$k]->level, 50000 );
 	}
 	
 	static function json_sensors() { 
@@ -411,21 +443,54 @@ class Sensor {
  		return '"distance":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
 	}
 	
-	static function json_level( $days = 8 ) {
-		$days = ( is_numeric( $days ) ? $days : 8 );
+	static function json_level( $days = 5 ) {
+		$days = ( is_numeric( $days ) ? $days : 5 );
 		$sensors = array();
-		$sql   = 'SELECT `sensor_id`, '
-			. 'ROUND( AVG( `value` ), 1 ) AS `var`, ' 
-			. 'DATE_FORMAT( `time`, "%m%d%H" ) AS `date` '
+		$sql   = 'SELECT `sensor_id`, `value` AS `var`, UNIX_TIMESTAMP( `time` ) AS `date` '
 			. 'FROM  `wr_level` '
 			. 'WHERE `time` > SUBDATE( NOW(), ' . $days . ' ) '
-			. 'GROUP BY HOUR(`time`), `sensor_id` '
-			. 'ORDER BY `date`, `sensor_id` ASC;';
+			. 'ORDER BY `sensor_id`, `time` ASC;';
 		$res   = $GLOBALS['mysqli']->query( $sql ) or die( 'Error - failed to get sensor data' );
 		while( $row = $res->fetch_object() ) {
-			$sensors[$row->date][$row->sensor_id] = intVal( $row->var );
+			if ( array_key_exists( $row->sensor_id, $sensors ) )
+				$sensors[$row->sensor_id][] = $row->date - $sensors[$row->sensor_id][0];
+			else
+				$sensors[$row->sensor_id][] = $row->date;
+			$sensors[$row->sensor_id][] = $row->var;
 		}
- 		return '"level":' . json_encode( $sensors, JSON_NUMERIC_CHECK );
+		$array = array();
+		foreach( $sensors as $k => $v ) {
+			$object = new stdClass;
+			$object->id   = $k;
+			$object->level = Sensor::simplify( $v, 50000 );
+			$array[] = $object;
+		}
+ 		return json_encode( $array, JSON_NUMERIC_CHECK );
+	}
+	
+	static function simplify( $points, $maxArea ) {
+		if ( count( $points ) < 7 ) {
+			return $points;
+		}
+		$time      = $points[0];
+		$points[0] = 0;
+		do {
+			$idx = 1;
+			$minArea = abs( $points[1] * ( $points[2] - $points[4] )
+				+  $points[3] * $points[4] -  $points[5] * $points[4] ) / 2;
+			for ( $i = 2; $i < count( $points ) - 4 ; $i += 2 ) {
+				$area = abs( $points[$i-1] * ( $points[$i] - $points[$i+2] )
+						+ $points[$i+1] * ( $points[$i+2] - $points[$i-2] )
+						+ $points[$i+3] * ( $points[$i-2] - $points[$i] ) ) / 2;
+				if ( $area < $minArea ) {
+					$minArea = $area;
+					$idx = $i;
+				}
+			}
+			array_splice( $points, $idx, 2 );
+		} while( $minArea < $maxArea && count( $points ) > 6 );
+		$points[0] = $time;
+		return $points;
 	}
 	
 }
@@ -436,8 +501,8 @@ if ( isset( $_REQUEST ) ) {
 		echo '{"sensors":' . json_encode( Sensor::fetch_all( $_REQUEST['all'] ), JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT )
 			. ',"time":"' . date('Y-m-d H:i:s' ) . '"'
 			. ',"Clock":['
+// 			. '{"id":2,"time":"' . date('Y-m-d H:i:s', mktime( date('H') + 1 ) ) . '","title":"Helsinki"},'
 			. '{"id":1,"time":"' . date('Y-m-d H:i:s' ) . '","title":"Stockholm"}'
-// 			. '{"id":2,"time":"' . date('Y-m-d H:i:s', mktime( date('H') + 1 ) ) . '","title":"Helsinki"}'
 			. ']}';
 		exit;
 	} else if ( isset( $_REQUEST['ftp'] ) ) {
@@ -477,7 +542,7 @@ if ( isset( $_REQUEST ) ) {
 		exit;
 	} else if ( isset( $_REQUEST['level'] ) ) {
 		header( 'Content-Type: application/json' );
-		echo Sensor::json_distance( $_REQUEST['level'] );
+		echo Sensor::json_level( $_REQUEST['level'] );
 		exit;
 	} else if ( isset( $_REQUEST['total'] ) ) {
 		header( 'Content-Type: application/json' );
@@ -554,8 +619,8 @@ header( 'Content-Type: text/html; charset=UTF-8' );
 		/* svg */
 		text.b_cur   { font-size: 18px; fill: green; text-anchor: middle; }
 		text.r_cur   { font-size: 18px; fill: #5555cd; text-anchor: middle; }
-		g.r_ruler    { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
-		.r_ruler_txt { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
+		g.r_ruler line { opacity: .25; stroke:#0047e9; stroke-width:.5; } /* stroke-dasharray:3 3 */
+		g.r_ruler text { text-anchor: middle; font-size: 8px; fill: #5555cd; opacity: 1; }
 		polygon.r_graph { stroke: none; opacity: .25; }
 		
 		/* Distance */
