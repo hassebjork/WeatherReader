@@ -1,10 +1,31 @@
 var BJORK = BJORK || ( window.location.href.indexOf( 'bjork.es' ) > 1 );
 
 var Sensor = Sensor || {
+	retry: 0,
+	
+	status: function ( txt ) {
+		document.getElementById("aTime").innerHTML = txt;
+		document.getElementById("aTime").className = "error";
+		var t = setTimeout( function() { 
+			document.getElementById("aTime").innerHTML = "";
+			document.getElementById("aTime").className = "";
+		}, 3000 );
+	},
+	
 	load: function() {
 		var req = new XMLHttpRequest();
 		req.onreadystatechange = function() {
-			if ( req.readyState == 4 && req.status == 200 ) {
+			if ( req.readyState == 4 ) {
+				if ( req.status == 0 ) {
+					Sensor.load();
+					Sensor.status( "Error connecting. Retrying!" );
+					return;
+				} else if ( req.status != 200 ) {
+					Sensor.load();
+					Sensor.status( "Error: " + req.status );
+					return;
+				}
+				Sensor.retry = 0;
 				var obj = JSON.parse( req.responseText );
 				if ( typeof obj.sensors !== 'undefined' )
 					Sensor.update( obj.sensors );
@@ -36,6 +57,8 @@ var Sensor = Sensor || {
 			if ( sensors[sens].type & 512 )	// Level
 				Sensor.Level.draw( sensors[sens] );
 		}
+		var evt = new CustomEvent('sensorupdate', {} );
+		window.dispatchEvent( evt );
 	},
 	
 	batt: function( node, value ) {
@@ -67,12 +90,13 @@ var Sensor = Sensor || {
 	},
 	
 	Temp: {
-		data: {},
+		data: [],
 		
 		make: function( sensor ) {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sTemp' + sensor.id );
 			div.setAttribute( 'class', 't_widget team' + sensor.team );
+			div.setAttribute( 'data-team', sensor.team );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 			+ '<use xlink:href="#svgBg" class="widgetBg"/>'
@@ -80,7 +104,8 @@ var Sensor = Sensor || {
 			+ '<use x="5" y="8" class="batt" style="visibility:hidden" xlink:href="#icon_bat"/>'
 			+ '<g class="t_ruler"/>'
 			+ '</svg>'
-			+ '<div class="title">' + sensor.name + '</div>'
+			+ '<div class="title" title="' + sensor.protocol + '">' 
+			+ sensor.name + '</div>'
 			+ '<div class="t_cur"></div>'
 			+ '<div class="t_max"></div>'
 			+ '<div class="t_min"></div>'
@@ -90,18 +115,19 @@ var Sensor = Sensor || {
 			+ '</div>' + "\n";
 			document.body.appendChild( div );
 			var divs = div.getElementsByTagName( "div" );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div = div;
-			this.data[sensor.id].title = divs[divs.length-7];
-			this.data[sensor.id].t_cur = divs[divs.length-6];
-			this.data[sensor.id].t_max = divs[divs.length-5];
-			this.data[sensor.id].t_min = divs[divs.length-4];
-			this.data[sensor.id].h_cur = divs[divs.length-3];
-			this.data[sensor.id].h_max = divs[divs.length-2];
-			this.data[sensor.id].h_min = divs[divs.length-1];
-			this.data[sensor.id].graph = div.getElementsByTagName( "polygon" )[0];
-			this.data[sensor.id].batt  = div.getElementsByTagName( "use" )[1];
-			this.data[sensor.id].ruler = div.getElementsByTagName( "g" )[0];
+			this.data[sensor.id] = {
+				div:   div,
+				title: divs[divs.length-7],
+				t_cur: divs[divs.length-6],
+				t_max: divs[divs.length-5],
+				t_min: divs[divs.length-4],
+				h_cur: divs[divs.length-3],
+				h_max: divs[divs.length-2],
+				h_min: divs[divs.length-1],
+				graph: div.getElementsByTagName( "polygon" )[0],
+				batt : div.getElementsByTagName( "use" )[1],
+				ruler: div.getElementsByTagName( "g" )[0],
+			};
 			return div;
 		},
 		
@@ -187,7 +213,7 @@ var Sensor = Sensor || {
 		make: function( sensor ) {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sAneom' + sensor.id );
-// 			div.setAttribute( 'class', 't_widget' );
+			div.setAttribute( 'data-team', 0 );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="150" height="150" viewBox="0 0 378 378" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 			+ '<use xlink:href="#dial_bg"/>'
@@ -204,26 +230,25 @@ var Sensor = Sensor || {
 			+ '</svg>';
 			document.body.insertBefore( div, document.body.childNodes[2] );
 			var divs = div.getElementsByTagName( "text" );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div   = div;
-// 			this.data[sensor.id].batt  = ;
-			this.data[sensor.id].speed = divs[1];
-			this.data[sensor.id].gust  = divs[3];
-			divs = div.getElementsByTagName( "use" );
-			this.data[sensor.id].dial  = divs[divs.length-2];
+			var div2 = div.getElementsByTagName( "use" );
+			this.data[sensor.id] = {
+				div:   div,
+				speed: divs[1],
+				gust:  divs[3],
+				dial:  div2[div2.length-2],
+			};
 			return div;
 		},
 		
 		draw: function ( sensor ) {
 			var i, wind, node, a;
-			node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Wind.make( sensor ) );
+			node = ( sensor.id in this.data ? this.data[sensor.id].div : Sensor.Wind.make( sensor ) );
 			
 			if ( sensor.data.length < 6 ) {
 				node.style.display = "none";
 				return;
 			}
 			node.style.display = "inline-block"
-// 			Sensor.batt( this.data[sensor.id].batt, sensor.bat );
 			
 			for ( i = sensor.data.length - 1; i >= 0; i-- ) {
 				if ( typeof sensor.data[i].w !== "undefined" ) {
@@ -261,6 +286,7 @@ var Sensor = Sensor || {
 		make: function( sensor ) {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sClock' + sensor.id );
+			div.setAttribute( 'data-team', 0 );
 			div.innerHTML = '<svg width="150" height="150" viewBox="0 0 378 378" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 			+ '<use xlink:href="#dial_bg"/>'
 			+ '<use xlink:href="#dial_dig_clock"/>'
@@ -272,18 +298,18 @@ var Sensor = Sensor || {
 			+ '<use xlink:href="#dial_glare"/>'
 			+ '</svg>';
 			document.body.insertBefore( div, document.body.childNodes[2] );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div   = div;
-// 			this.data[sensor.id].batt  = ;
-			this.data[sensor.id].title = div.getElementsByTagName( "text" )[0];
-			this.data[sensor.id].text  = div.getElementsByTagName( "text" )[1];
-			divs = div.getElementsByTagName( "use" );
-			this.data[sensor.id].dial_fast  = divs[divs.length-2];
-			this.data[sensor.id].dial_short = divs[divs.length-3];
-			this.data[sensor.id].dial_long  = divs[divs.length-4];
-			this.data[sensor.id].offset     = (new Date( sensor.time)).getTime() - (new Date()).getTime();
-			this.data[sensor.id].hrs = 0;
-			this.data[sensor.id].min = 0;
+			var divs = div.getElementsByTagName( "use" );
+			this.data[sensor.id] = {
+				div:        div,
+				title:      div.getElementsByTagName( "text" )[0],
+				text:       div.getElementsByTagName( "text" )[1],
+				dial_fast:  divs[divs.length-2],
+				dial_short: divs[divs.length-3],
+				dial_long:  divs[divs.length-4],
+				offset:     (new Date( sensor.time)).getTime() - (new Date()).getTime(),
+				hrs:        0,
+				min:        0,
+			};
 			return div;
 		},
 		
@@ -309,7 +335,7 @@ var Sensor = Sensor || {
 		make: function( sensor ) {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sBaro' + sensor.id );
-// 			div.setAttribute( 'class', 't_widget' );
+			div.setAttribute( 'data-team', 0 );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="150" height="150" viewBox="0 0 378 378" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 			+ '<use xlink:href="#dial_bg"/>'
@@ -321,13 +347,13 @@ var Sensor = Sensor || {
 			+ '<use xlink:href="#dial_glare"/>'
 			+ '</svg>'
 			document.body.insertBefore( div, document.body.childNodes[2] );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div   = div;
-// 			this.data[sensor.id].batt  = ;
-			this.data[sensor.id].text  = div.getElementsByTagName( "text" )[0];
-			this.data[sensor.id].disp  = div.getElementsByTagName( "g" )[0];
-			divs = div.getElementsByTagName( "use" );
-			this.data[sensor.id].dial  = divs[divs.length-2];
+			var divs = div.getElementsByTagName( "use" );
+			this.data[sensor.id] = {
+				div:  div,
+				text: div.getElementsByTagName( "text" )[0],
+				disp: div.getElementsByTagName( "g" )[0],
+				dial: divs[divs.length-2],
+			};
 			return div;
 		},
 		
@@ -337,13 +363,12 @@ var Sensor = Sensor || {
 			var i, j, dv, dx, dy, y_max = -9999, y_min = 9999, data = [], disp = [];
 			var DISPLAY_WIDTH = 12, DISPLAY_HEIGHT = 5;
 			
-			node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Baro.make( sensor ) );
+			node = ( sensor.id in this.data ? this.data[sensor.id].div : Sensor.Baro.make( sensor ) );
 			if ( sensor.data.length < 7 ) {
 				node.style.display = "none";
 				return;
 			}
 			node.style.display = "inline-block";
-			Sensor.batt( this.data[sensor.id].batt, sensor.bat );
 			
 			// Barometer dial and text
 			if ( sensor.data.length > 1 && typeof sensor.data[sensor.data.length-1].b !== "undefined" ) {
@@ -402,26 +427,25 @@ var Sensor = Sensor || {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sDist' + sensor.id );
 			div.setAttribute( 'class', 't_widget team' + sensor.team );
+			div.setAttribute( 'data-team', sensor.team );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-				+ '<svg width="100%" height="100%" '
-				+ 'xmlns="http://www+ w3+ org/2000/svg" xmlns:xlink="http://www+ w3+ org/1999/xlink">'
 				+ '<use xlink:href="#svgBg" class="widgetBg"/>'
 				+ '<polygon class="d_graph"/>'
 				+ '<g class="d_ruler"/>'
 				+ '</svg>'
-				+ '<div class="title">' + sensor.name + '</div>'
+				+ '<div class="title" title="' + sensor.protocol + '">' 
+				+ sensor.name + '</div>'
 				+ '<div class="d_cur"></div>'
 				+ '</div>' + "\n";
 			document.body.appendChild( div );
 			var divs = div.getElementsByTagName( "div" );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div = div;
-			this.data[sensor.id].title = divs[1];
-			this.data[sensor.id].d_cur = divs[2];
-			this.data[sensor.id].graph = div.getElementsByTagName( "polygon" )[0];
-// 			this.data[sensor.id].batt  = div.getElementsByTagName( "use" )[1];
-			this.data[sensor.id].ruler = div.getElementsByTagName( "g" )[0];
+			this.data[sensor.id] = {
+				div:   div,
+				d_cur: divs[2],
+				graph: div.getElementsByTagName( "polygon" )[0],
+				ruler: div.getElementsByTagName( "g" )[0],
+			};
 			return div;
 		},
 		
@@ -430,15 +454,12 @@ var Sensor = Sensor || {
 			var i, x, y, dh, t, dx, dy, path = "", node, ruler;
 			var hr   = -1;
 			
-			node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Dist.make( sensor ) );
+			node = ( sensor.id in this.data ? this.data[sensor.id].div : Sensor.Dist.make( sensor ) );
 			if ( sensor.data.length < 6 ) {
 				node.style.display = "none";
 				return;
 			}
 			node.style.display = "inline-block"
-// 			Sensor.batt( this.data[sensor.id].batt, sensor.bat );
-			this.data[sensor.id].title.textContent = sensor.name;
-			this.data[sensor.id].title.title       = sensor.protocol;
 			
 			// Remove ruler
 			ruler = Sensor.emptyRuler( this.data[sensor.id].ruler );
@@ -483,26 +504,25 @@ var Sensor = Sensor || {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sLevl' + sensor.id );
 			div.setAttribute( 'class', 't_widget team' + sensor.team );
+			div.setAttribute( 'data-team', sensor.team );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-				+ '<svg width="100%" height="100%" '
-				+ 'xmlns="http://www+ w3+ org/2000/svg" xmlns:xlink="http://www+ w3+ org/1999/xlink">'
 				+ '<use xlink:href="#svgBg" class="widgetBg"/>'
 				+ '<polygon class="d_graph"/>'
 				+ '<g class="d_ruler"/>'
 				+ '</svg>'
-				+ '<div class="title">' + sensor.name + '</div>'
+				+ '<div class="title" title="' + sensor.protocol + '">' 
+				+ sensor.name + '</div>'
 				+ '<div class="d_cur"></div>'
 				+ '</div>' + "\n";
 			document.body.appendChild( div );
 			var divs = div.getElementsByTagName( "div" );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div = div;
-			this.data[sensor.id].title = divs[0];
-			this.data[sensor.id].d_cur = divs[1];
-			this.data[sensor.id].graph = div.getElementsByTagName( "polygon" )[0];
-// 			this.data[sensor.id].batt  = div.getElementsByTagName( "use" )[1];
-			this.data[sensor.id].ruler = div.getElementsByTagName( "g" )[0];
+			this.data[sensor.id] = {
+				div:   div,
+				d_cur: divs[1],
+				graph: div.getElementsByTagName( "polygon" )[0],
+				ruler: div.getElementsByTagName( "g" )[0],
+			};
 			return div;
 		},
 		
@@ -563,25 +583,28 @@ var Sensor = Sensor || {
 			var div = document.createElement( 'div' );
 			div.setAttribute( 'id', 'sRain' + sensor.id );
 			div.setAttribute( 'class', 't_widget team' + sensor.team );
+			div.setAttribute( 'data-team', sensor.team );
 			div.setAttribute( 'style', 'display:none' );
 			div.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 			+ '<use xlink:href="#svgBg" class="widgetBg"/>'
 			+ '<polygon class="r_graph team"' + sensor.team + '/>'
-			+ '<g class="r_ruler_txt"></g>'
+			+ '<g class="r_ruler"></g>'
 			+ '</svg>'
-			+ '<div class="title">' + sensor.name + '</div>';
+			+ '<div class="title" title="' + sensor.protocol + '">' 
+			+ sensor.name + '</div>';
 			document.body.appendChild( div );
-			this.data[sensor.id] = {};
-			this.data[sensor.id].div   = div;
-			this.data[sensor.id].graph = div.getElementsByTagName( "polygon" )[0];
-			this.data[sensor.id].text  = div.getElementsByTagName( "div" )[0];
-			this.data[sensor.id].ruler = div.getElementsByTagName( "g" )[0];
+			this.data[sensor.id] = {
+				div:   div,
+				graph: div.getElementsByTagName( "polygon" )[0],
+				text:  div.getElementsByTagName( "div" )[0],
+				ruler: div.getElementsByTagName( "g" )[0],
+			};
 			return div;
 		},
 		
 		draw: function( sensor ) {
-			var x, y, x1, x2, dx, dy, dh, ruler, hr, path = "";
-			var node = ( this.data[sensor.id] ? this.data[sensor.id].div : Sensor.Rain.make( sensor ) );
+			var x, y, x1, x2, dx, dy, dh, ruler, hr, path = "", height = 6;
+			var node = ( sensor.id in this.data ? this.data[sensor.id].div : Sensor.Rain.make( sensor ) );
 			if ( sensor.data.length < 6 ) {
 				node.style.display = "none";
 				return;
@@ -598,8 +621,13 @@ var Sensor = Sensor || {
 			var graph = this.data[sensor.id].graph;
 			dh = node.clientHeight - 10;
 			dx = node.clientWidth / ( sensor.data.length - 1 );
-			dy = node.clientHeight / 5;
+			dy = node.clientHeight / height;
 			x1 = 0;
+			for ( i = 1; i < height; i++ ) {
+				y = dh - i * dy;
+				this.data[sensor.id].ruler.appendChild( Sensor.svgLine( 0, node.clientWidth, y, y ) );
+			}
+			
 			for ( i = 0; i < sensor.data.length; i++ ) {
 				x2 = Math.round( (i+1) * dx ) - 1;
 				x  = Math.round( x1 + ( x2-x1) / 2 );
@@ -622,4 +650,5 @@ var Sensor = Sensor || {
 			graph.setAttribute("points",path);
 		},
 	},
-}
+};
+
