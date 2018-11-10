@@ -368,19 +368,17 @@ ISR(ANALOG_COMP_vect) {
 }
 
 void reportSerial (const char* s, class DecodeOOK& decoder) {
-	if ( !decoder.checkSum() )
-		return;
-	byte pos;
-	const byte* data = decoder.getData(pos);
-	Serial.print(s);
-	Serial.print(' ');
-	for (byte i = 0; i < pos; ++i) {
-		Serial.print(data[i] >> 4, HEX);
-		Serial.print(data[i] & 0x0F, HEX);
+	if ( decoder.checkSum() ) {
+		byte pos;
+		const byte* data = decoder.getData(pos);
+		Serial.print(s);
+		Serial.print(' ');
+		for (byte i = 0; i < pos; ++i) {
+			Serial.print(data[i] >> 4, HEX);
+			Serial.print(data[i] & 0x0F, HEX);
+		}
+		Serial.print( "\n" );
 	}
-// 	Serial.print( decoder.checkSum() ? "\tOK" : "\tFAIL" );
-	Serial.print( "\n" );
-
 	decoder.resetDecoder();
 }
 
